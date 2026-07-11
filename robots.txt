@@ -1,0 +1,12 @@
+# robots.txt for Ascendant Labs
+# https://ascendantlabs.co
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://ascendantlabs.co/sitemap.xml
+
+# Block access to development/config files
+Disallow: /gcp/
+Disallow: /.git/
