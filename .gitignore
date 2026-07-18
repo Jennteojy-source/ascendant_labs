@@ -2,4 +2,8 @@ node_modules/
 .DS_Store
 *.log
 .env
+functions/.env
 firebase-key.json
+.firebase/
+firebase-debug.log
+nord_vpn/
