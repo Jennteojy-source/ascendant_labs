@@ -11,7 +11,7 @@
     "test": "node test_functions.js"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "firebase-admin": "^11.8.0",
