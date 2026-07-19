@@ -43,6 +43,8 @@ function optionalEnv(name, fallback = "") {
 const config = {
   networkId: optionalEnv("NETWORK_ID", "nordvpn"),
   webhookApiKey: optionalEnv("WEBHOOK_API_KEY", optionalEnv("API_KEY")),
+  capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
+  datasetId: optionalEnv("DATASET_ID"),
   nordVpn: {
     baseUrl: optionalEnv("NORDVPN_AFFILIATE_BASE_URL", "https://go.nordvpn.net/aff_c"),
     affId: optionalEnv("NORDVPN_AFF_ID", "152405"),

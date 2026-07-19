@@ -1,6 +1,17 @@
 const mockAdd = jestFn();
 const mockDocSet = jestFn();
-const mockDoc = jestFn(() => ({ set: mockDocSet }));
+const mockDocGet = jestFn(() => Promise.resolve({
+  exists: true,
+  data: () => ({
+    ip: "127.0.0.1",
+    userAgent: "Mozilla/5.0 Mock",
+    timestamp: { toDate: () => new Date() }
+  })
+}));
+const mockDoc = jestFn(() => ({
+  set: mockDocSet,
+  get: mockDocGet,
+}));
 const mockCollection = jestFn(() => ({
   add: mockAdd,
   doc: mockDoc,
@@ -41,7 +52,8 @@ async function runTests() {
   let passed = true;
 
   try {
-    mockAdd.mock.calls = [];
+    mockDoc.mock.calls = [];
+    mockDocSet.mock.calls = [];
     const req = {
       query: {
         fbclid: "meta_click_123",
@@ -81,11 +93,15 @@ async function runTests() {
       throw new Error(`Expected redirect URL '${expectedUrl}', got '${redirectUrl}'`);
     }
 
-    if (mockAdd.mock.calls.length !== 1) {
-      throw new Error(`Expected 1 Firestore add call, got ${mockAdd.mock.calls.length}`);
+    if (mockDocSet.mock.calls.length !== 1) {
+      throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
     }
 
-    const clickData = mockAdd.mock.calls[0][0];
+    if (mockDoc.mock.calls[0][0] !== "meta_click_123") {
+      throw new Error(`Expected click document ID to be meta_click_123, got ${mockDoc.mock.calls[0][0]}`);
+    }
+
+    const clickData = mockDocSet.mock.calls[0][0];
     if (
       clickData.clickId !== "meta_click_123" ||
       clickData.tracking.fbclid !== "meta_click_123" ||
@@ -101,7 +117,8 @@ async function runTests() {
   }
 
   try {
-    mockAdd.mock.calls = [];
+    mockDoc.mock.calls = [];
+    mockDocSet.mock.calls = [];
     const req = {
       query: {},
       get: () => "",
@@ -132,8 +149,8 @@ async function runTests() {
       throw new Error(`Expected generated aff_click_id redirect, got '${redirectUrl}'`);
     }
 
-    if (mockAdd.mock.calls.length !== 1) {
-      throw new Error(`Expected 1 Firestore add call, got ${mockAdd.mock.calls.length}`);
+    if (mockDocSet.mock.calls.length !== 1) {
+      throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
     }
 
     console.log("✅ Test 2 Passed: redirectNordVpn without fbclid redirected and logged correctly.");
@@ -182,8 +199,9 @@ async function runTests() {
       throw new Error(`Expected body 'success', got '${responseBody}'`);
     }
 
-    if (mockDoc.mock.calls.length !== 1 || mockDoc.mock.calls[0][0] !== "trans_999") {
-      throw new Error("Expected Firestore doc set to use transaction_id as key");
+    const callArgs = mockDoc.mock.calls.map(c => c[0]);
+    if (!callArgs.includes("trans_999") || !callArgs.includes("meta_click_123")) {
+      throw new Error(`Expected doc lookup for click and conversion, got: ${JSON.stringify(callArgs)}`);
     }
 
     const convData = mockDocSet.mock.calls[0][0];

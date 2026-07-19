@@ -1,6 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const https = require("https");
 const { config, buildAffiliateUrl } = require("./config");
 
 admin.initializeApp();
@@ -44,8 +45,8 @@ function resolveClickId(tracking) {
   return crypto.randomUUID();
 }
 
-function saveClickAsync(clickData) {
-  return db.collection("clicks").add(clickData);
+function saveClickAsync(clickId, clickData) {
+  return db.collection("clicks").doc(clickId).set(clickData);
 }
 
 function saveConversionAsync(transactionId, conversionData) {
@@ -60,6 +61,74 @@ function getQueryValue(req, key) {
   return value || "";
 }
 
+function sendMetaCapiEvent(clickId, conversionData, clickDocData = null) {
+  if (!config.datasetId || !config.capiAccessToken) {
+    console.log("Meta CAPI skip: missing dataset ID or access token");
+    return Promise.resolve();
+  }
+
+  const timestampSec = Math.floor(Date.now() / 1000);
+  
+  // Format fbc: fb.1.creationTime.fbclid
+  let fbc = "";
+  if (clickId) {
+    const creationTime = clickDocData?.timestamp 
+      ? Math.floor(clickDocData.timestamp.toDate().getTime())
+      : Date.now();
+    fbc = `fb.1.${creationTime}.${clickId}`;
+  }
+
+  const payload = {
+    data: [
+      {
+        event_name: "Purchase",
+        event_time: timestampSec,
+        event_id: conversionData.transactionId,
+        action_source: "website",
+        event_source_url: "https://ascendantlabs.co/r/nordvpn",
+        user_data: {
+          client_ip_address: clickDocData?.ip || "",
+          client_user_agent: clickDocData?.userAgent || "",
+          fbc: fbc || undefined
+        },
+        custom_data: {
+          currency: "USD",
+          value: conversionData.saleAmount || conversionData.payout || 0
+        }
+      }
+    ]
+  };
+
+  const postData = JSON.stringify(payload);
+  const options = {
+    hostname: "graph.facebook.com",
+    path: `/v19.0/${config.datasetId}/events?access_token=${config.capiAccessToken}`,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(postData)
+    }
+  };
+
+  return new Promise((resolve) => {
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        console.log(`Meta CAPI response: status ${res.statusCode}, body: ${body}`);
+        resolve();
+      });
+    });
+
+    req.on("error", (e) => {
+      console.error(`Meta CAPI error: ${e.message}`);
+      resolve();
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
 
 exports.redirectNordVpn = onRequest(async (req, res) => {
   const tracking = extractTrackingParams(req.query);
@@ -80,7 +149,7 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
   };
 
   try {
-    const writePromise = saveClickAsync(clickData);
+    const writePromise = saveClickAsync(clickId, clickData);
     res.redirect(302, redirectUrl);
     await writePromise;
   } catch (error) {
@@ -92,6 +161,9 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
 });
 
 exports.nordVpnWebhook = onRequest(async (req, res) => {
+  // Respond immediately to prevent blocking TUNE
+  res.status(200).send("success");
+
   try {
     const clickId =
       getQueryValue(req, "click_id") ||
@@ -103,7 +175,8 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
     const saleAmount = parseFloat(getQueryValue(req, "sale_amount")) || 0;
 
     if (!transactionId) {
-      return res.status(400).json({ error: "Missing transaction_id" });
+      console.warn("Conversion warning: Missing transaction_id");
+      return;
     }
 
     const conversionData = {
@@ -117,11 +190,24 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    await saveConversionAsync(transactionId, conversionData);
-    console.log(`Logged conversion ${transactionId} for click ${clickId}`);
-    return res.status(200).send("success");
+    let clickDocData = null;
+    if (clickId) {
+      try {
+        const clickDoc = await db.collection("clicks").doc(clickId).get();
+        if (clickDoc.exists) {
+          clickDocData = clickDoc.data();
+        }
+      } catch (err) {
+        console.error("Firestore read error:", err);
+      }
+    }
+
+    await Promise.all([
+      saveConversionAsync(transactionId, conversionData),
+      sendMetaCapiEvent(clickId, conversionData, clickDocData)
+    ]);
+    console.log(`Successfully processed conversion ${transactionId} for click ${clickId}`);
   } catch (error) {
-    console.error("Error in nordVpnWebhook:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Error in background task for nordVpnWebhook:", error);
   }
 });
