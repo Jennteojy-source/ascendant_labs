@@ -61,6 +61,7 @@ function buildAffiliateUrl(clickId) {
 
   if (clickId) {
     params.set("aff_click_id", clickId);
+    params.set("aff_sub", clickId);
   }
 
   return `${baseUrl}?${params.toString()}`;

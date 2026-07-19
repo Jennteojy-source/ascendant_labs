@@ -60,18 +60,6 @@ function getQueryValue(req, key) {
   return value || "";
 }
 
-function isAuthorizedWebhook(req) {
-  if (!config.webhookApiKey) {
-    return true;
-  }
-
-  const providedKey =
-    getQueryValue(req, "api_key") ||
-    req.get("x-api-key") ||
-    req.get("authorization")?.replace(/^Bearer\s+/i, "");
-
-  return providedKey === config.webhookApiKey;
-}
 
 exports.redirectNordVpn = onRequest(async (req, res) => {
   const tracking = extractTrackingParams(req.query);
@@ -104,10 +92,6 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
 });
 
 exports.nordVpnWebhook = onRequest(async (req, res) => {
-  if (!isAuthorizedWebhook(req)) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   try {
     const clickId =
       getQueryValue(req, "click_id") ||

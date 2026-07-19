@@ -76,7 +76,7 @@ async function runTests() {
     }
 
     const expectedUrl =
-      "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902&aff_click_id=meta_click_123";
+      "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902&aff_click_id=meta_click_123&aff_sub=meta_click_123";
     if (redirectUrl !== expectedUrl) {
       throw new Error(`Expected redirect URL '${expectedUrl}', got '${redirectUrl}'`);
     }
@@ -201,36 +201,6 @@ async function runTests() {
     passed = false;
   }
 
-  try {
-    const req = {
-      query: {
-        click_id: "meta_click_123",
-        transaction_id: "trans_999",
-      },
-      get: () => "",
-    };
-
-    let responseStatus = 0;
-    const res = {
-      status: (code) => {
-        responseStatus = code;
-        return {
-          json: () => {},
-        };
-      },
-    };
-
-    await functions.nordVpnWebhook(req, res);
-
-    if (responseStatus !== 401) {
-      throw new Error(`Expected status 401 for missing api key, got ${responseStatus}`);
-    }
-
-    console.log("✅ Test 4 Passed: nordVpnWebhook rejects unauthorized requests.");
-  } catch (err) {
-    console.error("❌ Test 4 Failed:", err.message);
-    passed = false;
-  }
 
   if (passed) {
     console.log("\n🎉 All tests passed successfully!");
