@@ -147,7 +147,7 @@ async function runTests() {
     mockDocSet.mock.calls = [];
     const req = {
       query: {
-        api_key: "sec_wb_a3b2c9d8e7f6",
+        api_key: "11f70bb6b8ef56267f8174fdc34a2ac4ab8ab363c9544907819eb38fa0f6fc19",
         click_id: "meta_click_123",
         transaction_id: "trans_999",
         payout: "20.50",
