@@ -42,7 +42,6 @@ function optionalEnv(name, fallback = "") {
 
 const config = {
   networkId: optionalEnv("NETWORK_ID", "nordvpn"),
-  webhookApiKey: optionalEnv("WEBHOOK_API_KEY", optionalEnv("API_KEY")),
   capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("DATASET_ID"),
   nordVpn: {
