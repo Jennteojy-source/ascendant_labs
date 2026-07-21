@@ -180,6 +180,10 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
     const payout = parseFloat(getQueryValue(req, "payout")) || 0;
     const offerId = parseInt(getQueryValue(req, "offer_id"), 10) || Number(config.nordVpn.offerId);
     const saleAmount = parseFloat(getQueryValue(req, "sale_amount")) || 0;
+    const currency = getQueryValue(req, "currency");
+    const goalId = getQueryValue(req, "goal_id");
+    const countryCode = getQueryValue(req, "country_code");
+    const status = getQueryValue(req, "status");
 
     if (!transactionId) {
       console.warn("Conversion warning: Missing transaction_id");
@@ -193,6 +197,10 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       payout,
       offerId,
       saleAmount,
+      currency: currency || null,
+      goalId: goalId || null,
+      countryCode: countryCode || null,
+      status: status || null,
       rawQuery: req.query,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
