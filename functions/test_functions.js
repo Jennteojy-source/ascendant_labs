@@ -1,5 +1,17 @@
+// Mock CAPI calls response or verify triggers make calls
+function jestFn(impl = () => {}) {
+  const fn = (...args) => {
+    fn.mock.calls.push(args);
+    return impl(...args);
+  };
+  fn.mock = { calls: [] };
+  return fn;
+}
+
 const mockAdd = jestFn();
 const mockDocSet = jestFn();
+let mockDocCreateImpl = () => Promise.resolve();
+const mockDocCreate = jestFn((...args) => mockDocCreateImpl(...args));
 const mockDocGet = jestFn(() => Promise.resolve({
   exists: true,
   data: () => ({
@@ -12,6 +24,7 @@ const mockDocGet = jestFn(() => Promise.resolve({
 const mockDoc = jestFn(() => ({
   set: mockDocSet,
   get: mockDocGet,
+  create: mockDocCreate,
 }));
 const mockCollection = jestFn(() => ({
   add: mockAdd,
@@ -38,15 +51,6 @@ require.cache[require.resolve("firebase-admin")] = {
 
 const functions = require("./index.js");
 
-// Mock CAPI calls response or verify triggers make calls
-function jestFn(impl = () => {}) {
-  const fn = (...args) => {
-    fn.mock.calls.push(args);
-    return impl(...args);
-  };
-  fn.mock = { calls: [] };
-  return fn;
-}
 
 async function runTests() {
   console.log("Running Cloud Functions trigger-decoupled CAPI tests...\n");
@@ -163,12 +167,13 @@ async function runTests() {
     passed = false;
   }
 
-  // Test 3: nordVpnWebhook accepts conversion payload and logs to Firestore (auth removed)
+  // Test 3: nordVpnWebhook accepts conversion payload with valid API key and logs to Firestore
   try {
     mockDoc.mock.calls = [];
-    mockDocSet.mock.calls = [];
+    mockDocCreate.mock.calls = [];
     const req = {
       query: {
+        key: "11f70bb6b8ef56267f8174fdc34a2ac4ab8ab363c9544907819eb38fa0f6fc19",
         click_id: "meta_click_123",
         transaction_id: "trans_999",
         payout: "20.50",
@@ -203,11 +208,11 @@ async function runTests() {
       throw new Error(`Expected body 'success', got '${responseBody}'`);
     }
 
-    if (mockDocSet.mock.calls.length !== 1) {
-      throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
+    if (mockDocCreate.mock.calls.length !== 1) {
+      throw new Error(`Expected 1 Firestore create call, got ${mockDocCreate.mock.calls.length}`);
     }
 
-    const convData = mockDocSet.mock.calls[0][0];
+    const convData = mockDocCreate.mock.calls[0][0];
     if (
       convData.clickId !== "meta_click_123" ||
       convData.transactionId !== "trans_999" ||
@@ -260,6 +265,90 @@ async function runTests() {
     console.log("✅ Test 5 Passed: handleConversionCreated executed successfully.");
   } catch (err) {
     console.error("❌ Test 5 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 6: nordVpnWebhook rejects conversion payload with invalid API key
+  try {
+    const req = {
+      query: {
+        key: "invalid_key",
+        click_id: "meta_click_123",
+        transaction_id: "trans_999",
+      },
+      get: () => "",
+    };
+
+    let responseStatus = 0;
+    let responseBody = "";
+    const res = {
+      status: (code) => {
+        responseStatus = code;
+        return {
+          send: (body) => {
+            responseBody = body;
+          },
+        };
+      },
+    };
+
+    await functions.nordVpnWebhook(req, res);
+
+    if (responseStatus !== 401) {
+      throw new Error(`Expected status 401, got ${responseStatus}`);
+    }
+    console.log("✅ Test 6 Passed: nordVpnWebhook rejected unauthorized request.");
+  } catch (err) {
+    console.error("❌ Test 6 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 7: nordVpnWebhook handles duplicate conversion gracefully
+  try {
+    // Override create mock once to simulate ALREADY_EXISTS (error code 6)
+    const originalCreateImpl = mockDocCreateImpl;
+    mockDocCreateImpl = () => {
+      const err = new Error("Document already exists");
+      err.code = 6;
+      return Promise.reject(err);
+    };
+
+    const req = {
+      query: {
+        key: "11f70bb6b8ef56267f8174fdc34a2ac4ab8ab363c9544907819eb38fa0f6fc19",
+        click_id: "meta_click_123",
+        transaction_id: "trans_999",
+      },
+      get: () => "",
+    };
+
+    let responseStatus = 0;
+    let responseBody = "";
+    const res = {
+      status: (code) => {
+        responseStatus = code;
+        return {
+          send: (body) => {
+            responseBody = body;
+          },
+        };
+      },
+    };
+
+    await functions.nordVpnWebhook(req, res);
+
+    // Restore create mock
+    mockDocCreateImpl = originalCreateImpl;
+
+    if (responseStatus !== 200) {
+      throw new Error(`Expected status 200, got ${responseStatus}`);
+    }
+    if (responseBody !== "duplicate") {
+      throw new Error(`Expected body 'duplicate', got '${responseBody}'`);
+    }
+    console.log("✅ Test 7 Passed: nordVpnWebhook handled duplicate conversion gracefully.");
+  } catch (err) {
+    console.error("❌ Test 7 Failed:", err.message);
     passed = false;
   }
 

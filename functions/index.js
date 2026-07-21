@@ -51,7 +51,7 @@ function saveClickAsync(clickId, clickData) {
 }
 
 function saveConversionAsync(transactionId, conversionData) {
-  return db.collection("conversions").doc(transactionId).set(conversionData);
+  return db.collection("conversions").doc(transactionId).create(conversionData);
 }
 
 function getQueryValue(req, key) {
@@ -70,7 +70,7 @@ function getQueryValue(req, key) {
  * @param {object} [customData] - Optional { currency, value, content_name, ... }
  * @param {string} [eventSourceUrl] - The URL where the event occurred
  */
-function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://ascendantlabs.co/r/nordvpn") {
+function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://www.ascendantlabs.co/r/nordvpn") {
   if (!config.datasetId || !config.capiAccessToken) {
     console.log("Meta CAPI skip: missing dataset ID or access token");
     return Promise.resolve();
@@ -97,11 +97,12 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
   const postData = JSON.stringify(payload);
   const options = {
     hostname: "graph.facebook.com",
-    path: `/v19.0/${config.datasetId}/events?access_token=${config.capiAccessToken}`,
+    path: `/v21.0/${config.datasetId}/events`,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(postData),
+      "Authorization": `Bearer ${config.capiAccessToken}`,
     },
   };
 
@@ -145,17 +146,26 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   };
 
+  // Redirect the client immediately to maximize performance
+  res.redirect(302, redirectUrl);
+
+  // Await the Firestore write so the runtime environment remains active until the write completes.
   try {
-    // Only await the Firestore write to keep the redirect extremely fast (~30-50ms)
     await saveClickAsync(clickId, clickData);
   } catch (error) {
     console.error("Error in redirectNordVpn save:", error);
   }
-
-  res.redirect(302, redirectUrl);
 });
 
 exports.nordVpnWebhook = onRequest(async (req, res) => {
+  // Validate incoming webhook API key for security
+  const apiKey = getQueryValue(req, "key") || req.get("x-api-key") || "";
+  if (apiKey !== config.webhookApiKey) {
+    console.warn("Unauthorized webhook request: invalid key");
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
   try {
     const clickId =
       getQueryValue(req, "click_id") ||
@@ -176,6 +186,10 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       return;
     }
 
+    if (!clickId) {
+      console.warn(`Conversion warning: Missing click_id for transaction ${transactionId}. CAPI matching will be degraded.`);
+    }
+
     const conversionData = {
       clickId,
       partner: config.networkId,
@@ -191,10 +205,20 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Save conversion to Firestore and let the trigger process CAPI Purchase
-    await saveConversionAsync(transactionId, conversionData);
-    console.log(`Successfully logged conversion ${transactionId} for click ${clickId}`);
-    res.status(200).send("success");
+    // Save conversion to Firestore and let the trigger process CAPI Purchase.
+    // Use .create() to fail on duplicates, which we handle gracefully.
+    try {
+      await saveConversionAsync(transactionId, conversionData);
+      console.log(`Successfully logged conversion ${transactionId} for click ${clickId}`);
+      res.status(200).send("success");
+    } catch (err) {
+      if (err.code === 6 || err.message.includes("ALREADY_EXISTS")) {
+        console.log(`Duplicate conversion ${transactionId} ignored.`);
+        res.status(200).send("duplicate");
+        return;
+      }
+      throw err;
+    }
   } catch (error) {
     console.error("Error in nordVpnWebhook:", error);
     res.status(500).send("Internal Server Error");
