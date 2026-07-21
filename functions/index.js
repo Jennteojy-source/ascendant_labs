@@ -61,44 +61,37 @@ function getQueryValue(req, key) {
   return value || "";
 }
 
-function sendMetaCapiEvent(clickId, conversionData, clickDocData = null) {
+/**
+ * Generic Meta CAPI event sender.
+ * @param {string} eventName - Meta standard event (e.g. "ViewContent", "Purchase")
+ * @param {string} eventId - Unique dedup ID for this event
+ * @param {object} userData - { fbc, client_ip_address, client_user_agent }
+ * @param {object} [customData] - Optional { currency, value, content_name, ... }
+ */
+function sendMetaCapiEvent(eventName, eventId, userData, customData = null) {
   if (!config.datasetId || !config.capiAccessToken) {
     console.log("Meta CAPI skip: missing dataset ID or access token");
     return Promise.resolve();
   }
 
-  const timestampSec = Math.floor(Date.now() / 1000);
-  
-  // Format fbc: fb.1.creationTime.fbclid
-  let fbc = "";
-  if (clickId) {
-    const creationTime = clickDocData?.timestamp 
-      ? Math.floor(clickDocData.timestamp.toDate().getTime())
-      : Date.now();
-    fbc = `fb.1.${creationTime}.${clickId}`;
-  }
-
-  const payload = {
-    data: [
-      {
-        event_name: "Purchase",
-        event_time: timestampSec,
-        event_id: conversionData.transactionId,
-        action_source: "website",
-        event_source_url: "https://ascendantlabs.co/r/nordvpn",
-        user_data: {
-          client_ip_address: clickDocData?.ip || "",
-          client_user_agent: clickDocData?.userAgent || "",
-          fbc: fbc || undefined
-        },
-        custom_data: {
-          currency: "USD",
-          value: conversionData.saleAmount || conversionData.payout || 0
-        }
-      }
-    ]
+  const event = {
+    event_name: eventName,
+    event_time: Math.floor(Date.now() / 1000),
+    event_id: eventId,
+    action_source: "website",
+    event_source_url: "https://ascendantlabs.co/r/nordvpn",
+    user_data: {
+      fbc: userData.fbc || undefined,
+      client_ip_address: userData.client_ip_address || "",
+      client_user_agent: userData.client_user_agent || "",
+    },
   };
 
+  if (customData) {
+    event.custom_data = customData;
+  }
+
+  const payload = { data: [event] };
   const postData = JSON.stringify(payload);
   const options = {
     hostname: "graph.facebook.com",
@@ -106,8 +99,8 @@ function sendMetaCapiEvent(clickId, conversionData, clickDocData = null) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(postData)
-    }
+      "Content-Length": Buffer.byteLength(postData),
+    },
   };
 
   return new Promise((resolve) => {
@@ -115,13 +108,13 @@ function sendMetaCapiEvent(clickId, conversionData, clickDocData = null) {
       let body = "";
       res.on("data", (chunk) => { body += chunk; });
       res.on("end", () => {
-        console.log(`Meta CAPI response: status ${res.statusCode}, body: ${body}`);
+        console.log(`Meta CAPI [${eventName}] response: status ${res.statusCode}, body: ${body}`);
         resolve();
       });
     });
 
     req.on("error", (e) => {
-      console.error(`Meta CAPI error: ${e.message}`);
+      console.error(`Meta CAPI [${eventName}] error: ${e.message}`);
       resolve();
     });
 
@@ -134,29 +127,43 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
   const tracking = extractTrackingParams(req.query);
   const clickId = resolveClickId(tracking);
   const redirectUrl = buildAffiliateUrl(clickId);
+  const ip = getClientIp(req);
+  const userAgent = req.get("user-agent") || "";
+  const nowMs = Date.now();
 
   const clickData = {
     clickId,
     partner: config.networkId,
     offerId: Number(config.nordVpn.offerId),
     tracking,
-    ip: getClientIp(req),
-    userAgent: req.get("user-agent") || "",
+    ip,
+    userAgent,
     referrer: req.get("referer") || req.get("referrer") || "",
     landingPath: req.path || "/r/nordvpn",
     query: req.query,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   };
 
+  // Redirect immediately, then do async work
+  res.redirect(302, redirectUrl);
+
   try {
-    const writePromise = saveClickAsync(clickId, clickData);
-    res.redirect(302, redirectUrl);
-    await writePromise;
+    // Build fbc from current click
+    const fbc = clickId ? `fb.1.${nowMs}.${clickId}` : "";
+
+    await Promise.all([
+      saveClickAsync(clickId, clickData),
+      sendMetaCapiEvent("ViewContent", `vc_${clickId}`, {
+        fbc,
+        client_ip_address: ip,
+        client_user_agent: userAgent,
+      }, {
+        content_name: "NordVPN",
+        content_category: "VPN",
+      }),
+    ]);
   } catch (error) {
-    console.error("Error in redirectNordVpn:", error);
-    if (!res.headersSent) {
-      res.redirect(302, redirectUrl);
-    }
+    console.error("Error in redirectNordVpn background:", error);
   }
 });
 
@@ -190,6 +197,7 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
+    // Look up original click to get user context for CAPI
     let clickDocData = null;
     if (clickId) {
       try {
@@ -202,12 +210,29 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       }
     }
 
+    // Build fbc from original click timestamp
+    let fbc = "";
+    if (clickId) {
+      const creationTime = clickDocData?.timestamp
+        ? Math.floor(clickDocData.timestamp.toDate().getTime())
+        : Date.now();
+      fbc = `fb.1.${creationTime}.${clickId}`;
+    }
+
     await Promise.all([
       saveConversionAsync(transactionId, conversionData),
-      sendMetaCapiEvent(clickId, conversionData, clickDocData)
+      sendMetaCapiEvent("Purchase", transactionId, {
+        fbc,
+        client_ip_address: clickDocData?.ip || "",
+        client_user_agent: clickDocData?.userAgent || "",
+      }, {
+        currency: "USD",
+        value: saleAmount || payout || 0,
+      }),
     ]);
     console.log(`Successfully processed conversion ${transactionId} for click ${clickId}`);
   } catch (error) {
     console.error("Error in background task for nordVpnWebhook:", error);
   }
 });
+
