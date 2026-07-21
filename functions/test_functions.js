@@ -219,6 +219,53 @@ async function runTests() {
     passed = false;
   }
 
+  try {
+    mockDoc.mock.calls = [];
+    mockDocSet.mock.calls = [];
+    const req = {
+      query: {
+        api_key: "wrong_key",
+        click_id: "meta_click_123",
+        transaction_id: "trans_bad",
+        payout: "20.50",
+      },
+      get: () => "",
+    };
+
+    let responseStatus = 0;
+    let responseBody = "";
+    const res = {
+      status: (code) => {
+        responseStatus = code;
+        return {
+          send: (body) => {
+            responseBody = body;
+          },
+          json: (body) => {
+            responseBody = JSON.stringify(body);
+          },
+        };
+      },
+    };
+
+    await functions.nordVpnWebhook(req, res);
+
+    if (responseStatus !== 403) {
+      throw new Error(`Expected status 403, got ${responseStatus}`);
+    }
+    if (responseBody !== "Forbidden") {
+      throw new Error(`Expected body 'Forbidden', got '${responseBody}'`);
+    }
+
+    if (mockDocSet.mock.calls.length !== 0) {
+      throw new Error(`Expected 0 Firestore writes for unauthorized request, got ${mockDocSet.mock.calls.length}`);
+    }
+
+    console.log("✅ Test 4 Passed: nordVpnWebhook rejected unauthorized request with 403.");
+  } catch (err) {
+    console.error("❌ Test 4 Failed:", err.message);
+    passed = false;
+  }
 
   if (passed) {
     console.log("\n🎉 All tests passed successfully!");

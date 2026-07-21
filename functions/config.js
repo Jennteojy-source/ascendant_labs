@@ -44,6 +44,7 @@ const config = {
   networkId: optionalEnv("NETWORK_ID", "nordvpn"),
   capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("DATASET_ID"),
+  webhookApiKey: optionalEnv("WEBHOOK_API_KEY"),
   nordVpn: {
     baseUrl: optionalEnv("NORDVPN_AFFILIATE_BASE_URL", "https://go.nordvpn.net/aff_c"),
     affId: optionalEnv("NORDVPN_AFF_ID", "152405"),

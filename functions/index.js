@@ -67,8 +67,9 @@ function getQueryValue(req, key) {
  * @param {string} eventId - Unique dedup ID for this event
  * @param {object} userData - { fbc, client_ip_address, client_user_agent }
  * @param {object} [customData] - Optional { currency, value, content_name, ... }
+ * @param {string} [eventSourceUrl] - The URL where the event occurred
  */
-function sendMetaCapiEvent(eventName, eventId, userData, customData = null) {
+function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://ascendantlabs.co/r/nordvpn") {
   if (!config.datasetId || !config.capiAccessToken) {
     console.log("Meta CAPI skip: missing dataset ID or access token");
     return Promise.resolve();
@@ -79,9 +80,9 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null) {
     event_time: Math.floor(Date.now() / 1000),
     event_id: eventId,
     action_source: "website",
-    event_source_url: "https://ascendantlabs.co/r/nordvpn",
+    event_source_url: eventSourceUrl,
     user_data: {
-      fbc: userData.fbc || undefined,
+      ...(userData.fbc ? { fbc: userData.fbc } : {}),
       client_ip_address: userData.client_ip_address || "",
       client_user_agent: userData.client_user_agent || "",
     },
@@ -144,12 +145,9 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  // Redirect immediately, then do async work
-  res.redirect(302, redirectUrl);
-
   try {
-    // Build fbc from current click
-    const fbc = clickId ? `fb.1.${nowMs}.${clickId}` : "";
+    // Only construct fbc when a real fbclid exists from a Facebook ad click
+    const fbc = tracking.fbclid ? `fb.1.${nowMs}.${tracking.fbclid}` : undefined;
 
     await Promise.all([
       saveClickAsync(clickId, clickData),
@@ -163,13 +161,22 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
       }),
     ]);
   } catch (error) {
-    console.error("Error in redirectNordVpn background:", error);
+    console.error("Error in redirectNordVpn:", error);
   }
+
+  // Redirect after tracking completes to avoid Cloud Functions CPU throttling
+  res.redirect(302, redirectUrl);
 });
 
 exports.nordVpnWebhook = onRequest(async (req, res) => {
-  // Respond immediately to prevent blocking TUNE
-  res.status(200).send("success");
+  // Validate webhook API key to prevent unauthorized conversion submissions
+  if (config.webhookApiKey) {
+    const apiKey = getQueryValue(req, "api_key");
+    if (apiKey !== config.webhookApiKey) {
+      res.status(403).send("Forbidden");
+      return;
+    }
+  }
 
   try {
     const clickId =
@@ -187,6 +194,7 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
 
     if (!transactionId) {
       console.warn("Conversion warning: Missing transaction_id");
+      res.status(400).send("Missing transaction_id");
       return;
     }
 
@@ -218,13 +226,13 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       }
     }
 
-    // Build fbc from original click timestamp
-    let fbc = "";
-    if (clickId) {
-      const creationTime = clickDocData?.timestamp
+    // Only build fbc if the original click had a real fbclid from a Facebook ad
+    let fbc = undefined;
+    if (clickDocData?.tracking?.fbclid) {
+      const creationTime = clickDocData.timestamp
         ? Math.floor(clickDocData.timestamp.toDate().getTime())
         : Date.now();
-      fbc = `fb.1.${creationTime}.${clickId}`;
+      fbc = `fb.1.${creationTime}.${clickDocData.tracking.fbclid}`;
     }
 
     await Promise.all([
@@ -239,8 +247,10 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       }),
     ]);
     console.log(`Successfully processed conversion ${transactionId} for click ${clickId}`);
+    res.status(200).send("success");
   } catch (error) {
-    console.error("Error in background task for nordVpnWebhook:", error);
+    console.error("Error in nordVpnWebhook:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 
