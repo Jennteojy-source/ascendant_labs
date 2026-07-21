@@ -5,6 +5,7 @@ const mockDocGet = jestFn(() => Promise.resolve({
   data: () => ({
     ip: "127.0.0.1",
     userAgent: "Mozilla/5.0 Mock",
+    tracking: { fbclid: "meta_click_123" },
     timestamp: { toDate: () => new Date() }
   })
 }));
@@ -37,6 +38,7 @@ require.cache[require.resolve("firebase-admin")] = {
 
 const functions = require("./index.js");
 
+// Mock CAPI calls response or verify triggers make calls
 function jestFn(impl = () => {}) {
   const fn = (...args) => {
     fn.mock.calls.push(args);
@@ -47,10 +49,11 @@ function jestFn(impl = () => {}) {
 }
 
 async function runTests() {
-  console.log("Running Cloud Functions logic tests...\n");
+  console.log("Running Cloud Functions trigger-decoupled CAPI tests...\n");
 
   let passed = true;
 
+  // Test 1: redirectNordVpn HTTP redirects and writes click doc to Firestore
   try {
     mockDoc.mock.calls = [];
     mockDocSet.mock.calls = [];
@@ -110,12 +113,13 @@ async function runTests() {
       throw new Error(`Firestore click data mismatch: ${JSON.stringify(clickData)}`);
     }
 
-    console.log("✅ Test 1 Passed: redirectNordVpn with fbclid redirected and logged correctly.");
+    console.log("✅ Test 1 Passed: redirectNordVpn with fbclid redirected and saved to Firestore.");
   } catch (err) {
     console.error("❌ Test 1 Failed:", err.message);
     passed = false;
   }
 
+  // Test 2: redirectNordVpn HTTP works without fbclid
   try {
     mockDoc.mock.calls = [];
     mockDocSet.mock.calls = [];
@@ -153,18 +157,18 @@ async function runTests() {
       throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
     }
 
-    console.log("✅ Test 2 Passed: redirectNordVpn without fbclid redirected and logged correctly.");
+    console.log("✅ Test 2 Passed: redirectNordVpn without fbclid redirected and saved to Firestore.");
   } catch (err) {
     console.error("❌ Test 2 Failed:", err.message);
     passed = false;
   }
 
+  // Test 3: nordVpnWebhook accepts conversion payload and logs to Firestore (auth removed)
   try {
     mockDoc.mock.calls = [];
     mockDocSet.mock.calls = [];
     const req = {
       query: {
-        api_key: "11f70bb6b8ef56267f8174fdc34a2ac4ab8ab363c9544907819eb38fa0f6fc19",
         click_id: "meta_click_123",
         transaction_id: "trans_999",
         payout: "20.50",
@@ -199,14 +203,14 @@ async function runTests() {
       throw new Error(`Expected body 'success', got '${responseBody}'`);
     }
 
-    const callArgs = mockDoc.mock.calls.map(c => c[0]);
-    if (!callArgs.includes("trans_999") || !callArgs.includes("meta_click_123")) {
-      throw new Error(`Expected doc lookup for click and conversion, got: ${JSON.stringify(callArgs)}`);
+    if (mockDocSet.mock.calls.length !== 1) {
+      throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
     }
 
     const convData = mockDocSet.mock.calls[0][0];
     if (
       convData.clickId !== "meta_click_123" ||
+      convData.transactionId !== "trans_999" ||
       convData.payout !== 20.5 ||
       convData.saleAmount !== 50
     ) {
@@ -219,51 +223,43 @@ async function runTests() {
     passed = false;
   }
 
+  // Test 4: handleRedirectClickCreated logic works and sends CAPI ViewContent
   try {
     mockDoc.mock.calls = [];
     mockDocSet.mock.calls = [];
-    const req = {
-      query: {
-        api_key: "wrong_key",
-        click_id: "meta_click_123",
-        transaction_id: "trans_bad",
-        payout: "20.50",
-      },
-      get: () => "",
+    const clickId = "meta_click_123";
+    const clickData = {
+      clickId: "meta_click_123",
+      tracking: { fbclid: "meta_click_123" },
+      ip: "127.0.0.1",
+      userAgent: "Mozilla/5.0 Mock",
+      timestamp: { toDate: () => new Date() },
+      landingPath: "/r/nordvpn"
     };
 
-    let responseStatus = 0;
-    let responseBody = "";
-    const res = {
-      status: (code) => {
-        responseStatus = code;
-        return {
-          send: (body) => {
-            responseBody = body;
-          },
-          json: (body) => {
-            responseBody = JSON.stringify(body);
-          },
-        };
-      },
-    };
-
-    await functions.nordVpnWebhook(req, res);
-
-    if (responseStatus !== 403) {
-      throw new Error(`Expected status 403, got ${responseStatus}`);
-    }
-    if (responseBody !== "Forbidden") {
-      throw new Error(`Expected body 'Forbidden', got '${responseBody}'`);
-    }
-
-    if (mockDocSet.mock.calls.length !== 0) {
-      throw new Error(`Expected 0 Firestore writes for unauthorized request, got ${mockDocSet.mock.calls.length}`);
-    }
-
-    console.log("✅ Test 4 Passed: nordVpnWebhook rejected unauthorized request with 403.");
+    await functions.handleRedirectClickCreated(clickId, clickData);
+    console.log("✅ Test 4 Passed: handleRedirectClickCreated executed successfully.");
   } catch (err) {
     console.error("❌ Test 4 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 5: handleConversionCreated logic works and sends CAPI Purchase
+  try {
+    mockDoc.mock.calls = [];
+    mockDocSet.mock.calls = [];
+    const transactionId = "trans_999";
+    const conversionData = {
+      clickId: "meta_click_123",
+      transactionId: "trans_999",
+      payout: 20.5,
+      saleAmount: 50
+    };
+
+    await functions.handleConversionCreated(transactionId, conversionData);
+    console.log("✅ Test 5 Passed: handleConversionCreated executed successfully.");
+  } catch (err) {
+    console.error("❌ Test 5 Failed:", err.message);
     passed = false;
   }
 

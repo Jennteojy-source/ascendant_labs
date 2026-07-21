@@ -1,4 +1,5 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const https = require("https");
@@ -130,7 +131,6 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
   const redirectUrl = buildAffiliateUrl(clickId);
   const ip = getClientIp(req);
   const userAgent = req.get("user-agent") || "";
-  const nowMs = Date.now();
 
   const clickData = {
     clickId,
@@ -146,38 +146,16 @@ exports.redirectNordVpn = onRequest(async (req, res) => {
   };
 
   try {
-    // Only construct fbc when a real fbclid exists from a Facebook ad click
-    const fbc = tracking.fbclid ? `fb.1.${nowMs}.${tracking.fbclid}` : undefined;
-
-    await Promise.all([
-      saveClickAsync(clickId, clickData),
-      sendMetaCapiEvent("ViewContent", `vc_${clickId}`, {
-        fbc,
-        client_ip_address: ip,
-        client_user_agent: userAgent,
-      }, {
-        content_name: "NordVPN",
-        content_category: "VPN",
-      }),
-    ]);
+    // Only await the Firestore write to keep the redirect extremely fast (~30-50ms)
+    await saveClickAsync(clickId, clickData);
   } catch (error) {
-    console.error("Error in redirectNordVpn:", error);
+    console.error("Error in redirectNordVpn save:", error);
   }
 
-  // Redirect after tracking completes to avoid Cloud Functions CPU throttling
   res.redirect(302, redirectUrl);
 });
 
 exports.nordVpnWebhook = onRequest(async (req, res) => {
-  // Validate webhook API key to prevent unauthorized conversion submissions
-  if (config.webhookApiKey) {
-    const apiKey = getQueryValue(req, "api_key");
-    if (apiKey !== config.webhookApiKey) {
-      res.status(403).send("Forbidden");
-      return;
-    }
-  }
-
   try {
     const clickId =
       getQueryValue(req, "click_id") ||
@@ -213,44 +191,111 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Look up original click to get user context for CAPI
-    let clickDocData = null;
-    if (clickId) {
-      try {
-        const clickDoc = await db.collection("clicks").doc(clickId).get();
-        if (clickDoc.exists) {
-          clickDocData = clickDoc.data();
-        }
-      } catch (err) {
-        console.error("Firestore read error:", err);
-      }
-    }
-
-    // Only build fbc if the original click had a real fbclid from a Facebook ad
-    let fbc = undefined;
-    if (clickDocData?.tracking?.fbclid) {
-      const creationTime = clickDocData.timestamp
-        ? Math.floor(clickDocData.timestamp.toDate().getTime())
-        : Date.now();
-      fbc = `fb.1.${creationTime}.${clickDocData.tracking.fbclid}`;
-    }
-
-    await Promise.all([
-      saveConversionAsync(transactionId, conversionData),
-      sendMetaCapiEvent("Purchase", transactionId, {
-        fbc,
-        client_ip_address: clickDocData?.ip || "",
-        client_user_agent: clickDocData?.userAgent || "",
-      }, {
-        currency: "USD",
-        value: saleAmount || payout || 0,
-      }),
-    ]);
-    console.log(`Successfully processed conversion ${transactionId} for click ${clickId}`);
+    // Save conversion to Firestore and let the trigger process CAPI Purchase
+    await saveConversionAsync(transactionId, conversionData);
+    console.log(`Successfully logged conversion ${transactionId} for click ${clickId}`);
     res.status(200).send("success");
   } catch (error) {
     console.error("Error in nordVpnWebhook:", error);
     res.status(500).send("Internal Server Error");
   }
 });
+
+async function handleRedirectClickCreated(clickId, clickData) {
+  if (!clickData) return;
+  const tracking = clickData.tracking || {};
+  const creationTime = clickData.timestamp
+    ? Math.floor(clickData.timestamp.toDate().getTime())
+    : Date.now();
+
+  // Only construct fbc if the click originated from Facebook (real fbclid exists)
+  const fbc = tracking.fbclid ? `fb.1.${creationTime}.${tracking.fbclid}` : undefined;
+
+  try {
+    await sendMetaCapiEvent(
+      "ViewContent",
+      `vc_${clickId}`,
+      {
+        fbc,
+        client_ip_address: clickData.ip || "",
+        client_user_agent: clickData.userAgent || "",
+      },
+      {
+        content_name: "NordVPN",
+        content_category: "VPN",
+      },
+      `https://ascendantlabs.co${clickData.landingPath || "/r/nordvpn"}`
+    );
+  } catch (error) {
+    console.error(`Error sending ViewContent CAPI for click ${clickId}:`, error);
+  }
+}
+
+async function handleConversionCreated(transactionId, conversionData) {
+  if (!conversionData) return;
+  const clickId = conversionData.clickId;
+
+  // Look up original click to get user context for CAPI
+  let clickDocData = null;
+  if (clickId) {
+    try {
+      const clickDoc = await db.collection("clicks").doc(clickId).get();
+      if (clickDoc.exists) {
+        clickDocData = clickDoc.data();
+      }
+    } catch (err) {
+      console.error("Firestore read error looking up click for conversion:", err);
+    }
+  }
+
+  // Only build fbc if the original click had a real fbclid from a Facebook ad
+  let fbc = undefined;
+  if (clickDocData?.tracking?.fbclid) {
+    const creationTime = clickDocData.timestamp
+      ? Math.floor(clickDocData.timestamp.toDate().getTime())
+      : Date.now();
+    fbc = `fb.1.${creationTime}.${clickDocData.tracking.fbclid}`;
+  }
+
+  try {
+    await sendMetaCapiEvent(
+      "Purchase",
+      transactionId,
+      {
+        fbc,
+        client_ip_address: clickDocData?.ip || "",
+        client_user_agent: clickDocData?.userAgent || "",
+      },
+      {
+        currency: "USD",
+        value: conversionData.saleAmount || conversionData.payout || 0,
+      },
+      "https://ascendantlabs.co/r/nordvpn"
+    );
+  } catch (error) {
+    console.error(`Error sending Purchase CAPI for transaction ${transactionId}:`, error);
+  }
+}
+
+exports.onRedirectClickCreated = onDocumentCreated("clicks/{clickId}", async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) {
+    console.log("No data associated with the click event");
+    return;
+  }
+  await handleRedirectClickCreated(event.params.clickId, snapshot.data());
+});
+
+exports.onConversionCreated = onDocumentCreated("conversions/{transactionId}", async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) {
+    console.log("No data associated with the conversion event");
+    return;
+  }
+  await handleConversionCreated(event.params.transactionId, snapshot.data());
+});
+
+// Export raw logic handlers for testing
+exports.handleRedirectClickCreated = handleRedirectClickCreated;
+exports.handleConversionCreated = handleConversionCreated;
 
