@@ -146,6 +146,49 @@
         });
     }
 
+    // Guaranteed CAPI Delivery Queue
+    function getPendingCapiQueue() {
+        try {
+            return JSON.parse(localStorage.getItem("pending_capi_events") || "[]");
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function savePendingCapiQueue(queue) {
+        try {
+            localStorage.setItem("pending_capi_events", JSON.stringify(queue));
+        } catch (e) {}
+    }
+
+    function processPendingCapiQueue() {
+        const queue = getPendingCapiQueue();
+        if (queue.length === 0) return;
+
+        const remaining = [];
+        queue.forEach(item => {
+            fetch("/api/track-quiz-event", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(item.payload),
+                keepalive: true
+            }).then(res => {
+                if (!res.ok && item.attempts < 3) {
+                    item.attempts = (item.attempts || 1) + 1;
+                    remaining.push(item);
+                    savePendingCapiQueue(remaining);
+                }
+            }).catch(() => {
+                if ((item.attempts || 1) < 3) {
+                    item.attempts = (item.attempts || 1) + 1;
+                    remaining.push(item);
+                    savePendingCapiQueue(remaining);
+                }
+            });
+        });
+        savePendingCapiQueue(remaining);
+    }
+
     function sendCapiEvent(eventName, customData = {}) {
         if (!clickId) return;
         const payload = {
@@ -158,16 +201,24 @@
         };
 
         const jsonString = JSON.stringify(payload);
+        let sent = false;
+
         if (navigator.sendBeacon) {
             const blob = new Blob([jsonString], { type: "application/json" });
-            navigator.sendBeacon("/api/track-quiz-event", blob);
-        } else {
+            sent = navigator.sendBeacon("/api/track-quiz-event", blob);
+        }
+
+        if (!sent) {
             fetch("/api/track-quiz-event", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: jsonString,
                 keepalive: true
-            }).catch(() => {});
+            }).catch(() => {
+                const queue = getPendingCapiQueue();
+                queue.push({ payload, attempts: 1, timestamp: Date.now() });
+                savePendingCapiQueue(queue);
+            });
         }
     }
 
@@ -178,6 +229,9 @@
         bindEvents();
         setupCtaLink();
         fetchUserTelemetry();
+        processPendingCapiQueue();
+
+        window.addEventListener("online", processPendingCapiQueue);
     }
 
     // Fetch Live User IP, Location, and ISP from native /api/telemetry endpoint
@@ -210,14 +264,31 @@
         }
     }
 
-    // Theme Switcher (Dark / Light Mode)
+    // System-Detected Dark / Light Theme Engine
     function initTheme() {
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme) {
-            document.documentElement.setAttribute("data-theme", savedTheme);
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const userOverride = localStorage.getItem("theme");
+
+        if (userOverride) {
+            document.documentElement.setAttribute("data-theme", userOverride);
         } else {
-            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+            document.documentElement.setAttribute("data-theme", mediaQuery.matches ? "dark" : "light");
+        }
+
+        // Listen for live system color scheme changes
+        try {
+            mediaQuery.addEventListener("change", (e) => {
+                if (!localStorage.getItem("theme")) {
+                    document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+                }
+            });
+        } catch (e) {
+            // Fallback for older Safari
+            mediaQuery.addListener((e) => {
+                if (!localStorage.getItem("theme")) {
+                    document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+                }
+            });
         }
 
         if (themeToggleBtn) {
