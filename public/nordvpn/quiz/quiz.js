@@ -146,80 +146,22 @@
         });
     }
 
-    // Guaranteed CAPI Delivery Queue
-    function getPendingCapiQueue() {
-        try {
-            return JSON.parse(localStorage.getItem("pending_capi_events") || "[]");
-        } catch (e) {
-            return [];
-        }
-    }
-
-    function savePendingCapiQueue(queue) {
-        try {
-            localStorage.setItem("pending_capi_events", JSON.stringify(queue));
-        } catch (e) {}
-    }
-
-    function processPendingCapiQueue() {
-        const queue = getPendingCapiQueue();
-        if (queue.length === 0) return;
-
-        const remaining = [];
-        queue.forEach(item => {
-            fetch("/api/track-quiz-event", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(item.payload),
-                keepalive: true
-            }).then(res => {
-                if (!res.ok && item.attempts < 3) {
-                    item.attempts = (item.attempts || 1) + 1;
-                    remaining.push(item);
-                    savePendingCapiQueue(remaining);
-                }
-            }).catch(() => {
-                if ((item.attempts || 1) < 3) {
-                    item.attempts = (item.attempts || 1) + 1;
-                    remaining.push(item);
-                    savePendingCapiQueue(remaining);
-                }
-            });
-        });
-        savePendingCapiQueue(remaining);
-    }
-
     function sendCapiEvent(eventName, customData = {}) {
         if (!clickId) return;
-        const payload = {
-            eventName: eventName,
-            eventId: `${eventName.toLowerCase()}_${clickId}`,
-            clickId: clickId,
-            trackingParams: trackingParams,
-            customData: customData,
-            eventSourceUrl: window.location.href
-        };
-
-        const jsonString = JSON.stringify(payload);
-        let sent = false;
-
-        if (navigator.sendBeacon) {
-            const blob = new Blob([jsonString], { type: "application/json" });
-            sent = navigator.sendBeacon("/api/track-quiz-event", blob);
-        }
-
-        if (!sent) {
-            fetch("/api/track-quiz-event", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: jsonString,
-                keepalive: true
-            }).catch(() => {
-                const queue = getPendingCapiQueue();
-                queue.push({ payload, attempts: 1, timestamp: Date.now() });
-                savePendingCapiQueue(queue);
-            });
-        }
+        fetch("/api/track-quiz-event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                eventName: eventName,
+                eventId: `${eventName.toLowerCase()}_${clickId}`,
+                clickId: clickId,
+                trackingParams: trackingParams,
+                customData: customData,
+                eventSourceUrl: window.location.href
+            })
+        }).catch(err => {
+            console.warn(`CAPI track ${eventName} error:`, err);
+        });
     }
 
     // Initialize Engine
@@ -229,28 +171,17 @@
         bindEvents();
         setupCtaLink();
         fetchUserTelemetry();
-        processPendingCapiQueue();
-
-        window.addEventListener("online", processPendingCapiQueue);
     }
 
-    // Fetch Live User IP, Location, and ISP from native /api/telemetry endpoint
-    // Strict 4s timeout — if it takes too long, telemetry section is hidden
+    // Fetch Live Telemetry from backend endpoint (/api/telemetry)
     let telemetryReady = false;
 
     async function fetchUserTelemetry() {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-
         try {
-            const res = await fetch("/api/telemetry", { signal: controller.signal });
-            clearTimeout(timeoutId);
-
+            const res = await fetch("/api/telemetry");
             if (!res.ok) return;
 
             const data = await res.json();
-
-            // Only mark ready if we got at least an IP back
             if (data.ip) {
                 userTelemetry.ip = data.ip;
                 if (data.city) userTelemetry.city = data.city;
@@ -259,8 +190,7 @@
                 telemetryReady = true;
             }
         } catch (e) {
-            clearTimeout(timeoutId);
-            console.warn("Telemetry fetch failed or timed out:", e.name);
+            console.warn("Telemetry fetch error:", e);
         }
     }
 
@@ -283,7 +213,6 @@
                 }
             });
         } catch (e) {
-            // Fallback for older Safari
             mediaQuery.addListener((e) => {
                 if (!localStorage.getItem("theme")) {
                     document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
