@@ -157,13 +157,18 @@
             eventSourceUrl: window.location.href
         };
 
-        fetch("/api/track-quiz-event", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).catch(err => {
-            console.warn(`CAPI track ${eventName} error:`, err);
-        });
+        const jsonString = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+            const blob = new Blob([jsonString], { type: "application/json" });
+            navigator.sendBeacon("/api/track-quiz-event", blob);
+        } else {
+            fetch("/api/track-quiz-event", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: jsonString,
+                keepalive: true
+            }).catch(() => {});
+        }
     }
 
     // Initialize Engine
