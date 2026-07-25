@@ -180,27 +180,26 @@
                 <div class="telemetry-header">
                     <span class="live-dot"></span>
                     <span class="telemetry-title">YOUR EXPOSED FOOTPRINT</span>
-                </div>
                 <div class="telemetry-grid">
-                    <div class="telemetry-item">
+                    <div class="telemetry-item" id="tel-item-device">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">Device & OS</span>
+                            <span id="telemetry-device" class="item-val">Detecting...</span>
+                        </div>
+                    </div>
+                    <div class="telemetry-item" id="tel-item-ip">
                         <div class="tel-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
                         </div>
                         <div class="tel-data">
-                            <span class="item-label">IP Address</span>
+                            <span class="item-label">Public IP</span>
                             <span id="telemetry-ip" class="item-val alert">Scanning...</span>
                         </div>
                     </div>
-                    <div class="telemetry-item">
-                        <div class="tel-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
-                        </div>
-                        <div class="tel-data">
-                            <span class="item-label">Location</span>
-                            <span id="telemetry-loc" class="item-val alert">Scanning...</span>
-                        </div>
-                    </div>
-                    <div class="telemetry-item">
+                    <div class="telemetry-item" id="tel-item-isp">
                         <div class="tel-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
                         </div>
@@ -209,6 +208,16 @@
                             <span id="telemetry-isp" class="item-val alert">Scanning...</span>
                         </div>
                     </div>
+                    <div class="telemetry-item" id="tel-item-status">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">Protection</span>
+                            <span id="telemetry-status" class="item-val alert-danger">UNPROTECTED</span>
+                        </div>
+                    </div>
+                </div>
                 </div>
             </div>
 

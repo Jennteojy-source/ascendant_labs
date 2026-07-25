@@ -340,6 +340,25 @@
         }, 220);
     }
 
+    // Helper: detect exact Device & OS 100% accurately from Browser User-Agent
+    function getDeviceOs() {
+        const ua = navigator.userAgent || "";
+        const platform = navigator.platform || "";
+        if (/iPhone/i.test(ua)) return "iPhone (iOS)";
+        if (/iPad/i.test(ua)) return "iPad (iPadOS)";
+        if (/Android/i.test(ua)) {
+            return /Mobile/i.test(ua) ? "Android Phone" : "Android Tablet";
+        }
+        if (/Macintosh|Mac OS X/i.test(ua) || /^Mac/i.test(platform)) {
+            return "MacBook / Mac (macOS)";
+        }
+        if (/Windows/i.test(ua) || /^Win/i.test(platform)) {
+            return "Windows PC";
+        }
+        if (/Linux/i.test(ua)) return "Linux PC";
+        return "Web Device";
+    }
+
     // Helper: display text for telemetry (returns null when not available)
     function displayIp() {
         return userTelemetry.ip || null;
@@ -369,7 +388,7 @@
 
             if (progress >= 30 && progress < 65) {
                 const ip = displayIp();
-                statusEl.textContent = ip ? `Reading IP: ${ip}` : "Scanning network fingerprint...";
+                statusEl.textContent = ip ? `Reading IP: ${ip}` : `Scanning ${getDeviceOs()} fingerprint...`;
                 check1.classList.add("done");
                 check1.querySelector(".check-icon").textContent = "✓";
             } else if (progress >= 65 && progress < 95) {
@@ -402,20 +421,33 @@
         const resultHeadline = document.getElementById("result-headline");
         const vpnPitchSub = document.getElementById("vpn-pitch-sub");
 
-        // Telemetry Footprint: show only if we got real data, hide entirely otherwise
-        const telemetrySection = document.querySelector(".telemetry-card");
+        // Telemetry Footprint elements
+        const telemetryDevice = document.getElementById("telemetry-device");
         const telemetryIp = document.getElementById("telemetry-ip");
-        const telemetryLoc = document.getElementById("telemetry-loc");
         const telemetryIsp = document.getElementById("telemetry-isp");
+        const telItemIp = document.getElementById("tel-item-ip");
+        const telItemIsp = document.getElementById("tel-item-isp");
+
+        const deviceOs = getDeviceOs();
+        const deviceShortName = deviceOs.replace(/ \(.*\)/, "");
+
+        if (telemetryDevice) telemetryDevice.textContent = deviceOs;
 
         if (telemetryReady && displayIp()) {
-            if (telemetrySection) telemetrySection.style.display = "";
             if (telemetryIp) telemetryIp.textContent = displayIp();
-            if (telemetryLoc) telemetryLoc.textContent = displayLoc() || "Detected";
-            if (telemetryIsp) telemetryIsp.textContent = displayIsp() || "Detected";
+            
+            const isp = displayIsp();
+            if (isp) {
+                if (telItemIsp) telItemIsp.style.display = "";
+                if (telemetryIsp) telemetryIsp.textContent = isp;
+            } else {
+                // If ISP lookup failed or timed out, hide ISP grid item gracefully
+                if (telItemIsp) telItemIsp.style.display = "none";
+            }
         } else {
-            // Hide entirely — better to show nothing than inaccurate data
-            if (telemetrySection) telemetrySection.style.display = "none";
+            // If IP lookup failed, hide IP and ISP items gracefully (Device & Status stay visible!)
+            if (telItemIp) telItemIp.style.display = "none";
+            if (telItemIsp) telItemIsp.style.display = "none";
         }
 
         finalScoreNum.textContent = `${calculatedPercentage}%`;
@@ -427,28 +459,28 @@
 
         const ispName = displayIsp();
 
-        // Categorize Risk Level & set one-liner pitch using detected info
+        // Categorize Risk Level & set hyper-personalized pitch copy
         if (calculatedPercentage >= 70) {
             resultStatusTag.className = "result-badge risk-critical";
             resultRiskLevel.textContent = "CRITICAL EXPOSURE";
             resultHeadline.textContent = "High Risk Detected";
             vpnPitchSub.textContent = ispName
-                ? `Your IP is exposed to ${ispName}. NordVPN encrypts everything in 1 click.`
-                : "Your IP address is fully exposed. NordVPN encrypts everything in 1 click.";
+                ? `Your ${deviceShortName} on ${ispName} is unencrypted. NordVPN shields your data in 1 click.`
+                : `Your ${deviceShortName} is unencrypted. NordVPN shields your data in 1 click.`;
         } else if (calculatedPercentage >= 45) {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "ELEVATED RISK";
             resultHeadline.textContent = "Vulnerabilities Found";
             vpnPitchSub.textContent = ispName
-                ? `${ispName} can see every site you visit. NordVPN hides your IP & activity instantly.`
-                : "Your ISP can see every site you visit. NordVPN hides your IP & activity instantly.";
+                ? `${ispName} can track your ${deviceShortName} history. NordVPN hides your IP & activity instantly.`
+                : `Your ISP can track your ${deviceShortName} history. NordVPN hides your IP & activity instantly.`;
         } else {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "MODERATE EXPOSURE";
             resultHeadline.textContent = "Good Habits — IP Still Exposed";
             vpnPitchSub.textContent = ispName
-                ? `Even with safe habits, ${ispName} logs all your traffic. NordVPN shields you 24/7.`
-                : "Even with safe habits, your ISP logs all your traffic. NordVPN shields you 24/7.";
+                ? `Even with safe habits, ${ispName} logs your ${deviceShortName} traffic. NordVPN shields you 24/7.`
+                : `Even with safe habits, your ISP logs your ${deviceShortName} traffic. NordVPN shields you 24/7.`;
         }
 
         // Render Compact Visual Risk Bars
