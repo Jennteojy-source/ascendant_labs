@@ -175,20 +175,33 @@
         fetchUserTelemetry();
     }
 
-    // Fetch Live User IP, Location, and ISP directly from native endpoint (0 external 3rd-party dependencies)
+    // Fetch Live User IP, Location, and ISP from native /api/telemetry endpoint
+    // Strict 4s timeout — if it takes too long, telemetry section is hidden
+    let telemetryReady = false;
+
     async function fetchUserTelemetry() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
         try {
-            const res = await fetch("/api/telemetry");
-            if (res.ok) {
-                const data = await res.json();
-                if (data.ip) userTelemetry.ip = data.ip;
+            const res = await fetch("/api/telemetry", { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            // Only mark ready if we got at least an IP back
+            if (data.ip) {
+                userTelemetry.ip = data.ip;
                 if (data.city) userTelemetry.city = data.city;
                 if (data.country) userTelemetry.country = data.country;
                 if (data.isp) userTelemetry.isp = data.isp;
-                return;
+                telemetryReady = true;
             }
         } catch (e) {
-            console.warn("Native telemetry fetch error:", e);
+            clearTimeout(timeoutId);
+            console.warn("Telemetry fetch failed or timed out:", e.name);
         }
     }
 
@@ -327,35 +340,16 @@
         }, 220);
     }
 
-    // Helper: display text for telemetry or fallback
+    // Helper: display text for telemetry (returns null when not available)
     function displayIp() {
-        if (!userTelemetry.ip) return "103.252.19.45";
-
-        // Valid IPv4 format -> return directly
-        if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(userTelemetry.ip.trim())) {
-            return userTelemetry.ip.trim();
-        }
-
-        // Deterministically map IPv6 or local IP to a realistic, clean IPv4 string
-        let hash = 0;
-        const str = String(userTelemetry.ip);
-        for (let i = 0; i < str.length; i++) {
-            hash = (hash << 5) - hash + str.charCodeAt(i);
-            hash |= 0;
-        }
-        const b1 = 100 + Math.abs(hash % 90);
-        const b2 = 10 + Math.abs((hash >> 3) % 200);
-        const b3 = 10 + Math.abs((hash >> 6) % 220);
-        const b4 = 10 + Math.abs((hash >> 9) % 240);
-
-        return `${b1}.${b2}.${b3}.${b4}`;
+        return userTelemetry.ip || null;
     }
     function displayLoc() {
         const parts = [userTelemetry.city, userTelemetry.country].filter(Boolean);
-        return parts.length > 0 ? parts.join(", ") : "Visible to ISP";
+        return parts.length > 0 ? parts.join(", ") : null;
     }
     function displayIsp() {
-        return userTelemetry.isp || "Your Internet Provider";
+        return userTelemetry.isp || null;
     }
 
     function runAnalyzingScreen() {
@@ -374,11 +368,13 @@
             percentEl.textContent = `${progress}%`;
 
             if (progress >= 30 && progress < 65) {
-                statusEl.textContent = `Reading IP: ${displayIp()}`;
+                const ip = displayIp();
+                statusEl.textContent = ip ? `Reading IP: ${ip}` : "Scanning network fingerprint...";
                 check1.classList.add("done");
                 check1.querySelector(".check-icon").textContent = "✓";
             } else if (progress >= 65 && progress < 95) {
-                statusEl.textContent = `ISP: ${displayIsp()}`;
+                const isp = displayIsp();
+                statusEl.textContent = isp ? `ISP: ${isp}` : "Analyzing exposure vectors...";
                 check2.classList.add("done");
                 check2.querySelector(".check-icon").textContent = "✓";
             } else if (progress >= 95) {
@@ -406,14 +402,21 @@
         const resultHeadline = document.getElementById("result-headline");
         const vpnPitchSub = document.getElementById("vpn-pitch-sub");
 
-        // Telemetry Footprint elements (populated from live detection)
+        // Telemetry Footprint: show only if we got real data, hide entirely otherwise
+        const telemetrySection = document.querySelector(".telemetry-card");
         const telemetryIp = document.getElementById("telemetry-ip");
         const telemetryLoc = document.getElementById("telemetry-loc");
         const telemetryIsp = document.getElementById("telemetry-isp");
 
-        if (telemetryIp) telemetryIp.textContent = displayIp();
-        if (telemetryLoc) telemetryLoc.textContent = displayLoc();
-        if (telemetryIsp) telemetryIsp.textContent = displayIsp();
+        if (telemetryReady && displayIp()) {
+            if (telemetrySection) telemetrySection.style.display = "";
+            if (telemetryIp) telemetryIp.textContent = displayIp();
+            if (telemetryLoc) telemetryLoc.textContent = displayLoc() || "Detected";
+            if (telemetryIsp) telemetryIsp.textContent = displayIsp() || "Detected";
+        } else {
+            // Hide entirely — better to show nothing than inaccurate data
+            if (telemetrySection) telemetrySection.style.display = "none";
+        }
 
         finalScoreNum.textContent = `${calculatedPercentage}%`;
 
@@ -429,17 +432,23 @@
             resultStatusTag.className = "result-badge risk-critical";
             resultRiskLevel.textContent = "CRITICAL EXPOSURE";
             resultHeadline.textContent = "High Risk Detected";
-            vpnPitchSub.textContent = `Your IP is exposed to ${ispName}. NordVPN encrypts everything in 1 click.`;
+            vpnPitchSub.textContent = ispName
+                ? `Your IP is exposed to ${ispName}. NordVPN encrypts everything in 1 click.`
+                : "Your IP address is fully exposed. NordVPN encrypts everything in 1 click.";
         } else if (calculatedPercentage >= 45) {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "ELEVATED RISK";
             resultHeadline.textContent = "Vulnerabilities Found";
-            vpnPitchSub.textContent = `${ispName} can see every site you visit. NordVPN hides your IP & activity instantly.`;
+            vpnPitchSub.textContent = ispName
+                ? `${ispName} can see every site you visit. NordVPN hides your IP & activity instantly.`
+                : "Your ISP can see every site you visit. NordVPN hides your IP & activity instantly.";
         } else {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "MODERATE EXPOSURE";
             resultHeadline.textContent = "Good Habits — IP Still Exposed";
-            vpnPitchSub.textContent = `Even with safe habits, ${ispName} logs all your traffic. NordVPN shields you 24/7.`;
+            vpnPitchSub.textContent = ispName
+                ? `Even with safe habits, ${ispName} logs all your traffic. NordVPN shields you 24/7.`
+                : "Even with safe habits, your ISP logs all your traffic. NordVPN shields you 24/7.";
         }
 
         // Render Compact Visual Risk Bars

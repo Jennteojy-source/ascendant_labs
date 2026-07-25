@@ -4,7 +4,6 @@ const admin = require("firebase-admin");
 const crypto = require("crypto");
 const https = require("https");
 const { config, buildAffiliateUrl } = require("./config");
-const geoip = require("geoip-lite");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -89,46 +88,92 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
   });
 }
 
-const ispCache = new Map();
+// ── Telemetry: in-memory cache keyed by IP ──
+const telemetryCache = new Map();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-function resolveIspServerSide(ip, req) {
-  const headerIsp = req.get("cf-asorganization") || req.get("x-isp") || req.get("x-organization");
-  if (headerIsp) return Promise.resolve(headerIsp);
-
-  if (!ip || ip === "127.0.0.1" || ip === "::1") {
-    return Promise.resolve("Your Internet Provider");
+/**
+ * Resolve IP → { city, country, isp } via server-side ip-api.com call.
+ * Single call returns all fields. Strict 2s timeout. Results cached in memory.
+ */
+function resolveIpInfo(ip) {
+  // Skip local / loopback
+  if (!ip || ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.")) {
+    return Promise.resolve(null);
   }
 
-  if (ispCache.has(ip)) {
-    return Promise.resolve(ispCache.get(ip));
+  // Check cache (with TTL)
+  const cached = telemetryCache.get(ip);
+  if (cached && (Date.now() - cached.ts < CACHE_TTL_MS)) {
+    return Promise.resolve(cached.data);
   }
 
   return new Promise((resolve) => {
-    const request = https.get(`https://ip-api.com/json/${ip}?fields=isp,org,as`, { timeout: 1500 }, (res) => {
-      let data = "";
-      res.on("data", (chunk) => { data += chunk; });
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          const ispName = parsed.isp || parsed.org || parsed.as || "Your Internet Provider";
-          ispCache.set(ip, ispName);
-          resolve(ispName);
-        } catch (e) {
-          resolve("Your Internet Provider");
-        }
-      });
-    });
+    const request = https.get(
+      `http://ip-api.com/json/${ip}?fields=status,city,country,isp,org,as,query`,
+      { timeout: 2000 },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.status === "fail") {
+              resolve(null);
+              return;
+            }
+            const result = {
+              city: parsed.city || "",
+              country: parsed.country || "",
+              isp: parsed.isp || parsed.org || parsed.as || "",
+            };
+            telemetryCache.set(ip, { data: result, ts: Date.now() });
+            resolve(result);
+          } catch (e) {
+            console.warn("Telemetry parse error:", e.message);
+            resolve(null);
+          }
+        });
+      }
+    );
 
-    request.on("error", () => resolve("Your Internet Provider"));
+    request.on("error", (e) => {
+      console.warn("Telemetry fetch error:", e.message);
+      resolve(null);
+    });
     request.on("timeout", () => {
       request.destroy();
-      resolve("Your Internet Provider");
+      console.warn("Telemetry fetch timeout for IP:", ip);
+      resolve(null);
     });
   });
 }
 
 /**
- * Native, zero-dependency client IP & Geolocation endpoint.
+ * Format raw IP to a clean IPv4 display string.
+ * If already IPv4, pass through. If IPv6/other, hash to realistic IPv4.
+ */
+function formatDisplayIp(rawIp) {
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(rawIp.trim())) {
+    return rawIp.trim();
+  }
+  let hash = 0;
+  const str = String(rawIp);
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const b1 = 100 + Math.abs(hash % 90);
+  const b2 = 10 + Math.abs((hash >> 3) % 200);
+  const b3 = 10 + Math.abs((hash >> 6) % 220);
+  const b4 = 10 + Math.abs((hash >> 9) % 240);
+  return `${b1}.${b2}.${b3}.${b4}`;
+}
+
+/**
+ * /api/telemetry — Native IP & Geo endpoint.
+ * Returns { ip, city, country, isp } with accurate detection.
+ * If lookup fails or times out, returns null fields so the frontend can hide them.
  */
 exports.getIpTelemetry = onRequest(async (req, res) => {
   if (req.method === "OPTIONS") {
@@ -138,34 +183,24 @@ exports.getIpTelemetry = onRequest(async (req, res) => {
     return;
   }
 
-  const rawIp = getClientIp(req) || "103.252.19.45";
-  let displayIp = rawIp;
+  const rawIp = getClientIp(req);
 
-  if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(rawIp.trim())) {
-    let hash = 0;
-    const str = String(rawIp);
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
-    }
-    const b1 = 100 + Math.abs(hash % 90);
-    const b2 = 10 + Math.abs((hash >> 3) % 200);
-    const b3 = 10 + Math.abs((hash >> 6) % 220);
-    const b4 = 10 + Math.abs((hash >> 9) % 240);
-    displayIp = `${b1}.${b2}.${b3}.${b4}`;
+  // If we can't get any IP at all, return nulls so frontend hides the section
+  if (!rawIp) {
+    res.set("Cache-Control", "no-store");
+    res.status(200).json({ ip: null, city: null, country: null, isp: null });
+    return;
   }
 
-  const geo = geoip.lookup(rawIp);
-  const city = geo?.city || "Detected City";
-  const country = geo?.country || "";
-  const isp = await resolveIspServerSide(rawIp, req);
+  const displayIp = formatDisplayIp(rawIp);
+  const info = await resolveIpInfo(rawIp);
 
   res.set("Cache-Control", "no-store");
   res.status(200).json({
     ip: displayIp,
-    city: city,
-    country: country,
-    isp: isp,
+    city: info?.city || null,
+    country: info?.country || null,
+    isp: info?.isp || null,
   });
 });
 
