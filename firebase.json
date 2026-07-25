@@ -21,6 +21,10 @@
         "destination": "/nordvpn/quiz/index.html"
       },
       {
+        "source": "/api/telemetry",
+        "function": "getIpTelemetry"
+      },
+      {
         "source": "/api/track-quiz-event",
         "function": "trackQuizEvent"
       },

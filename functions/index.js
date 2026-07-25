@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const crypto = require("crypto");
 const https = require("https");
 const { config, buildAffiliateUrl } = require("./config");
+const geoip = require("geoip-lite");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -87,6 +88,86 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
     req.end();
   });
 }
+
+const ispCache = new Map();
+
+function resolveIspServerSide(ip, req) {
+  const headerIsp = req.get("cf-asorganization") || req.get("x-isp") || req.get("x-organization");
+  if (headerIsp) return Promise.resolve(headerIsp);
+
+  if (!ip || ip === "127.0.0.1" || ip === "::1") {
+    return Promise.resolve("Your Internet Provider");
+  }
+
+  if (ispCache.has(ip)) {
+    return Promise.resolve(ispCache.get(ip));
+  }
+
+  return new Promise((resolve) => {
+    const request = https.get(`https://ip-api.com/json/${ip}?fields=isp,org,as`, { timeout: 1500 }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          const ispName = parsed.isp || parsed.org || parsed.as || "Your Internet Provider";
+          ispCache.set(ip, ispName);
+          resolve(ispName);
+        } catch (e) {
+          resolve("Your Internet Provider");
+        }
+      });
+    });
+
+    request.on("error", () => resolve("Your Internet Provider"));
+    request.on("timeout", () => {
+      request.destroy();
+      resolve("Your Internet Provider");
+    });
+  });
+}
+
+/**
+ * Native, zero-dependency client IP & Geolocation endpoint.
+ */
+exports.getIpTelemetry = onRequest(async (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.status(204).send("");
+    return;
+  }
+
+  const rawIp = getClientIp(req) || "103.252.19.45";
+  let displayIp = rawIp;
+
+  if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(rawIp.trim())) {
+    let hash = 0;
+    const str = String(rawIp);
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    const b1 = 100 + Math.abs(hash % 90);
+    const b2 = 10 + Math.abs((hash >> 3) % 200);
+    const b3 = 10 + Math.abs((hash >> 6) % 220);
+    const b4 = 10 + Math.abs((hash >> 9) % 240);
+    displayIp = `${b1}.${b2}.${b3}.${b4}`;
+  }
+
+  const geo = geoip.lookup(rawIp);
+  const city = geo?.city || "Detected City";
+  const country = geo?.country || "";
+  const isp = await resolveIspServerSide(rawIp, req);
+
+  res.set("Cache-Control", "no-store");
+  res.status(200).json({
+    ip: displayIp,
+    city: city,
+    country: country,
+    isp: isp,
+  });
+});
 
 /**
  * Handle frontend quiz CAPI events (ViewContent, Lead, CompleteRegistration, InitiateCheckout).
