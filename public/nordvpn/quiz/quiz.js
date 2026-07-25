@@ -423,31 +423,48 @@
 
         // Telemetry Footprint elements
         const telemetryDevice = document.getElementById("telemetry-device");
-        const telemetryIp = document.getElementById("telemetry-ip");
+        const telemetryCity = document.getElementById("telemetry-city");
         const telemetryIsp = document.getElementById("telemetry-isp");
-        const telItemIp = document.getElementById("tel-item-ip");
+        const telemetryIp = document.getElementById("telemetry-ip");
+
+        const telItemCity = document.getElementById("tel-item-city");
         const telItemIsp = document.getElementById("tel-item-isp");
+        const telItemIp = document.getElementById("tel-item-ip");
 
         const deviceOs = getDeviceOs();
         const deviceShortName = deviceOs.replace(/ \(.*\)/, "");
 
         if (telemetryDevice) telemetryDevice.textContent = deviceOs;
 
-        if (telemetryReady && displayIp()) {
-            if (telemetryIp) telemetryIp.textContent = displayIp();
-            
+        if (telemetryReady) {
+            const city = displayLoc();
+            if (city) {
+                if (telItemCity) telItemCity.style.display = "";
+                if (telemetryCity) telemetryCity.textContent = city;
+            } else {
+                if (telItemCity) telItemCity.style.display = "none";
+            }
+
             const isp = displayIsp();
             if (isp) {
                 if (telItemIsp) telItemIsp.style.display = "";
                 if (telemetryIsp) telemetryIsp.textContent = isp;
             } else {
-                // If ISP lookup failed or timed out, hide ISP grid item gracefully
                 if (telItemIsp) telItemIsp.style.display = "none";
             }
+
+            const ip = displayIp();
+            if (ip) {
+                if (telItemIp) telItemIp.style.display = "";
+                if (telemetryIp) telemetryIp.textContent = ip;
+            } else {
+                if (telItemIp) telItemIp.style.display = "none";
+            }
         } else {
-            // If IP lookup failed, hide IP and ISP items gracefully (Device & Status stay visible!)
-            if (telItemIp) telItemIp.style.display = "none";
+            // If telemetry failed or timed out, gracefully hide city, isp, and ip grid items!
+            if (telItemCity) telItemCity.style.display = "none";
             if (telItemIsp) telItemIsp.style.display = "none";
+            if (telItemIp) telItemIp.style.display = "none";
         }
 
         finalScoreNum.textContent = `${calculatedPercentage}%`;

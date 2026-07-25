@@ -2,6 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const http = require("http");
 const https = require("https");
 const { config, buildAffiliateUrl } = require("./config");
 
@@ -94,7 +95,7 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
  * Resolve IP → { city, country, isp } via server-side ip-api.com call.
- * Single call returns all fields. Strict 2s timeout. Results cached in memory.
+ * Single call returns all fields. Strict 2.5s timeout. Results cached in memory.
  */
 function resolveIpInfo(ip) {
   // Skip local / loopback
@@ -109,23 +110,25 @@ function resolveIpInfo(ip) {
   }
 
   return new Promise((resolve) => {
-    const request = https.get(
+    const request = http.get(
       `http://ip-api.com/json/${ip}?fields=status,city,country,isp,org,as,query`,
-      { timeout: 2000 },
+      { timeout: 2500 },
       (res) => {
         let data = "";
         res.on("data", (chunk) => { data += chunk; });
         res.on("end", () => {
           try {
             const parsed = JSON.parse(data);
-            if (parsed.status === "fail") {
+            if (parsed.status !== "success") {
               resolve(null);
               return;
             }
+            const cleanIsp = (parsed.isp || parsed.org || parsed.as || "").replace(/^AS\d+\s+/i, "").trim();
+
             const result = {
               city: parsed.city || "",
               country: parsed.country || "",
-              isp: parsed.isp || parsed.org || parsed.as || "",
+              isp: cleanIsp || "",
             };
             telemetryCache.set(ip, { data: result, ts: Date.now() });
             resolve(result);

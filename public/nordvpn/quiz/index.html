@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css">
+    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css?v=3.0">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
 
     <!-- Schema.org JSON-LD -->
@@ -190,13 +190,13 @@
                             <span id="telemetry-device" class="item-val">Detecting...</span>
                         </div>
                     </div>
-                    <div class="telemetry-item" id="tel-item-ip">
+                    <div class="telemetry-item" id="tel-item-city">
                         <div class="tel-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
                         </div>
                         <div class="tel-data">
-                            <span class="item-label">Public IP</span>
-                            <span id="telemetry-ip" class="item-val alert">Scanning...</span>
+                            <span class="item-label">City / Location</span>
+                            <span id="telemetry-city" class="item-val alert">Scanning...</span>
                         </div>
                     </div>
                     <div class="telemetry-item" id="tel-item-isp">
@@ -208,13 +208,13 @@
                             <span id="telemetry-isp" class="item-val alert">Scanning...</span>
                         </div>
                     </div>
-                    <div class="telemetry-item" id="tel-item-status">
+                    <div class="telemetry-item" id="tel-item-ip">
                         <div class="tel-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
                         </div>
                         <div class="tel-data">
-                            <span class="item-label">Protection</span>
-                            <span id="telemetry-status" class="item-val alert-danger">UNPROTECTED</span>
+                            <span class="item-label">Public IP</span>
+                            <span id="telemetry-ip" class="item-val alert">Scanning...</span>
                         </div>
                     </div>
                 </div>
@@ -282,6 +282,6 @@
         </div>
     </footer>
 
-    <script src="/nordvpn/quiz/quiz.js"></script>
+    <script src="/nordvpn/quiz/quiz.js?v=3.0"></script>
 </body>
 </html>
