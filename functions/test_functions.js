@@ -51,117 +51,96 @@ require.cache[require.resolve("firebase-admin")] = {
 
 const functions = require("./index.js");
 
-
 async function runTests() {
-  console.log("Running Cloud Functions trigger-decoupled CAPI tests...\n");
+  console.log("Running Cloud Functions CAPI Quiz Event & Webhook tests...\n");
 
   let passed = true;
 
-  // Test 1: redirectNordVpn HTTP redirects and writes click doc to Firestore
+  // Test 1: trackQuizEvent handles ViewContent and saves telemetry to Firestore
   try {
     mockDoc.mock.calls = [];
     mockDocSet.mock.calls = [];
     const req = {
-      query: {
-        fbclid: "meta_click_123",
-        utm_source: "facebook",
-        utm_campaign: "vpn_test",
+      body: {
+        eventName: "ViewContent",
+        clickId: "meta_click_123",
+        trackingParams: { fbclid: "meta_click_123", utm_source: "facebook" },
+        customData: { content_name: "NordVPN Privacy Quiz" },
       },
-      get: (header) => {
-        if (header === "referer") return "https://facebook.com";
-        if (header === "user-agent") return "Mozilla/5.0 Mock";
-        return "";
-      },
-      headers: { "user-agent": "Mozilla/5.0 Mock" },
+      get: (header) => (header === "user-agent" ? "Mozilla/5.0 Mock" : ""),
       ip: "127.0.0.1",
-      path: "/r/nordvpn",
     };
 
-    let redirectUrl = "";
-    let redirectStatus = 0;
+    let responseStatus = 0;
+    let responseJson = null;
     const res = {
-      headersSent: false,
-      redirect: (status, url) => {
-        redirectStatus = status;
-        redirectUrl = url;
-        res.headersSent = true;
+      status: (code) => {
+        responseStatus = code;
+        return {
+          json: (data) => { responseJson = data; },
+        };
       },
     };
 
-    await functions.redirectNordVpn(req, res);
+    await functions.trackQuizEvent(req, res);
 
-    if (redirectStatus !== 302) {
-      throw new Error(`Expected redirect status 302, got ${redirectStatus}`);
+    if (responseStatus !== 200) {
+      throw new Error(`Expected status 200, got ${responseStatus}`);
     }
-
-    const expectedUrl =
-      "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902&aff_click_id=meta_click_123&aff_sub=meta_click_123";
-    if (redirectUrl !== expectedUrl) {
-      throw new Error(`Expected redirect URL '${expectedUrl}', got '${redirectUrl}'`);
+    if (!responseJson || !responseJson.success || responseJson.eventName !== "ViewContent") {
+      throw new Error(`Invalid response JSON: ${JSON.stringify(responseJson)}`);
     }
 
     if (mockDocSet.mock.calls.length !== 1) {
       throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
-    }
-
-    if (mockDoc.mock.calls[0][0] !== "meta_click_123") {
-      throw new Error(`Expected click document ID to be meta_click_123, got ${mockDoc.mock.calls[0][0]}`);
     }
 
     const clickData = mockDocSet.mock.calls[0][0];
     if (
       clickData.clickId !== "meta_click_123" ||
-      clickData.tracking.fbclid !== "meta_click_123" ||
-      clickData.offerId !== 15
+      clickData.lastEvent !== "ViewContent" ||
+      clickData.landingPath !== "/nordvpn/quiz"
     ) {
       throw new Error(`Firestore click data mismatch: ${JSON.stringify(clickData)}`);
     }
 
-    console.log("✅ Test 1 Passed: redirectNordVpn with fbclid redirected and saved to Firestore.");
+    console.log("✅ Test 1 Passed: trackQuizEvent ViewContent saved telemetry to Firestore.");
   } catch (err) {
     console.error("❌ Test 1 Failed:", err.message);
     passed = false;
   }
 
-  // Test 2: redirectNordVpn HTTP works without fbclid
+  // Test 2: trackQuizEvent handles Lead, CompleteRegistration, InitiateCheckout
   try {
-    mockDoc.mock.calls = [];
-    mockDocSet.mock.calls = [];
-    const req = {
-      query: {},
-      get: () => "",
-      headers: {},
-      ip: "127.0.0.1",
-      path: "/r/nordvpn",
-    };
+    const events = ["Lead", "CompleteRegistration", "InitiateCheckout"];
+    for (const eventName of events) {
+      mockDocSet.mock.calls = [];
+      const req = {
+        body: {
+          eventName,
+          clickId: "meta_click_123",
+          trackingParams: { fbclid: "meta_click_123" },
+        },
+        get: () => "Mozilla/5.0 Mock",
+        ip: "127.0.0.1",
+      };
 
-    let redirectUrl = "";
-    let redirectStatus = 0;
-    const res = {
-      headersSent: false,
-      redirect: (status, url) => {
-        redirectStatus = status;
-        redirectUrl = url;
-        res.headersSent = true;
-      },
-    };
+      let responseStatus = 0;
+      const res = {
+        status: (code) => {
+          responseStatus = code;
+          return { json: () => {} };
+        },
+      };
 
-    await functions.redirectNordVpn(req, res);
+      await functions.trackQuizEvent(req, res);
 
-    if (redirectStatus !== 302) {
-      throw new Error(`Expected redirect status 302, got ${redirectStatus}`);
+      if (responseStatus !== 200) {
+        throw new Error(`Expected status 200 for ${eventName}, got ${responseStatus}`);
+      }
     }
 
-    const baseUrl = "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902";
-    if (!redirectUrl.startsWith(baseUrl) || !redirectUrl.includes("aff_click_id=")) {
-      throw new Error(`Expected generated aff_click_id redirect, got '${redirectUrl}'`);
-    }
-
-    if (mockDocSet.mock.calls.length !== 1) {
-      throw new Error(`Expected 1 Firestore set call, got ${mockDocSet.mock.calls.length}`);
-    }
-
-    console.log("✅ Test 2 Passed: redirectNordVpn without fbclid redirected and saved to Firestore.");
+    console.log("✅ Test 2 Passed: trackQuizEvent processed Lead, CompleteRegistration, and InitiateCheckout.");
   } catch (err) {
     console.error("❌ Test 2 Failed:", err.message);
     passed = false;
@@ -189,12 +168,8 @@ async function runTests() {
       status: (code) => {
         responseStatus = code;
         return {
-          send: (body) => {
-            responseBody = body;
-          },
-          json: (body) => {
-            responseBody = JSON.stringify(body);
-          },
+          send: (body) => { responseBody = body; },
+          json: (body) => { responseBody = JSON.stringify(body); },
         };
       },
     };
@@ -228,28 +203,7 @@ async function runTests() {
     passed = false;
   }
 
-  // Test 4: handleRedirectClickCreated logic works and sends CAPI ViewContent
-  try {
-    mockDoc.mock.calls = [];
-    mockDocSet.mock.calls = [];
-    const clickId = "meta_click_123";
-    const clickData = {
-      clickId: "meta_click_123",
-      tracking: { fbclid: "meta_click_123" },
-      ip: "127.0.0.1",
-      userAgent: "Mozilla/5.0 Mock",
-      timestamp: { toDate: () => new Date() },
-      landingPath: "/r/nordvpn"
-    };
-
-    await functions.handleRedirectClickCreated(clickId, clickData);
-    console.log("✅ Test 4 Passed: handleRedirectClickCreated executed successfully.");
-  } catch (err) {
-    console.error("❌ Test 4 Failed:", err.message);
-    passed = false;
-  }
-
-  // Test 5: handleConversionCreated logic works and sends CAPI Purchase
+  // Test 4: handleConversionCreated logic works and sends CAPI Purchase
   try {
     mockDoc.mock.calls = [];
     mockDocSet.mock.calls = [];
@@ -262,13 +216,13 @@ async function runTests() {
     };
 
     await functions.handleConversionCreated(transactionId, conversionData);
-    console.log("✅ Test 5 Passed: handleConversionCreated executed successfully.");
+    console.log("✅ Test 4 Passed: handleConversionCreated executed successfully.");
   } catch (err) {
-    console.error("❌ Test 5 Failed:", err.message);
+    console.error("❌ Test 4 Failed:", err.message);
     passed = false;
   }
 
-  // Test 6: nordVpnWebhook rejects conversion payload with invalid API key
+  // Test 5: nordVpnWebhook rejects conversion payload with invalid API key
   try {
     const req = {
       query: {
@@ -280,15 +234,10 @@ async function runTests() {
     };
 
     let responseStatus = 0;
-    let responseBody = "";
     const res = {
       status: (code) => {
         responseStatus = code;
-        return {
-          send: (body) => {
-            responseBody = body;
-          },
-        };
+        return { send: () => {} };
       },
     };
 
@@ -297,15 +246,14 @@ async function runTests() {
     if (responseStatus !== 401) {
       throw new Error(`Expected status 401, got ${responseStatus}`);
     }
-    console.log("✅ Test 6 Passed: nordVpnWebhook rejected unauthorized request.");
+    console.log("✅ Test 5 Passed: nordVpnWebhook rejected unauthorized request.");
   } catch (err) {
-    console.error("❌ Test 6 Failed:", err.message);
+    console.error("❌ Test 5 Failed:", err.message);
     passed = false;
   }
 
-  // Test 7: nordVpnWebhook handles duplicate conversion gracefully
+  // Test 6: nordVpnWebhook handles duplicate conversion gracefully
   try {
-    // Override create mock once to simulate ALREADY_EXISTS (error code 6)
     const originalCreateImpl = mockDocCreateImpl;
     mockDocCreateImpl = () => {
       const err = new Error("Document already exists");
@@ -327,17 +275,12 @@ async function runTests() {
     const res = {
       status: (code) => {
         responseStatus = code;
-        return {
-          send: (body) => {
-            responseBody = body;
-          },
-        };
+        return { send: (body) => { responseBody = body; } };
       },
     };
 
     await functions.nordVpnWebhook(req, res);
 
-    // Restore create mock
     mockDocCreateImpl = originalCreateImpl;
 
     if (responseStatus !== 200) {
@@ -346,9 +289,9 @@ async function runTests() {
     if (responseBody !== "duplicate") {
       throw new Error(`Expected body 'duplicate', got '${responseBody}'`);
     }
-    console.log("✅ Test 7 Passed: nordVpnWebhook handled duplicate conversion gracefully.");
+    console.log("✅ Test 6 Passed: nordVpnWebhook handled duplicate conversion gracefully.");
   } catch (err) {
-    console.error("❌ Test 7 Failed:", err.message);
+    console.error("❌ Test 6 Failed:", err.message);
     passed = false;
   }
 

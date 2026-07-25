@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>How Exposed Is Your Data? | Privacy Quiz | Ascendant Labs</title>
+    <meta name="description" content="Calculate your data exposure risk score in 60 seconds with our interactive privacy quiz.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://ascendantlabs.co/nordvpn/quiz">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ascendantlabs.co/nordvpn/quiz">
+    <meta property="og:title" content="How Exposed Is Your Personal Data Online?">
+    <meta property="og:description" content="Take our 60-second interactive privacy quiz to see how easily your online activity can be tracked.">
+    <meta property="og:site_name" content="Ascendant Labs">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Quiz",
+      "name": "Data Exposure Risk Assessment",
+      "description": "An interactive assessment tool to measure online privacy vulnerability and IP exposure.",
+      "provider": {
+        "@type": "Organization",
+        "name": "Ascendant Labs",
+        "url": "https://ascendantlabs.co"
+      }
+    }
+    </script>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <a href="/" class="app-logo">
+                <span class="logo-icon">▲</span>
+                Ascendant<span class="logo-highlight">Labs</span>
+            </a>
+            
+            <div class="header-controls">
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark/Light mode">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="quiz-container">
+        <!-- INTRO SCREEN -->
+        <section id="screen-intro" class="quiz-card screen-active">
+            <div class="hero-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>60-Sec Privacy Audit</span>
+            </div>
+
+            <h1 class="hero-title">How exposed is your data online?</h1>
+            <p class="hero-subtitle">
+                Answer 5 quick questions to calculate your IP, location, and tracking risk score.
+            </p>
+
+            <div class="hero-graphic">
+                <div class="radar-circle circle-2"></div>
+                <div class="radar-circle circle-1"></div>
+                <div class="radar-sweep"></div>
+                <div class="shield-center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="floating-tag tag-1">
+                    <span class="dot red"></span> IP Visible
+                </div>
+                <div class="floating-tag tag-2">
+                    <span class="dot yellow"></span> ISP Tracked
+                </div>
+            </div>
+
+            <div class="feature-pills">
+                <div class="pill">⚡ 5 Questions</div>
+                <div class="pill">📊 Live IP Scan</div>
+                <div class="pill">🔒 100% Free</div>
+            </div>
+
+            <button id="btn-start" class="btn-primary start-btn">
+                <span>Start Assessment</span>
+                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+        </section>
+
+        <!-- QUIZ QUESTIONS SCREEN -->
+        <section id="screen-quiz" class="quiz-card screen-hidden">
+            <div class="quiz-progress-wrapper">
+                <div class="progress-info">
+                    <span class="progress-label">QUESTION <strong id="current-step-text">1</strong> OF 5</span>
+                    <span id="category-badge" class="cat-pill">Network Security</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progress-fill" class="progress-fill" style="width: 20%;"></div>
+                </div>
+            </div>
+
+            <div id="question-box" class="question-box">
+                <div class="question-icon-wrap">
+                    <div id="q-icon-el" class="q-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+                    </div>
+                </div>
+                <h2 id="q-title" class="question-title">How often do you connect to public Wi-Fi?</h2>
+                <p id="q-sub" class="question-sub">Airports, cafes, hotels, gyms, or public transport.</p>
+
+                <div id="options-grid" class="options-grid">
+                    <!-- Options populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ANALYZING SCREEN -->
+        <section id="screen-analyzing" class="quiz-card screen-hidden">
+            <div class="analyzing-content">
+                <div class="scanner-ring-container">
+                    <div class="outer-ring"></div>
+                    <div class="inner-ring"></div>
+                    <div class="scanned-score" id="analyzing-percent">0%</div>
+                </div>
+                <h2 class="analyzing-title">Scanning Live IP Telemetry</h2>
+                <p id="analyzing-status" class="analyzing-status">Reading network headers &amp; location data...</p>
+
+                <div class="check-list-loader">
+                    <div class="check-item" id="check-1">
+                        <span class="check-icon">⏳</span>
+                        <span>IP &amp; Geolocation Exposure</span>
+                    </div>
+                    <div class="check-item" id="check-2">
+                        <span class="check-icon">⏳</span>
+                        <span>ISP Telemetry Logging</span>
+                    </div>
+                    <div class="check-item" id="check-3">
+                        <span class="check-icon">⏳</span>
+                        <span>Ad Tracking Footprint</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RESULTS SCREEN (Ultra-Visual, Minimal Text) -->
+        <section id="screen-result" class="quiz-card screen-hidden">
+            <!-- Score Hero -->
+            <div class="result-hero">
+                <div id="result-status-tag" class="result-badge risk-critical">
+                    <span class="badge-dot"></span>
+                    <span id="result-risk-level">CRITICAL EXPOSURE</span>
+                </div>
+
+                <div class="score-ring-container">
+                    <svg class="dial-svg" viewBox="0 0 120 120">
+                        <circle class="dial-bg" cx="60" cy="60" r="52"></circle>
+                        <circle id="dial-progress" class="dial-bar" cx="60" cy="60" r="52" stroke-dasharray="326.72" stroke-dashoffset="326.72"></circle>
+                    </svg>
+                    <div class="dial-text">
+                        <span id="final-score-num" class="score-val">85%</span>
+                        <span class="score-lbl">EXPOSED</span>
+                    </div>
+                </div>
+                <h2 id="result-headline" class="result-headline">High Risk Detected</h2>
+            </div>
+
+            <!-- Live Telemetry — User's Real IP/Location/ISP (detected dynamically) -->
+            <div class="telemetry-card">
+                <div class="telemetry-header">
+                    <span class="live-dot"></span>
+                    <span class="telemetry-title">YOUR EXPOSED FOOTPRINT</span>
+                </div>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">IP Address</span>
+                            <span id="telemetry-ip" class="item-val alert">Scanning...</span>
+                        </div>
+                    </div>
+                    <div class="telemetry-item">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">Location</span>
+                            <span id="telemetry-loc" class="item-val alert">Scanning...</span>
+                        </div>
+                    </div>
+                    <div class="telemetry-item">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">ISP / Carrier</span>
+                            <span id="telemetry-isp" class="item-val alert">Scanning...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compact Visual Risk Summary (replaces verbose vulnerability cards) -->
+            <div class="risk-bars-section">
+                <div id="risk-bars" class="risk-bars">
+                    <!-- Populated dynamically: compact icon + bar per category -->
+                </div>
+            </div>
+
+            <!-- NordVPN Official Solution Card -->
+            <div class="solution-card">
+                <div class="solution-top">
+                    <div class="nord-brand-box">
+                        <div class="nord-brand-meta">
+                            <img src="/nordvpn/assets/Affiliate-white-NP-logo-primary-770x200@3x.svg" alt="NordVPN" class="nord-official-logo logo-dark-theme" height="26">
+                            <img src="/nordvpn/assets/Affiliate-dark-NP-logo-primary-770x200@2x.png" alt="NordVPN" class="nord-official-logo logo-light-theme" height="26">
+                            <span class="verified-badge">✓ Official Partner</span>
+                        </div>
+                    </div>
+                    <span class="deal-pill">75% OFF + 3 MONTHS EXTRA</span>
+                </div>
+
+                <div class="benefit-row">
+                    <div class="benefit-chip">
+                        <span class="b-icon">🔒</span>
+                        <span>Shield Real IP</span>
+                    </div>
+                    <div class="benefit-chip">
+                        <span class="b-icon">📍</span>
+                        <span>Mask Location</span>
+                    </div>
+                    <div class="benefit-chip">
+                        <span class="b-icon">🛡️</span>
+                        <span>Block Trackers</span>
+                    </div>
+                </div>
+
+                <p id="vpn-pitch-sub" class="pitch-one-liner">
+                    NordVPN masks your real IP &amp; encrypts all traffic in 1 click.
+                </p>
+
+                <a id="cta-button" href="/r/nordvpn" class="btn-primary cta-btn nord-cta">
+                    <span>Get NordVPN — 75% Off</span>
+                    <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <p class="cta-guarantee">🔒 30-Day Money-Back Guarantee &bull; Cancel Anytime</p>
+            </div>
+
+            <div class="retake-wrap">
+                <button id="btn-retake" class="btn-secondary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Retake Quiz</span>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 Ascendant Labs Privacy Engine.</p>
+        </div>
+    </footer>
+
+    <script src="/nordvpn/quiz/quiz.js"></script>
+</body>
+</html>

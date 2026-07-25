@@ -8,50 +8,12 @@ const { config, buildAffiliateUrl } = require("./config");
 admin.initializeApp();
 const db = admin.firestore();
 
-const META_QUERY_PARAMS = [
-  "fbclid",
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_content",
-  "utm_term",
-  "ad_id",
-  "adset_id",
-  "campaign_id",
-  "placement",
-];
-
 function getClientIp(req) {
   const forwarded = req.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0].trim();
   }
   return req.ip || "";
-}
-
-function extractTrackingParams(query) {
-  const tracking = {};
-  for (const key of META_QUERY_PARAMS) {
-    if (query[key]) {
-      tracking[key] = String(query[key]);
-    }
-  }
-  return tracking;
-}
-
-function resolveClickId(tracking) {
-  if (tracking.fbclid) {
-    return tracking.fbclid;
-  }
-  return crypto.randomUUID();
-}
-
-function saveClickAsync(clickId, clickData) {
-  return db.collection("clicks").doc(clickId).set(clickData);
-}
-
-function saveConversionAsync(transactionId, conversionData) {
-  return db.collection("conversions").doc(transactionId).create(conversionData);
 }
 
 function getQueryValue(req, key) {
@@ -64,13 +26,13 @@ function getQueryValue(req, key) {
 
 /**
  * Generic Meta CAPI event sender.
- * @param {string} eventName - Meta standard event (e.g. "ViewContent", "Purchase")
+ * @param {string} eventName - Meta standard event (e.g. "ViewContent", "Lead", "CompleteRegistration", "InitiateCheckout", "Purchase")
  * @param {string} eventId - Unique dedup ID for this event
  * @param {object} userData - { fbc, client_ip_address, client_user_agent }
  * @param {object} [customData] - Optional { currency, value, content_name, ... }
  * @param {string} [eventSourceUrl] - The URL where the event occurred
  */
-function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://www.ascendantlabs.co/r/nordvpn") {
+function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://ascendantlabs.co/nordvpn/quiz") {
   if (!config.datasetId || !config.capiAccessToken) {
     console.log("Meta CAPI skip: missing dataset ID or access token");
     return Promise.resolve();
@@ -126,39 +88,74 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
   });
 }
 
-exports.redirectNordVpn = onRequest(async (req, res) => {
-  const tracking = extractTrackingParams(req.query);
-  const clickId = resolveClickId(tracking);
-  const redirectUrl = buildAffiliateUrl(clickId);
+/**
+ * Handle frontend quiz CAPI events (ViewContent, Lead, CompleteRegistration, InitiateCheckout).
+ */
+exports.trackQuizEvent = onRequest(async (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.status(204).send("");
+    return;
+  }
+
+  const body = req.body || {};
+  const eventName = body.eventName || "ViewContent";
+  const clickId = body.clickId || crypto.randomUUID();
+  const eventId = body.eventId || `${eventName.toLowerCase()}_${clickId}`;
+  const trackingParams = body.trackingParams || {};
+  const customData = body.customData || {};
+  const eventSourceUrl = body.eventSourceUrl || "https://ascendantlabs.co/nordvpn/quiz";
+
   const ip = getClientIp(req);
   const userAgent = req.get("user-agent") || "";
+  const now = Date.now();
+
+  const fbclid = trackingParams.fbclid || (clickId.startsWith("clk_") ? null : clickId);
+  const fbc = fbclid ? `fb.1.${now}.${fbclid}` : undefined;
 
   const clickData = {
     clickId,
     partner: config.networkId,
     offerId: Number(config.nordVpn.offerId),
-    tracking,
+    tracking: trackingParams,
     ip,
     userAgent,
     referrer: req.get("referer") || req.get("referrer") || "",
-    landingPath: req.path || "/r/nordvpn",
-    query: req.query,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    landingPath: "/nordvpn/quiz",
+    lastEvent: eventName,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  // Redirect the client immediately to maximize performance
-  res.redirect(302, redirectUrl);
-
-  // Await the Firestore write so the runtime environment remains active until the write completes.
   try {
-    await saveClickAsync(clickId, clickData);
-  } catch (error) {
-    console.error("Error in redirectNordVpn save:", error);
+    await db.collection("clicks").doc(clickId).set(clickData, { merge: true });
+  } catch (err) {
+    console.error("Firestore set error in trackQuizEvent:", err);
   }
+
+  try {
+    await sendMetaCapiEvent(
+      eventName,
+      eventId,
+      {
+        fbc,
+        client_ip_address: ip,
+        client_user_agent: userAgent,
+      },
+      customData,
+      eventSourceUrl
+    );
+  } catch (err) {
+    console.error(`Error sending CAPI event ${eventName}:`, err);
+  }
+
+  res.status(200).json({ success: true, eventName, clickId });
 });
 
+/**
+ * Handle postback webhooks from NordVPN / affiliate network for Purchase tracking.
+ */
 exports.nordVpnWebhook = onRequest(async (req, res) => {
-  // Validate incoming webhook API key for security
   const apiKey = getQueryValue(req, "key") || req.get("x-api-key") || "";
   if (apiKey !== config.webhookApiKey) {
     console.warn("Unauthorized webhook request: invalid key");
@@ -186,10 +183,6 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       return;
     }
 
-    if (!clickId) {
-      console.warn(`Conversion warning: Missing click_id for transaction ${transactionId}. CAPI matching will be degraded.`);
-    }
-
     const conversionData = {
       clickId,
       partner: config.networkId,
@@ -205,10 +198,8 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Save conversion to Firestore and let the trigger process CAPI Purchase.
-    // Use .create() to fail on duplicates, which we handle gracefully.
     try {
-      await saveConversionAsync(transactionId, conversionData);
+      await db.collection("conversions").doc(transactionId).create(conversionData);
       console.log(`Successfully logged conversion ${transactionId} for click ${clickId}`);
       res.status(200).send("success");
     } catch (err) {
@@ -225,41 +216,10 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
   }
 });
 
-async function handleRedirectClickCreated(clickId, clickData) {
-  if (!clickData) return;
-  const tracking = clickData.tracking || {};
-  const creationTime = clickData.timestamp
-    ? Math.floor(clickData.timestamp.toDate().getTime())
-    : Date.now();
-
-  // Only construct fbc if the click originated from Facebook (real fbclid exists)
-  const fbc = tracking.fbclid ? `fb.1.${creationTime}.${tracking.fbclid}` : undefined;
-
-  try {
-    await sendMetaCapiEvent(
-      "ViewContent",
-      `vc_${clickId}`,
-      {
-        fbc,
-        client_ip_address: clickData.ip || "",
-        client_user_agent: clickData.userAgent || "",
-      },
-      {
-        content_name: "NordVPN",
-        content_category: "VPN",
-      },
-      `https://ascendantlabs.co${clickData.landingPath || "/r/nordvpn"}`
-    );
-  } catch (error) {
-    console.error(`Error sending ViewContent CAPI for click ${clickId}:`, error);
-  }
-}
-
 async function handleConversionCreated(transactionId, conversionData) {
   if (!conversionData) return;
   const clickId = conversionData.clickId;
 
-  // Look up original click to get user context for CAPI
   let clickDocData = null;
   if (clickId) {
     try {
@@ -272,7 +232,6 @@ async function handleConversionCreated(transactionId, conversionData) {
     }
   }
 
-  // Only build fbc if the original click had a real fbclid from a Facebook ad
   let fbc = undefined;
   if (clickDocData?.tracking?.fbclid) {
     const creationTime = clickDocData.timestamp
@@ -294,21 +253,12 @@ async function handleConversionCreated(transactionId, conversionData) {
         currency: "USD",
         value: conversionData.saleAmount || conversionData.payout || 0,
       },
-      "https://ascendantlabs.co/r/nordvpn"
+      "https://ascendantlabs.co/nordvpn/quiz"
     );
   } catch (error) {
     console.error(`Error sending Purchase CAPI for transaction ${transactionId}:`, error);
   }
 }
-
-exports.onRedirectClickCreated = onDocumentCreated("clicks/{clickId}", async (event) => {
-  const snapshot = event.data;
-  if (!snapshot) {
-    console.log("No data associated with the click event");
-    return;
-  }
-  await handleRedirectClickCreated(event.params.clickId, snapshot.data());
-});
 
 exports.onConversionCreated = onDocumentCreated("conversions/{transactionId}", async (event) => {
   const snapshot = event.data;
@@ -320,6 +270,5 @@ exports.onConversionCreated = onDocumentCreated("conversions/{transactionId}", a
 });
 
 // Export raw logic handlers for testing
-exports.handleRedirectClickCreated = handleRedirectClickCreated;
 exports.handleConversionCreated = handleConversionCreated;
-
+exports.sendMetaCapiEvent = sendMetaCapiEvent;

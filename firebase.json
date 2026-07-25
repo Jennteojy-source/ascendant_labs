@@ -1,15 +1,24 @@
 {
   "hosting": {
     "public": "public",
+    "cleanUrls": true,
+    "trailingSlash": false,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
+    "redirects": [
       {
         "source": "/r/nordvpn",
-        "function": "redirectNordVpn"
+        "destination": "/nordvpn/quiz",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/track-quiz-event",
+        "function": "trackQuizEvent"
       },
       {
         "source": "/api/nordvpn-webhook",
