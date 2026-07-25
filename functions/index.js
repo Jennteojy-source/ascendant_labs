@@ -114,6 +114,9 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
   const fbclid = trackingParams.fbclid || (clickId.startsWith("clk_") ? null : clickId);
   const fbc = fbclid ? `fb.1.${now}.${fbclid}` : undefined;
 
+  const answers = customData.answers || body.answers || null;
+  const riskScore = customData.risk_score || body.risk_score || null;
+
   const clickData = {
     clickId,
     partner: config.networkId,
@@ -124,13 +127,43 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
     referrer: req.get("referer") || req.get("referrer") || "",
     landingPath: "/nordvpn/quiz",
     lastEvent: eventName,
+    ...(answers ? { answers } : {}),
+    ...(riskScore !== null ? { riskScore } : {}),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
   try {
+    // 1. Update main click session doc in Firestore
     await db.collection("clicks").doc(clickId).set(clickData, { merge: true });
+
+    // 2. Log raw event record in Firestore 'quiz_events' collection
+    await db.collection("quiz_events").add({
+      clickId,
+      eventName,
+      answers: answers || null,
+      riskScore: riskScore !== null ? riskScore : null,
+      trackingParams,
+      ip,
+      userAgent,
+      eventSourceUrl,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 3. Log raw quiz submission with selected answers in Firestore 'quiz_submissions' collection
+    if (answers || eventName === "CompleteRegistration") {
+      await db.collection("quiz_submissions").doc(clickId).set({
+        clickId,
+        answers,
+        riskScore,
+        eventName,
+        trackingParams,
+        ip,
+        userAgent,
+        submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
   } catch (err) {
-    console.error("Firestore set error in trackQuizEvent:", err);
+    console.error("Firestore logging error in trackQuizEvent:", err);
   }
 
   try {

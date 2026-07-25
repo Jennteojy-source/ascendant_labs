@@ -337,6 +337,7 @@
             questionId: QUIZ_QUESTIONS[questionIndex].id,
             emoji: QUIZ_QUESTIONS[questionIndex].emoji,
             shortLabel: QUIZ_QUESTIONS[questionIndex].shortLabel,
+            answer: optionObj.text,
             risk: optionObj.risk
         };
 
@@ -486,10 +487,11 @@
             });
         });
 
-        // Fire CAPI CompleteRegistration event on completing quiz
+        // Fire CAPI CompleteRegistration event on completing quiz and pass answers
         sendCapiEvent("CompleteRegistration", {
             content_name: "NordVPN Quiz Complete",
-            risk_score: calculatedPercentage
+            risk_score: calculatedPercentage,
+            answers: selectedAnswers
         });
 
         switchScreen(screenResult);

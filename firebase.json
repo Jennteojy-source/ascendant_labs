@@ -17,6 +17,10 @@
     ],
     "rewrites": [
       {
+        "source": "/nordvpn/quiz",
+        "destination": "/nordvpn/quiz/index.html"
+      },
+      {
         "source": "/api/track-quiz-event",
         "function": "trackQuizEvent"
       },
