@@ -19,13 +19,6 @@
         ]
       }
     ],
-    "redirects": [
-      {
-        "source": "/r/nordvpn",
-        "destination": "/nordvpn/quiz",
-        "type": 301
-      }
-    ],
     "rewrites": [
       {
         "source": "/nordvpn/quiz",
