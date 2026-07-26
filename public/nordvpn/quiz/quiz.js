@@ -139,7 +139,16 @@
         // Store clickId for persistence
         localStorage.setItem("nordvpn_click_id", clickId);
 
-        // Fire initial CAPI ViewContent event on quiz landing
+        // Initialize Meta Pixel Advanced Matching with clickId as external_id
+        if (typeof window.fbq === "function" && clickId) {
+            try {
+                window.fbq("init", "868721989329074", { external_id: clickId });
+            } catch (err) {
+                console.warn("Meta Pixel Advanced Matching init error:", err);
+            }
+        }
+
+        // Fire initial CAPI & Pixel ViewContent event on quiz landing
         sendCapiEvent("ViewContent", {
             content_name: "NordVPN Privacy Quiz",
             content_category: "VPN"
@@ -148,12 +157,24 @@
 
     function sendCapiEvent(eventName, customData = {}) {
         if (!clickId) return;
+        const eventId = `${eventName.toLowerCase()}_${clickId}`;
+
+        // 1. Fire Client-Side Meta Pixel (with matching eventID for deduplication)
+        if (typeof window.fbq === "function") {
+            try {
+                window.fbq("track", eventName, customData, { eventID: eventId });
+            } catch (err) {
+                console.warn(`Meta Pixel ${eventName} error:`, err);
+            }
+        }
+
+        // 2. Fire Server-Side CAPI via Cloud Function endpoint
         fetch("/api/track-quiz-event", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 eventName: eventName,
-                eventId: `${eventName.toLowerCase()}_${clickId}`,
+                eventId: eventId,
                 clickId: clickId,
                 trackingParams: trackingParams,
                 customData: customData,
