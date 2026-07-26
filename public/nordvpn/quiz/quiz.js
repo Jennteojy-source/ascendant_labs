@@ -163,6 +163,7 @@
         if (!clickId) return;
         const eventId = `${eventName.toLowerCase()}_${clickId}`;
         const fbp = getCookie("_fbp");
+        const fbc = getCookie("_fbc");
 
         // 1. Fire Client-Side Meta Pixel (with matching eventID for deduplication)
         if (typeof window.fbq === "function") {
@@ -183,6 +184,7 @@
                 eventId: eventId,
                 clickId: clickId,
                 fbp: fbp,
+                fbc: fbc,
                 trackingParams: trackingParams,
                 customData: customData,
                 eventSourceUrl: window.location.href

@@ -232,8 +232,17 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
   const userAgent = req.get("user-agent") || "";
   const now = Date.now();
 
-  const fbclid = trackingParams.fbclid || (clickId.startsWith("clk_") ? null : clickId);
-  const fbc = fbclid ? `fb.1.${now}.${fbclid}` : undefined;
+  // Validate raw fbclid to ensure it's a genuine Meta click ID (not synthetic UUID/clk_)
+  const rawFbclid = trackingParams.fbclid;
+  const isGenuineFbclid = typeof rawFbclid === "string" && rawFbclid.length > 15 && !rawFbclid.startsWith("clk_");
+
+  let fbc = undefined;
+  if (body.fbc && /^fb\.\d+\.\d+\..+$/.test(body.fbc)) {
+    fbc = body.fbc;
+  } else if (isGenuineFbclid) {
+    fbc = `fb.1.${now}.${rawFbclid}`;
+  }
+
   const fbp = body.fbp || trackingParams.fbp || null;
 
   const answers = customData.answers || body.answers || null;
@@ -249,6 +258,7 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
     referrer: req.get("referer") || req.get("referrer") || "",
     landingPath: "/nordvpn/quiz",
     lastEvent: eventName,
+    ...(fbc ? { fbc } : {}),
     ...(fbp ? { fbp } : {}),
     ...(answers ? { answers } : {}),
     ...(riskScore !== null ? { riskScore } : {}),
@@ -384,12 +394,15 @@ async function handleConversionCreated(transactionId, conversionData) {
     }
   }
 
-  let fbc = undefined;
-  if (clickDocData?.tracking?.fbclid) {
-    const creationTime = clickDocData.timestamp
-      ? Math.floor(clickDocData.timestamp.toDate().getTime())
-      : Date.now();
-    fbc = `fb.1.${creationTime}.${clickDocData.tracking.fbclid}`;
+  let fbc = clickDocData?.fbc || undefined;
+  if (!fbc && clickDocData?.tracking?.fbclid) {
+    const rawFbclid = clickDocData.tracking.fbclid;
+    if (typeof rawFbclid === "string" && rawFbclid.length > 15 && !rawFbclid.startsWith("clk_")) {
+      const creationTime = clickDocData.timestamp
+        ? Math.floor(clickDocData.timestamp.toDate().getTime())
+        : Date.now();
+      fbc = `fb.1.${creationTime}.${rawFbclid}`;
+    }
   }
   const fbp = clickDocData?.fbp || undefined;
 
