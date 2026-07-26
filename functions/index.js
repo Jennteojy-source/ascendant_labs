@@ -314,12 +314,6 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
  * Handle postback webhooks from NordVPN / affiliate network for Purchase tracking.
  */
 exports.nordVpnWebhook = onRequest(async (req, res) => {
-  const apiKey = getQueryValue(req, "key") || req.get("x-api-key") || "";
-  if (apiKey !== config.webhookApiKey) {
-    console.warn("Unauthorized webhook request: invalid key");
-    res.status(401).send("Unauthorized");
-    return;
-  }
 
   try {
     const clickId =
