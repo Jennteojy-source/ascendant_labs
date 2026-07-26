@@ -1101,35 +1101,175 @@ body {
     color: var(--text-dim);
 }
 
-/* Responsive Mobile Rules */
+/* Responsive Mobile Rules — Optimized for Mobile Fold & Instant Visibility */
 @media (max-width: 640px) {
+    .header-container {
+        padding: 10px 14px;
+    }
+
+    .app-logo {
+        font-size: 1.05rem;
+    }
+
     .quiz-container {
-        margin: 12px auto 20px;
+        margin: 8px auto 16px;
+        padding: 0 8px;
     }
 
     .quiz-card {
-        padding: 20px 16px;
+        padding: 14px 12px;
+        border-radius: var(--radius-md);
     }
 
     .hero-title {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
+    }
+
+    /* Compact Score Hero */
+    .result-hero {
+        margin-bottom: 10px;
+    }
+
+    .result-badge {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+        margin-bottom: 4px;
     }
 
     .score-ring-container {
-        width: 100px;
-        height: 100px;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 4px;
     }
 
     .score-val {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
+    }
+
+    .score-lbl {
+        font-size: 0.5rem;
+    }
+
+    .result-headline {
+        font-size: 1.02rem;
+    }
+
+    /* 2-Column Compact Telemetry Footprint Grid */
+    .telemetry-card {
+        padding: 8px 10px;
+        margin-bottom: 10px;
+    }
+
+    .telemetry-header {
+        font-size: 0.62rem;
+        margin-bottom: 6px;
+    }
+
+    .telemetry-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .telemetry-item {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .tel-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+    }
+
+    .tel-icon svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .item-label {
+        font-size: 0.54rem;
+    }
+
+    .item-val {
+        font-size: 0.7rem;
+        line-height: 1.25;
+    }
+
+    /* Compact Solution Card */
+    .solution-card {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .solution-top {
+        margin-bottom: 8px;
+    }
+
+    .partner-name {
+        font-size: 0.95rem;
+    }
+
+    .verified-badge {
+        font-size: 0.58rem;
+    }
+
+    .deal-pill {
+        font-size: 0.56rem;
+        padding: 3px 7px;
+    }
+
+    .benefit-row {
+        gap: 4px;
+        margin-bottom: 8px;
     }
 
     .benefit-chip {
-        font-size: 0.68rem;
-        padding: 7px 4px;
+        font-size: 0.64rem;
+        padding: 5px 3px;
+        gap: 2px;
+    }
+
+    .b-icon {
+        font-size: 0.8rem;
+    }
+
+    .pitch-one-liner {
+        font-size: 0.76rem;
+        line-height: 1.35;
+        margin-bottom: 10px;
+    }
+
+    .cta-btn {
+        padding: 12px 14px;
+        font-size: 0.88rem;
+        margin-bottom: 4px;
+    }
+
+    .cta-guarantee {
+        font-size: 0.65rem;
+    }
+
+    .risk-bars-section {
+        margin-bottom: 10px;
+    }
+
+    .risk-bar-item {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .risk-bar-label {
+        font-size: 0.72rem;
     }
 
     .risk-bar-track {
-        width: 48px;
+        width: 44px;
+        height: 5px;
+    }
+
+    .risk-bar-tag {
+        font-size: 0.58rem;
+        width: 44px;
     }
 }
