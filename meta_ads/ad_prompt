@@ -1,0 +1,49 @@
+# 🎯 Meta Ads Best Practices & Asset Guide (ShieldNet Privacy)
+## Campaign Goal: Traffic to Ascendant Labs 60-Sec Privacy Audit (NordVPN Affiliate Funnel)
+
+- **Facebook Page**: ShieldNet Privacy
+- **Instagram Profile**: @shieldnet.privacy
+- **Target Landing Page**: https://ascendantlabs.co/nordvpn/quiz
+- **Final Affiliate Offer CTA**: https://nordvpn.com/special/?utm_medium=affiliate&utm_term=&utm_content=7e72f867-cbe2-4812-a2d0-61f2ff891b96&utm_source=aff152405&utm_campaign=off15
+
+---
+
+## 💡 Meta Ads Industry Best Practices: Logos & Branding inside Images
+
+### Should you put your page logo ("ShieldNet Privacy") inside the image creative?
+**NO.** According to Meta Ads performance benchmark data and top direct-response advertisers:
+1. **Redundant Branding**: Meta ALREADY displays your page name and logo at the top of every ad unit (e.g. `ShieldNet Privacy • Sponsored`). Adding another logo inside the image creates visual clutter.
+2. **"Native Content" Feel**: Images without corporate logos look like authentic native UI tools or interactive widgets, significantly increasing Click-Through-Rate (CTR) and lowering Cost-Per-Click (CPC).
+3. **Competitor Validation**: Leading VPN advertisers (e.g., ExpressVPN) NEVER embed brand logos in their ad image graphics. The image is 100% dedicated to the high-curiosity hook.
+
+---
+
+## 📐 Optimal Meta Ad Creative Dimensions
+
+| Placement | Optimal Ratio | Resolution | Industry Recommendation |
+| :--- | :--- | :--- | :--- |
+| **Mobile Feed (Instagram & FB)** | **4:5 Vertical** | **1080 × 1350 px** | ⭐ **#1 Best Performing Feed Format**. Takes 20% more screen space on mobile feeds without being cropped. |
+| **Universal / Feed Default** | **1:1 Square** | **1080 × 1080 px** | Standard for desktop, marketplace, and multi-placement auto-scaling. |
+| **Stories & Reels** | **9:16 Vertical** | **1080 × 1920 px** | Fullscreen portrait mode for Instagram/Facebook Stories & Reels. |
+
+---
+
+## 🖼️ Optimized Ad Creatives (No-Logo Clean UI)
+
+### Creative #1: Clean Dark UI Vulnerability Matrix
+- **File**: `meta_ads/nordvpn_quiz_ad.png`
+- **Hook**: High-contrast dark UI checklist (Public Wi-Fi, Cookie Tracking, Location Data, Browsing Activity) with yellow/red warning badges.
+- **Copy Package**:
+  - **Primary Text**: How exposed is your data? 🔍 Answer 5 quick questions to calculate your IP, location, and tracking risk score — your result might surprise you.
+  - **Headline**: See Your Privacy Exposure Score 🛡️
+  - **Description**: Free 60-second interactive audit by ShieldNet Privacy
+  - **CTA**: Learn More
+
+### Creative #2: Phone Gauge Meter & Exposure Score
+- **File**: `meta_ads/score_gauge_ad.png`
+- **Hook**: Mobile screen displaying a 85% Exposed gauge meter with text *"Most people score higher than they expect."*
+- **Copy Package**:
+  - **Primary Text**: Most people score higher than they expect... 📈 Take our 60-second interactive audit to test your network security & ad surveillance footprint.
+  - **Headline**: What's Your Privacy Score? 📱
+  - **Description**: Instant live IP & data exposure risk score
+  - **CTA**: Take Quiz / Learn More

@@ -230,73 +230,22 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
 
   const ip = getClientIp(req);
   const userAgent = req.get("user-agent") || "";
-  const now = Date.now();
 
-  // Validate raw fbclid to ensure it's a genuine Meta click ID (not synthetic UUID/clk_)
-  const rawFbclid = trackingParams.fbclid;
-  const isGenuineFbclid = typeof rawFbclid === "string" && rawFbclid.length > 15 && !rawFbclid.startsWith("clk_");
+  // Pass through _fbc and _fbp cookies from client (set by Meta Pixel). Never reconstruct.
+  const fbc = body.fbc || null;
+  const fbp = body.fbp || null;
 
-  let fbc = undefined;
-  if (body.fbc && /^fb\.\d+\.\d+\..+$/.test(body.fbc)) {
-    fbc = body.fbc;
-  } else if (isGenuineFbclid) {
-    fbc = `fb.1.${now}.${rawFbclid}`;
-  }
-
-  const fbp = body.fbp || trackingParams.fbp || null;
-
-  const answers = customData.answers || body.answers || null;
-  const riskScore = customData.risk_score || body.risk_score || null;
-
-  const clickData = {
-    clickId,
-    partner: config.networkId,
-    offerId: Number(config.nordVpn.offerId),
-    tracking: trackingParams,
-    ip,
-    userAgent,
-    referrer: req.get("referer") || req.get("referrer") || "",
-    landingPath: "/nordvpn/quiz",
-    lastEvent: eventName,
-    ...(fbc ? { fbc } : {}),
-    ...(fbp ? { fbp } : {}),
-    ...(answers ? { answers } : {}),
-    ...(riskScore !== null ? { riskScore } : {}),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  };
-
+  // Store only what the Purchase CAPI handler needs to look up later.
   try {
-    // 1. Update main click session doc in Firestore
-    await db.collection("clicks").doc(clickId).set(clickData, { merge: true });
-
-    // 2. Log raw event record in Firestore 'quiz_events' collection
-    await db.collection("quiz_events").add({
-      clickId,
-      eventName,
-      answers: answers || null,
-      riskScore: riskScore !== null ? riskScore : null,
-      trackingParams,
+    await db.collection("clicks").doc(clickId).set({
       ip,
       userAgent,
-      eventSourceUrl,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // 3. Log raw quiz submission with selected answers in Firestore 'quiz_submissions' collection
-    if (answers || eventName === "CompleteRegistration") {
-      await db.collection("quiz_submissions").doc(clickId).set({
-        clickId,
-        answers,
-        riskScore,
-        eventName,
-        trackingParams,
-        ip,
-        userAgent,
-        submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-    }
+      ...(fbc ? { fbc } : {}),
+      ...(fbp ? { fbp } : {}),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
   } catch (err) {
-    console.error("Firestore logging error in trackQuizEvent:", err);
+    console.error("Firestore click write error:", err);
   }
 
   try {
@@ -394,16 +343,8 @@ async function handleConversionCreated(transactionId, conversionData) {
     }
   }
 
-  let fbc = clickDocData?.fbc || undefined;
-  if (!fbc && clickDocData?.tracking?.fbclid) {
-    const rawFbclid = clickDocData.tracking.fbclid;
-    if (typeof rawFbclid === "string" && rawFbclid.length > 15 && !rawFbclid.startsWith("clk_")) {
-      const creationTime = clickDocData.timestamp
-        ? Math.floor(clickDocData.timestamp.toDate().getTime())
-        : Date.now();
-      fbc = `fb.1.${creationTime}.${rawFbclid}`;
-    }
-  }
+  // Use stored fbc/fbp from Firestore (passed through from client _fbc/_fbp cookies).
+  const fbc = clickDocData?.fbc || undefined;
   const fbp = clickDocData?.fbp || undefined;
 
   try {
