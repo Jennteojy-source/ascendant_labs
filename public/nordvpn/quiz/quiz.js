@@ -177,6 +177,7 @@
         fetch("/api/track-quiz-event", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            keepalive: true,
             body: JSON.stringify({
                 eventName: eventName,
                 eventId: eventId,
@@ -508,28 +509,28 @@
 
         const ispName = displayIsp();
 
-        // Categorize Risk Level & set hyper-personalized pitch copy
+        // Categorize Risk Level & set educational privacy recommendation copy
         if (calculatedPercentage >= 70) {
             resultStatusTag.className = "result-badge risk-critical";
             resultRiskLevel.textContent = "CRITICAL EXPOSURE";
             resultHeadline.textContent = "High Risk Detected";
             vpnPitchSub.textContent = ispName
-                ? `Your ${deviceShortName} on ${ispName} is unencrypted. NordVPN shields your data in 1 click.`
-                : `Your ${deviceShortName} is unencrypted. NordVPN shields your data in 1 click.`;
+                ? `Your ${deviceShortName} connection on ${ispName} is unencrypted. Discover how NordVPN secures your network.`
+                : `Your ${deviceShortName} connection is unencrypted. Discover how NordVPN secures your network.`;
         } else if (calculatedPercentage >= 45) {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "ELEVATED RISK";
             resultHeadline.textContent = "Vulnerabilities Found";
             vpnPitchSub.textContent = ispName
-                ? `${ispName} can track your ${deviceShortName} history. NordVPN hides your IP & activity instantly.`
-                : `Your ISP can track your ${deviceShortName} history. NordVPN hides your IP & activity instantly.`;
+                ? `${ispName} can track your ${deviceShortName} browsing history. Learn how NordVPN hides your IP & activity.`
+                : `Your ISP can track your ${deviceShortName} browsing history. Learn how NordVPN hides your IP & activity.`;
         } else {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "MODERATE EXPOSURE";
             resultHeadline.textContent = "Good Habits — IP Still Exposed";
             vpnPitchSub.textContent = ispName
-                ? `Even with safe habits, ${ispName} logs your ${deviceShortName} traffic. NordVPN shields you 24/7.`
-                : `Even with safe habits, your ISP logs your ${deviceShortName} traffic. NordVPN shields you 24/7.`;
+                ? `Even with safe habits, ${ispName} logs your ${deviceShortName} traffic. See how NordVPN keeps your data private.`
+                : `Even with safe habits, your ISP logs your ${deviceShortName} traffic. See how NordVPN keeps your data private.`;
         }
 
         // Render Compact Visual Risk Bars
