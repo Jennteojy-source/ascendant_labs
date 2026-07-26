@@ -522,15 +522,15 @@
             resultRiskLevel.textContent = "ELEVATED RISK";
             resultHeadline.textContent = "Vulnerabilities Found";
             vpnPitchSub.textContent = ispName
-                ? `${ispName} can track your ${deviceShortName} browsing history. Learn how NordVPN hides your IP & activity.`
-                : `Your ISP can track your ${deviceShortName} browsing history. Learn how NordVPN hides your IP & activity.`;
+                ? `${ispName} can track your ${deviceShortName} browsing history. Learn how NordVPN hides your location & activity.`
+                : `Your ISP can track your ${deviceShortName} browsing history. Learn how NordVPN hides your location & activity.`;
         } else {
             resultStatusTag.className = "result-badge risk-elevated";
             resultRiskLevel.textContent = "MODERATE EXPOSURE";
-            resultHeadline.textContent = "Good Habits — IP Still Exposed";
+            resultHeadline.textContent = "Good Habits — Data Still Exposed";
             vpnPitchSub.textContent = ispName
-                ? `Even with safe habits, ${ispName} logs your ${deviceShortName} traffic. See how NordVPN keeps your data private.`
-                : `Even with safe habits, your ISP logs your ${deviceShortName} traffic. See how NordVPN keeps your data private.`;
+                ? `Even with safe habits, ${ispName} logs your ${deviceShortName} traffic. See how NordVPN keeps your browsing private.`
+                : `Even with safe habits, your ISP logs your ${deviceShortName} traffic. See how NordVPN keeps your browsing private.`;
         }
 
         // Render Compact Visual Risk Bars
