@@ -270,7 +270,7 @@
         const affParams = new URLSearchParams({
             offer_id: "15",
             aff_id: "152405",
-            url_id: "902"
+            url_id: "10"
         });
 
         if (clickId) {
@@ -279,7 +279,7 @@
         }
 
         Object.keys(trackingParams).forEach(k => {
-            if (k.startsWith("utm_")) {
+            if (k.startsWith("utm_") && k !== "utm_source" && k !== "utm_medium") {
                 affParams.set(k, trackingParams[k]);
             }
         });
