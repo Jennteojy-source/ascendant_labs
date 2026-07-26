@@ -155,9 +155,17 @@
         });
     }
 
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return null;
+    }
+
     function sendCapiEvent(eventName, customData = {}) {
         if (!clickId) return;
         const eventId = `${eventName.toLowerCase()}_${clickId}`;
+        const fbp = getCookie("_fbp");
 
         // 1. Fire Client-Side Meta Pixel (with matching eventID for deduplication)
         if (typeof window.fbq === "function") {
@@ -176,6 +184,7 @@
                 eventName: eventName,
                 eventId: eventId,
                 clickId: clickId,
+                fbp: fbp,
                 trackingParams: trackingParams,
                 customData: customData,
                 eventSourceUrl: window.location.href

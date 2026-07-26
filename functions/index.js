@@ -47,6 +47,8 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
     event_source_url: eventSourceUrl,
     user_data: {
       ...(userData.fbc ? { fbc: userData.fbc } : {}),
+      ...(userData.fbp ? { fbp: userData.fbp } : {}),
+      ...(userData.external_id ? { external_id: userData.external_id } : {}),
       client_ip_address: userData.client_ip_address || "",
       client_user_agent: userData.client_user_agent || "",
     },
@@ -232,6 +234,7 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
 
   const fbclid = trackingParams.fbclid || (clickId.startsWith("clk_") ? null : clickId);
   const fbc = fbclid ? `fb.1.${now}.${fbclid}` : undefined;
+  const fbp = body.fbp || trackingParams.fbp || null;
 
   const answers = customData.answers || body.answers || null;
   const riskScore = customData.risk_score || body.risk_score || null;
@@ -246,6 +249,7 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
     referrer: req.get("referer") || req.get("referrer") || "",
     landingPath: "/nordvpn/quiz",
     lastEvent: eventName,
+    ...(fbp ? { fbp } : {}),
     ...(answers ? { answers } : {}),
     ...(riskScore !== null ? { riskScore } : {}),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -291,6 +295,8 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
       eventId,
       {
         fbc,
+        ...(fbp ? { fbp } : {}),
+        external_id: clickId,
         client_ip_address: ip,
         client_user_agent: userAgent,
       },
@@ -391,6 +397,7 @@ async function handleConversionCreated(transactionId, conversionData) {
       : Date.now();
     fbc = `fb.1.${creationTime}.${clickDocData.tracking.fbclid}`;
   }
+  const fbp = clickDocData?.fbp || undefined;
 
   try {
     await sendMetaCapiEvent(
@@ -398,6 +405,8 @@ async function handleConversionCreated(transactionId, conversionData) {
       transactionId,
       {
         fbc,
+        ...(fbp ? { fbp } : {}),
+        ...(clickId ? { external_id: clickId } : {}),
         client_ip_address: clickDocData?.ip || "",
         client_user_agent: clickDocData?.userAgent || "",
       },
