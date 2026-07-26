@@ -139,13 +139,10 @@
         // Store clickId for persistence
         localStorage.setItem("nordvpn_click_id", clickId);
 
-        // Initialize Meta Pixel Advanced Matching with clickId as external_id
-        if (typeof window.fbq === "function" && clickId) {
-            try {
-                window.fbq("init", "868721989329074", { external_id: clickId });
-            } catch (err) {
-                console.warn("Meta Pixel Advanced Matching init error:", err);
-            }
+        // Initialize Meta Pixel once with Advanced Matching (external_id), then fire PageView
+        if (typeof window.fbq === "function") {
+            window.fbq("init", "868721989329074", clickId ? { external_id: clickId } : {});
+            window.fbq("track", "PageView");
         }
 
         // Fire initial CAPI & Pixel ViewContent event on quiz landing

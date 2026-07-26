@@ -62,7 +62,7 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
   const postData = JSON.stringify(payload);
   const options = {
     hostname: "graph.facebook.com",
-    path: `/v21.0/${config.datasetId}/events`,
+    path: `/v25.0/${config.datasetId}/events`,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
