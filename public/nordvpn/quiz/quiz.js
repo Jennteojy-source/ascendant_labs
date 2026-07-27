@@ -399,7 +399,12 @@
         return userTelemetry.ip || null;
     }
     function displayLoc() {
-        const parts = [userTelemetry.city, userTelemetry.country].filter(Boolean);
+        const city = (userTelemetry.city || "").trim();
+        const country = (userTelemetry.country || "").trim();
+        if (city && country && city.toLowerCase() === country.toLowerCase()) {
+            return city;
+        }
+        const parts = [city, country].filter(Boolean);
         return parts.length > 0 ? parts.join(", ") : null;
     }
     function displayIsp() {
