@@ -363,7 +363,7 @@ async function handleConversionCreated(transactionId, conversionData) {
         client_user_agent: clickDocData?.userAgent || "",
       },
       {
-        currency: "USD",
+        currency: conversionData.currency || "USD",
         value: conversionData.saleAmount || conversionData.payout || 0,
       },
       "https://ascendantlabs.co/nordvpn/quiz"
