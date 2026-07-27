@@ -402,23 +402,20 @@
     }
     function displayLoc() {
         const district = (userTelemetry.district || "").trim();
-        const region = (userTelemetry.region || "").trim();
         const city = (userTelemetry.city || "").trim();
         const country = (userTelemetry.country || "").trim();
 
-        // 1. District-level precision (e.g. "Ang Mo Kio, Singapore" or "Manhattan, New York")
+        // 1. Primary: District, City (e.g. "Ang Mo Kio, Singapore" or "Manhattan, New York")
         if (district && city && district.toLowerCase() !== city.toLowerCase()) {
             return `${district}, ${city}`;
         }
-        // 2. Region-level precision if distinct (e.g. "North East, Singapore" or "California, US")
-        if (region && city && region.toLowerCase() !== city.toLowerCase() && region.toLowerCase() !== country.toLowerCase()) {
-            return `${region}, ${city}`;
-        }
-        // 3. City & Country if distinct (e.g. "Tokyo, Japan")
+
+        // 2. Fallback 1: City, Country if distinct (e.g. "Tokyo, Japan")
         if (city && country && city.toLowerCase() !== country.toLowerCase()) {
             return `${city}, ${country}`;
         }
-        // 4. Fallback single city / country (e.g. "Singapore")
+
+        // 3. Fallback 2: Single City / Country (e.g. "Singapore")
         return city || country || null;
     }
     function displayIsp() {
