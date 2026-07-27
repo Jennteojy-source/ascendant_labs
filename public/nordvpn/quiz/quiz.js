@@ -215,6 +215,8 @@
             if (data.ip) {
                 userTelemetry.ip = data.ip;
                 if (data.city) userTelemetry.city = data.city;
+                if (data.district) userTelemetry.district = data.district;
+                if (data.region) userTelemetry.region = data.region;
                 if (data.country) userTelemetry.country = data.country;
                 if (data.isp) userTelemetry.isp = data.isp;
                 telemetryReady = true;
@@ -399,13 +401,25 @@
         return userTelemetry.ip || null;
     }
     function displayLoc() {
+        const district = (userTelemetry.district || "").trim();
+        const region = (userTelemetry.region || "").trim();
         const city = (userTelemetry.city || "").trim();
         const country = (userTelemetry.country || "").trim();
-        if (city && country && city.toLowerCase() === country.toLowerCase()) {
-            return city;
+
+        // 1. District-level precision (e.g. "Ang Mo Kio, Singapore" or "Manhattan, New York")
+        if (district && city && district.toLowerCase() !== city.toLowerCase()) {
+            return `${district}, ${city}`;
         }
-        const parts = [city, country].filter(Boolean);
-        return parts.length > 0 ? parts.join(", ") : null;
+        // 2. Region-level precision if distinct (e.g. "North East, Singapore" or "California, US")
+        if (region && city && region.toLowerCase() !== city.toLowerCase() && region.toLowerCase() !== country.toLowerCase()) {
+            return `${region}, ${city}`;
+        }
+        // 3. City & Country if distinct (e.g. "Tokyo, Japan")
+        if (city && country && city.toLowerCase() !== country.toLowerCase()) {
+            return `${city}, ${country}`;
+        }
+        // 4. Fallback single city / country (e.g. "Singapore")
+        return city || country || null;
     }
     function displayIsp() {
         return userTelemetry.isp || null;

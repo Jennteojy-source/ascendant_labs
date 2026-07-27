@@ -113,7 +113,7 @@ function resolveIpInfo(ip) {
 
   return new Promise((resolve) => {
     const request = http.get(
-      `http://ip-api.com/json/${ip}?fields=status,city,country,isp,org,as,query`,
+      `http://ip-api.com/json/${ip}?fields=status,city,district,regionName,country,isp,org,as,query`,
       { timeout: 2500 },
       (res) => {
         let data = "";
@@ -129,6 +129,8 @@ function resolveIpInfo(ip) {
 
             const result = {
               city: parsed.city || "",
+              district: parsed.district || "",
+              region: parsed.regionName || "",
               country: parsed.country || "",
               isp: cleanIsp || "",
             };
@@ -177,7 +179,7 @@ function formatDisplayIp(rawIp) {
 
 /**
  * /api/telemetry — Native IP & Geo endpoint.
- * Returns { ip, city, country, isp } with accurate detection.
+ * Returns { ip, city, district, region, country, isp } with accurate detection.
  * If lookup fails or times out, returns null fields so the frontend can hide them.
  */
 exports.getIpTelemetry = onRequest(async (req, res) => {
@@ -193,7 +195,7 @@ exports.getIpTelemetry = onRequest(async (req, res) => {
   // If we can't get any IP at all, return nulls so frontend hides the section
   if (!rawIp) {
     res.set("Cache-Control", "no-store");
-    res.status(200).json({ ip: null, city: null, country: null, isp: null });
+    res.status(200).json({ ip: null, city: null, district: null, region: null, country: null, isp: null });
     return;
   }
 
@@ -204,6 +206,8 @@ exports.getIpTelemetry = onRequest(async (req, res) => {
   res.status(200).json({
     ip: displayIp,
     city: info?.city || null,
+    district: info?.district || null,
+    region: info?.region || null,
     country: info?.country || null,
     isp: info?.isp || null,
   });
