@@ -5,7 +5,7 @@
 (function () {
     "use strict";
 
-    // Quiz Questions Data
+    // Quiz Questions Data — 100% Relatable Everyday Questions
     const QUIZ_QUESTIONS = [
         {
             id: "wifi",
@@ -13,40 +13,12 @@
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>`,
             emoji: "📶",
             shortLabel: "Public Wi-Fi",
-            title: "How often do you connect to public Wi-Fi?",
-            subtitle: "Airports, coffee shops, hotels, gyms, or public transport.",
+            title: "How often do you connect to public Wi-Fi in cafes, airports, or hotels?",
+            subtitle: "Connecting to open public networks exposes your phone or laptop traffic.",
             options: [
-                { text: "Never", risk: 0 },
-                { text: "A few times a year", risk: 15 },
-                { text: "Frequently (Weekly/Daily)", risk: 30 }
-            ]
-        },
-        {
-            id: "cookies",
-            category: "Web Tracking",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm-1 5a1.5 1.5 0 11-1.5 1.5A1.5 1.5 0 0111 7zm5 3a1.5 1.5 0 11-1.5 1.5A1.5 1.5 0 0116 10zm-7 4a1.5 1.5 0 11-1.5 1.5A1.5 1.5 0 019 14zm6 2a1.5 1.5 0 11-1.5 1.5A1.5 1.5 0 0115 16z"/></svg>`,
-            emoji: "🍪",
-            shortLabel: "Cookie Tracking",
-            title: "How often do you click 'Accept All' on cookie popups?",
-            subtitle: "When reading news or browsing new websites.",
-            options: [
-                { text: "Rarely (I reject optional cookies)", risk: 0 },
-                { text: "Sometimes", risk: 15 },
-                { text: "Every day (I accept immediately)", risk: 25 }
-            ]
-        },
-        {
-            id: "location",
-            category: "Mobile Geolocation",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>`,
-            emoji: "📍",
-            shortLabel: "Location Access",
-            title: "How many apps have access to your phone location?",
-            subtitle: "Including social media, shopping, games, and weather apps.",
-            options: [
-                { text: "Only essential apps (Maps / Rideshare)", risk: 0 },
-                { text: "Some apps", risk: 15 },
-                { text: "Not sure / Most apps I download", risk: 25 }
+                { text: "Never — I only use cellular / home Wi-Fi", risk: 0 },
+                { text: "Occasionally when traveling", risk: 15 },
+                { text: "Frequently (Weekly or Daily)", risk: 30 }
             ]
         },
         {
@@ -54,27 +26,55 @@
             category: "Ad Surveillance",
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
             emoji: "👁️",
-            shortLabel: "Ad Tracking",
-            title: "Have you ever searched an item and seen ads for it shortly afterwards?",
-            subtitle: "Targeted ads appearing across social media or web pages.",
+            shortLabel: "Targeted Ads",
+            title: "Have you ever searched an item and seen creepy ads for it 10 minutes later?",
+            subtitle: "Ad networks follow your browser footprint across different websites.",
             options: [
-                { text: "Never", risk: 0 },
-                { text: "Sometimes", risk: 10 },
-                { text: "Frequently (It happens all the time)", risk: 20 }
+                { text: "Rarely", risk: 0 },
+                { text: "Sometimes", risk: 12 },
+                { text: "Constantly — It feels like I am being watched", risk: 25 }
             ]
         },
         {
-            id: "passwords",
-            category: "Credential Security",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
-            emoji: "🔑",
-            shortLabel: "Password Reuse",
-            title: "Do you reuse passwords across multiple online accounts?",
-            subtitle: "Or use simple variations for convenience.",
+            id: "incognito",
+            category: "Browsing Privacy",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>`,
+            emoji: "🕵️",
+            shortLabel: "Incognito Myth",
+            title: "Did you know 'Incognito Mode' does NOT hide your browsing from your Wi-Fi owner or ISP?",
+            subtitle: "Incognito only deletes local browser history — your network still logs every site.",
             options: [
-                { text: "No, I use unique passwords / manager", risk: 0 },
-                { text: "For a few non-important sites", risk: 12 },
-                { text: "Yes, I use 1 or 2 passwords for almost everything", risk: 20 }
+                { text: "Yes, I already knew that", risk: 0 },
+                { text: "I had no idea! I thought it was completely private", risk: 25 },
+                { text: "I use Incognito expecting full privacy", risk: 25 }
+            ]
+        },
+        {
+            id: "location",
+            category: "Location Tracking",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>`,
+            emoji: "📍",
+            shortLabel: "IP Exposure",
+            title: "Are you aware websites can see your exact city location and IP address right now?",
+            subtitle: "Your public IP address reveals your location to any website you open.",
+            options: [
+                { text: "Yes, I use a VPN to mask it", risk: 0 },
+                { text: "I knew IP exists, but not exact location", risk: 15 },
+                { text: "No, I thought my location was hidden", risk: 25 }
+            ]
+        },
+        {
+            id: "isp_logging",
+            category: "ISP Data Selling",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+            emoji: "🛡️",
+            shortLabel: "ISP Tracking",
+            title: "How do you feel about your internet provider tracking & selling your browsing history?",
+            subtitle: "In many countries, ISPs legally log and monetize customer browsing data.",
+            options: [
+                { text: "I don't mind", risk: 0 },
+                { text: "Somewhat bothered", risk: 15 },
+                { text: "Extremely bothered — My browsing should be private!", risk: 25 }
             ]
         }
     ];
@@ -174,7 +174,7 @@
             }
         }
 
-        // 2. Fire Server-Side CAPI via Cloud Function endpoint
+        // 2. Fire Server-Side CAPI & store analytics via Cloud Function endpoint
         fetch("/api/track-quiz-event", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -187,6 +187,7 @@
                 fbc: fbc,
                 trackingParams: trackingParams,
                 customData: customData,
+                quizResult: customData.quizResult || null,
                 eventSourceUrl: window.location.href
             })
         }).catch(err => {
@@ -220,6 +221,20 @@
                 if (data.country) userTelemetry.country = data.country;
                 if (data.isp) userTelemetry.isp = data.isp;
                 telemetryReady = true;
+
+                // Dynamically update Live Telemetry Teaser on Page 1 for maximum CTR curiosity!
+                const teaserEl = document.getElementById("intro-teaser-text");
+                if (teaserEl) {
+                    const locStr = displayLoc();
+                    const ispStr = displayIsp();
+                    if (locStr && ispStr) {
+                        teaserEl.innerHTML = `⚠️ <strong>UNPROTECTED:</strong> ${locStr} (${ispStr}) Exposed`;
+                    } else if (locStr) {
+                        teaserEl.innerHTML = `⚠️ <strong>UNPROTECTED:</strong> ${locStr} Network Exposed`;
+                    } else {
+                        teaserEl.innerHTML = `⚠️ <strong>UNPROTECTED:</strong> Public IP &amp; Location Exposed`;
+                    }
+                }
             }
         } catch (e) {
             console.warn("Telemetry fetch error:", e);
@@ -264,15 +279,15 @@
         localStorage.setItem("theme", newTheme);
     }
 
-    // Construct official NordVPN affiliate URL with click_id sub-parameters
+    // Construct official NordVPN affiliate URL with click_id sub-parameters (url_id=658)
     function setupCtaLink() {
         if (!ctaButton) return;
 
         const affiliateBaseUrl = "https://go.nordvpn.net/aff_c";
         const affParams = new URLSearchParams({
-            offer_id: "15",
+            offer_id: "658",
             aff_id: "152405",
-            url_id: "10"
+            url_id: "902"
         });
 
         if (clickId) {
@@ -300,7 +315,6 @@
 
     function bindEvents() {
         if (btnStart) btnStart.addEventListener("click", startQuiz);
-        if (btnRetake) btnRetake.addEventListener("click", resetQuiz);
     }
 
     function switchScreen(activeScreen) {
@@ -512,7 +526,6 @@
                 if (telItemIp) telItemIp.style.display = "none";
             }
         } else {
-            // If telemetry failed or timed out, gracefully hide city, isp, and ip grid items!
             if (telItemCity) telItemCity.style.display = "none";
             if (telItemIsp) telItemIsp.style.display = "none";
             if (telItemIp) telItemIp.style.display = "none";
@@ -523,78 +536,77 @@
         // Circumference = 2 * PI * 52 ≈ 326.72
         const circumference = 326.72;
         const offset = circumference - (calculatedPercentage / 100) * circumference;
-        dialProgress.style.strokeDashoffset = offset;
+        if (dialProgress) dialProgress.style.strokeDashoffset = offset;
 
         const ispName = displayIsp();
+        const city = displayLoc();
 
-        // Categorize Risk Level & set educational privacy recommendation copy
-        if (calculatedPercentage >= 70) {
-            resultStatusTag.className = "result-badge risk-critical";
-            resultRiskLevel.textContent = "CRITICAL EXPOSURE";
-            resultHeadline.textContent = "High Risk Detected";
-            vpnPitchSub.textContent = ispName
-                ? `Your ${deviceShortName} connection on ${ispName} is unencrypted. Discover how NordVPN secures your network.`
-                : `Your ${deviceShortName} connection is unencrypted. Discover how NordVPN secures your network.`;
-        } else if (calculatedPercentage >= 45) {
-            resultStatusTag.className = "result-badge risk-elevated";
-            resultRiskLevel.textContent = "ELEVATED RISK";
-            resultHeadline.textContent = "Vulnerabilities Found";
-            vpnPitchSub.textContent = ispName
-                ? `${ispName} can track your ${deviceShortName} browsing history. Learn how NordVPN hides your location & activity.`
-                : `Your ISP can track your ${deviceShortName} browsing history. Learn how NordVPN hides your location & activity.`;
-        } else {
-            resultStatusTag.className = "result-badge risk-elevated";
-            resultRiskLevel.textContent = "MODERATE EXPOSURE";
-            resultHeadline.textContent = "Good Habits — Data Still Exposed";
-            vpnPitchSub.textContent = ispName
-                ? `Even with safe habits, ${ispName} logs your ${deviceShortName} traffic. See how NordVPN keeps your browsing private.`
-                : `Even with safe habits, your ISP logs your ${deviceShortName} traffic. See how NordVPN keeps your browsing private.`;
+        // 1-Sentence Ultra-Fast Bridge
+        const expText = document.getElementById("vpn-exp-text");
+        if (expText) {
+            if (ispName && city) {
+                expText.innerHTML = `Shields your <strong>${ispName}</strong> connection &amp; hides your <strong>${city}</strong> location in 1 click.`;
+            } else if (ispName) {
+                expText.innerHTML = `Shields your <strong>${ispName}</strong> connection &amp; hides your internet address in 1 click.`;
+            } else {
+                expText.innerHTML = `Shields your internet connection &amp; hides your location in 1 click.`;
+            }
         }
 
-        // Render Compact Visual Risk Bars
-        const riskBars = document.getElementById("risk-bars");
-        riskBars.innerHTML = "";
-        selectedAnswers.forEach(ans => {
-            let level, cssClass, barWidth;
-            if (ans.risk === 0) {
-                level = "Safe";
-                cssClass = "safe";
-                barWidth = "20%";
-            } else if (ans.risk <= 15) {
-                level = "Moderate";
-                cssClass = "moderate";
-                barWidth = "60%";
-            } else {
-                level = "At Risk";
-                cssClass = "critical";
-                barWidth = "100%";
+        // Categorize Risk Level & set status headline
+        if (calculatedPercentage >= 70) {
+            if (resultStatusTag) {
+                resultStatusTag.className = "result-badge risk-critical";
+                resultRiskLevel.textContent = "HIGH EXPOSURE RISK";
             }
+            if (resultHeadline) resultHeadline.textContent = "Your Connection Is Unprotected";
+        } else if (calculatedPercentage >= 45) {
+            if (resultStatusTag) {
+                resultStatusTag.className = "result-badge risk-elevated";
+                resultRiskLevel.textContent = "ELEVATED PRIVACY RISK";
+            }
+            if (resultHeadline) resultHeadline.textContent = "Vulnerabilities Found";
+        } else {
+            if (resultStatusTag) {
+                resultStatusTag.className = "result-badge risk-elevated";
+                resultRiskLevel.textContent = "MODERATE EXPOSURE";
+            }
+            if (resultHeadline) resultHeadline.textContent = "Your Activity Is Exposed";
+        }
 
-            const bar = document.createElement("div");
-            bar.className = "risk-bar-item";
-            bar.innerHTML = `
-                <span class="risk-bar-icon">${ans.emoji}</span>
-                <span class="risk-bar-label">${ans.shortLabel}</span>
-                <div class="risk-bar-track">
-                    <div class="risk-bar-fill ${cssClass}" style="width: 0%;"></div>
-                </div>
-                <span class="risk-bar-tag ${cssClass}">${level}</span>
-            `;
-            riskBars.appendChild(bar);
+        // Render 3 Ultra-Clean 1-Line Checkmarks
+        const protectionList = document.getElementById("protection-list");
+        if (protectionList) {
+            protectionList.innerHTML = "";
+            const protectionPoints = [
+                ispName ? `✓ <strong>Stops ISP Tracking:</strong> Hides activity from ${ispName}` : `✓ <strong>Stops ISP Tracking:</strong> Hides activity from your provider`,
+                city ? `✓ <strong>Hides Location & IP:</strong> Protects your ${city} address` : `✓ <strong>Hides Location & IP:</strong> Protects your physical address`,
+                `✓ <strong>Blocks Ads & Viruses:</strong> Built-in automatic protection`
+            ];
 
-            // Animate bar fill after append
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    bar.querySelector(".risk-bar-fill").style.width = barWidth;
-                });
+            protectionPoints.forEach(pt => {
+                const item = document.createElement("div");
+                item.className = "bullet-row-simple";
+                item.innerHTML = pt;
+                protectionList.appendChild(item);
             });
-        });
+        }
 
-        // Fire CAPI CompleteRegistration event on completing quiz and pass answers
+        if (ctaButton) {
+            const btnSpan = ctaButton.querySelector("span");
+            if (btnSpan) btnSpan.textContent = "Get NordVPN — 75% Off →";
+        }
+
+        // Fire CAPI CompleteRegistration event on completing quiz & pass rich analytics payload
         sendCapiEvent("CompleteRegistration", {
             content_name: "NordVPN Quiz Complete",
             risk_score: calculatedPercentage,
-            answers: selectedAnswers
+            answers: selectedAnswers,
+            quizResult: {
+                score: calculatedPercentage,
+                answers: selectedAnswers,
+                telemetry: userTelemetry
+            }
         });
 
         switchScreen(screenResult);

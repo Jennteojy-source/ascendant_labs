@@ -245,7 +245,52 @@ body {
     color: var(--text-muted);
     font-size: 0.95rem;
     line-height: 1.45;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
+}
+
+/* Live Telemetry Teaser Pill on Intro Screen */
+.intro-telemetry-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    color: var(--accent-rose);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.live-dot-pulse {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-rose);
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
+    animation: livePulse 1.6s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes livePulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+.hero-trust-note {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 12px;
+    font-weight: 600;
 }
 
 /* Radar Graphic */
@@ -911,12 +956,65 @@ body {
     box-shadow: 0 0 25px rgba(59, 130, 246, 0.08);
 }
 
+.simple-bridge-text {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin: 10px 0 14px;
+    text-align: center;
+    background: rgba(6, 182, 212, 0.06);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+}
+
+.simple-bridge-text strong {
+    color: var(--accent-cyan);
+    font-weight: 700;
+}
+
+.protection-bullets-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+.bullet-row-simple {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+.bullet-row-simple strong {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.deal-guarantee-strip {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--accent-emerald);
+    text-align: center;
+    margin-bottom: 12px;
+}
+
 .solution-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 12px;
+}
+
+.solution-headline-match {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: var(--accent-cyan);
+    margin: 6px 0 12px;
+    letter-spacing: -0.01em;
+    text-align: center;
 }
 
 .nord-brand-box {
@@ -1273,3 +1371,287 @@ body {
         width: 44px;
     }
 }
+
+/* Protection Breakdown & Deal Pricing Box */
+.protection-breakdown {
+    margin: 12px 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+}
+
+.protection-header {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--accent-cyan);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.protection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.protection-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    text-align: left;
+}
+
+.protection-icon {
+    font-size: 1rem;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.protection-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.protection-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.protection-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+.deal-pricing-box {
+    margin: 14px 0;
+    text-align: center;
+    background: rgba(6, 182, 212, 0.07);
+    border: 1px dashed rgba(6, 182, 212, 0.35);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+}
+
+.deal-tag-sub {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.deal-price-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.price-old {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.price-main {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent-cyan);
+}
+
+.price-main small {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.price-bonus {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-emerald);
+    background: rgba(16, 185, 129, 0.12);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Ultra-Streamlined Single-Card Result Layout */
+.result-hero-compact {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+
+.score-dial-compact {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+}
+
+.dial-svg-small {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.dial-text-small {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.score-val-small {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent-rose);
+}
+
+.score-lbl-small {
+    font-size: 0.48rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.result-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    text-align: left;
+}
+
+.result-headline-compact {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 2px 0;
+}
+
+.footprint-strip {
+    font-size: 0.72rem;
+    color: var(--accent-rose);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Streamlined Solution Card */
+.solution-card-streamlined {
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, var(--bg-card) 100%);
+    border: 1.5px solid rgba(6, 182, 212, 0.35);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: 0 4px 24px rgba(6, 182, 212, 0.1);
+}
+
+.solution-header-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.protection-bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+.bullet-item-compact {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.bullet-check {
+    color: var(--accent-cyan);
+    font-weight: 800;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.bullet-text strong {
+    color: var(--text-main);
+}
+
+.bullet-text span {
+    color: var(--text-muted);
+}
+
+.deal-pricing-compact {
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px dashed rgba(6, 182, 212, 0.4);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    margin-bottom: 14px;
+}
+
+.price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+}
+
+.nord-cta-streamlined {
+    width: 100%;
+    padding: 15px 18px !important;
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    border-radius: var(--radius-sm) !important;
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(2, 132, 199, 0.4) !important;
+    margin-bottom: 10px !important;
+    text-transform: none !important;
+    letter-spacing: -0.01em !important;
+}
+
+.nord-cta-streamlined:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(2, 132, 199, 0.5) !important;
+}
+
+.deal-guarantee-note {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--accent-emerald);
+    text-align: center;
+}
+
+.retake-wrap-compact {
+    margin-top: 14px;
+    text-align: center;
+}
+
+.retake-btn {
+    font-size: 0.78rem;
+    padding: 6px 14px;
+    opacity: 0.75;
+}
+
+

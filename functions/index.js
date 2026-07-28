@@ -239,17 +239,33 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
   const fbc = body.fbc || null;
   const fbp = body.fbp || null;
 
-  // Store only what the Purchase CAPI handler needs to look up later.
+  // Store click data and quiz results in Firestore for deep analytics
   try {
-    await db.collection("clicks").doc(clickId).set({
+    const clickData = {
       ip,
       userAgent,
       ...(fbc ? { fbc } : {}),
       ...(fbp ? { fbp } : {}),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    };
+    await db.collection("clicks").doc(clickId).set(clickData, { merge: true });
+
+    // Store rich quiz result analytics when CompleteRegistration or quizResult is sent
+    if (body.quizResult || customData.answers) {
+      const quizPayload = body.quizResult || {};
+      await db.collection("quiz_results").doc(clickId).set({
+        clickId,
+        score: quizPayload.score || customData.risk_score || 0,
+        answers: quizPayload.answers || customData.answers || [],
+        ip,
+        userAgent,
+        ...(fbc ? { fbc } : {}),
+        ...(fbp ? { fbp } : {}),
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
   } catch (err) {
-    console.error("Firestore click write error:", err);
+    console.error("Firestore write error:", err);
   }
 
   try {
