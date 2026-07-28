@@ -594,7 +594,7 @@
 
         if (ctaButton) {
             const btnSpan = ctaButton.querySelector("span");
-            if (btnSpan) btnSpan.textContent = "Get NordVPN — 75% Off →";
+            if (btnSpan) btnSpan.textContent = "Get NordVPN Protection →";
         }
 
         // Fire CAPI CompleteRegistration event on completing quiz & pass rich analytics payload
