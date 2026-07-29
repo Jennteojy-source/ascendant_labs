@@ -256,6 +256,7 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
       await db.collection("quiz_results").doc(clickId).set({
         clickId,
         score: quizPayload.score || customData.risk_score || 0,
+        objection: quizPayload.objection || customData.objection || null,
         answers: quizPayload.answers || customData.answers || [],
         ip,
         userAgent,

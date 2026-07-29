@@ -76,12 +76,48 @@
                 { text: "Somewhat bothered", risk: 15 },
                 { text: "Extremely bothered — My browsing should be private!", risk: 25 }
             ]
+        },
+        {
+            id: "vpn_usage",
+            category: "VPN Protection",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
+            emoji: "🔒",
+            shortLabel: "VPN Usage",
+            title: "Do you currently use a VPN to protect your internet connection?",
+            subtitle: "A VPN encrypts your traffic and hides your identity from trackers.",
+            options: [
+                { text: "Yes, I use one regularly", risk: 0 },
+                { text: "I tried one but stopped using it", risk: 10 },
+                { text: "No, I've never used one", risk: 15 }
+            ]
+        },
+        {
+            id: "vpn_objection",
+            category: "Your Concerns",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`,
+            emoji: "🤔",
+            shortLabel: "VPN Hesitation",
+            title: "What's the biggest reason you haven't stuck with a VPN?",
+            subtitle: "Understanding your concern helps us give you the right recommendation.",
+            options: [
+                { text: "They seem too expensive", risk: 0, objection: "price" },
+                { text: "They seem complicated or too technical", risk: 0, objection: "complexity" },
+                { text: "I don't think I really need one", risk: 0, objection: "apathy" },
+                { text: "I don't fully understand what a VPN does", risk: 0, objection: "awareness" }
+            ]
         }
     ];
+
+    // Q7 conditional logic constants
+    const Q6_INDEX = 5; // vpn_usage question index
+    const Q7_INDEX = 6; // vpn_objection question index
+    const Q6_SKIP_ANSWER = "Yes, I use one regularly";
 
     // State Variables
     let currentStepIndex = 0;
     let selectedAnswers = [];
+    let userObjection = null; // tracks Q7 objection type for results personalization
+    let skipQ7 = false; // true when user already uses a VPN
     let userTelemetry = {
         ip: null,
         city: null,
@@ -330,9 +366,21 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function getVisibleQuestionCount() {
+        return skipQ7 ? QUIZ_QUESTIONS.length - 1 : QUIZ_QUESTIONS.length;
+    }
+
+    function getVisibleStepNumber(index) {
+        // If Q7 is skipped and we're past Q6, don't count Q7
+        if (skipQ7 && index > Q7_INDEX) return index; // shouldn't happen
+        return index + 1;
+    }
+
     function startQuiz() {
         currentStepIndex = 0;
         selectedAnswers = [];
+        userObjection = null;
+        skipQ7 = false;
         sendCapiEvent("Lead", {
             content_name: "NordVPN Quiz Start",
             step: "start"
@@ -345,9 +393,16 @@
         const question = QUIZ_QUESTIONS[index];
         if (!question) return;
 
-        currentStepText.textContent = index + 1;
+        const totalVisible = getVisibleQuestionCount();
+        const stepNum = skipQ7 && index > Q6_INDEX ? index : index + 1;
+        currentStepText.textContent = stepNum;
+
+        // Update dynamic total
+        const totalStepsEl = document.getElementById("total-steps");
+        if (totalStepsEl) totalStepsEl.textContent = totalVisible;
+
         categoryBadge.textContent = question.category;
-        progressFill.style.width = `${((index + 1) / QUIZ_QUESTIONS.length) * 100}%`;
+        progressFill.style.width = `${(stepNum / totalVisible) * 100}%`;
 
         qIconEl.innerHTML = question.icon;
         qTitle.textContent = question.title;
@@ -380,8 +435,22 @@
             risk: optionObj.risk
         };
 
+        // Track objection from Q7
+        if (optionObj.objection) {
+            userObjection = optionObj.objection;
+        }
+
         // Snappy transition
         setTimeout(() => {
+            // Q6 conditional logic: skip Q7 if user already uses a VPN
+            if (questionIndex === Q6_INDEX && optionObj.text === Q6_SKIP_ANSWER) {
+                skipQ7 = true;
+                userObjection = "existing_user";
+                // Skip Q7 entirely, go to analyzing
+                runAnalyzingScreen();
+                return;
+            }
+
             if (currentStepIndex < QUIZ_QUESTIONS.length - 1) {
                 currentStepIndex++;
                 renderQuestion(currentStepIndex);
@@ -475,8 +544,8 @@
     }
 
     function showResultsScreen() {
-        const totalRiskPoints = selectedAnswers.reduce((sum, item) => sum + item.risk, 0);
-        const maxPoints = 120;
+        const totalRiskPoints = selectedAnswers.reduce((sum, item) => sum + (item ? item.risk : 0), 0);
+        const maxPoints = 145;
         const calculatedPercentage = Math.min(100, Math.max(30, Math.round((totalRiskPoints / maxPoints) * 100)));
 
         const finalScoreNum = document.getElementById("final-score-num");
@@ -574,17 +643,59 @@
             if (resultHeadline) resultHeadline.textContent = "Your Activity Is Exposed";
         }
 
-        // Render 3 Ultra-Clean 1-Line Checkmarks
+        // Render personalized protection checkmarks based on quiz answers
         const protectionList = document.getElementById("protection-list");
         if (protectionList) {
             protectionList.innerHTML = "";
-            const protectionPoints = [
-                ispName ? `✓ <strong>Stops ISP Tracking:</strong> Hides activity from ${ispName}` : `✓ <strong>Stops ISP Tracking:</strong> Hides activity from your provider`,
-                city ? `✓ <strong>Hides Location & IP:</strong> Protects your ${city} address` : `✓ <strong>Hides Location & IP:</strong> Protects your physical address`,
-                `✓ <strong>Blocks Ads & Viruses:</strong> Built-in automatic protection`
-            ];
 
-            protectionPoints.forEach(pt => {
+            // Build personalized points based on what the user actually answered
+            const protectionPoints = [];
+
+            // Check Q1 (Public Wi-Fi) — index 0
+            const wifiAnswer = selectedAnswers[0];
+            if (wifiAnswer && wifiAnswer.risk > 0) {
+                protectionPoints.push(`✓ <strong>Secures Public Wi-Fi:</strong> Encrypts your connection on open networks`);
+            }
+
+            // Check Q2 (Targeted Ads) — index 1
+            const adsAnswer = selectedAnswers[1];
+            if (adsAnswer && adsAnswer.risk > 0) {
+                protectionPoints.push(`✓ <strong>Stops Ad Tracking:</strong> Blocks trackers that follow you across sites`);
+            }
+
+            // Check Q3 (Incognito Myth) — index 2
+            const incognitoAnswer = selectedAnswers[2];
+            if (incognitoAnswer && incognitoAnswer.risk > 0) {
+                protectionPoints.push(`✓ <strong>True Private Browsing:</strong> Actually hides activity from your network — not just local history`);
+            }
+
+            // Check Q4 (IP/Location) — index 3
+            const locationAnswer = selectedAnswers[3];
+            if (locationAnswer && locationAnswer.risk > 0) {
+                protectionPoints.push(city
+                    ? `✓ <strong>Hides Your Location:</strong> Masks your ${city} IP from every website`
+                    : `✓ <strong>Hides Your Location:</strong> Masks your IP address from every website`);
+            }
+
+            // Check Q5 (ISP Tracking) — index 4
+            const ispAnswer = selectedAnswers[4];
+            if (ispAnswer && ispAnswer.risk > 0) {
+                protectionPoints.push(ispName
+                    ? `✓ <strong>Blocks ISP Spying:</strong> Stops ${ispName} from logging your browsing`
+                    : `✓ <strong>Blocks ISP Spying:</strong> Stops your provider from logging your browsing`);
+            }
+
+            // If user scored low risk on everything, show generic top 3
+            if (protectionPoints.length === 0) {
+                protectionPoints.push(
+                    ispName ? `✓ <strong>Stops ISP Tracking:</strong> Hides activity from ${ispName}` : `✓ <strong>Stops ISP Tracking:</strong> Hides activity from your provider`,
+                    city ? `✓ <strong>Hides Location & IP:</strong> Protects your ${city} address` : `✓ <strong>Hides Location & IP:</strong> Protects your physical address`,
+                    `✓ <strong>Blocks Ads & Trackers:</strong> Built-in automatic protection`
+                );
+            }
+
+            // Show top 3 most relevant points
+            protectionPoints.slice(0, 3).forEach(pt => {
                 const item = document.createElement("div");
                 item.className = "bullet-row-simple";
                 item.innerHTML = pt;
@@ -592,18 +703,50 @@
             });
         }
 
+        // Render personalized objection-buster based on Q7 answer
+        const objectionBuster = document.getElementById("objection-buster");
+        if (objectionBuster) {
+            const deviceName = getDeviceOs().replace(/ \(.*\)/, "");
+            const objectionMessages = {
+                price: `💰 NordVPN works out to just <strong>$3.09/mo</strong> — less than a single coffee. And there's a <strong>30-day money-back guarantee</strong>, so it's completely risk-free to try.`,
+                complexity: `⚡ NordVPN is literally <strong>1 tap to connect</strong>. Download the app on your ${deviceName}, press the button — that's it. No settings, no configuration. Works instantly.`,
+                apathy: `🔍 Your quiz shows <strong>${ispName || "your ISP"}</strong> can see every website you visit right now. That's not a theory — look at your data above. A VPN makes this <strong>invisible</strong> to them.`,
+                awareness: `🔐 A VPN creates a <strong>private tunnel</strong> between your ${deviceName} and the internet. Right now <strong>${ispName || "your ISP"}</strong> logs everything you do online — a VPN makes that impossible.`,
+                existing_user: `✅ Great that you already use a VPN! NordVPN offers the <strong>fastest speeds</strong> and <strong>strongest encryption</strong> available — see if it beats your current provider.`
+            };
+
+            if (userObjection && objectionMessages[userObjection]) {
+                objectionBuster.innerHTML = objectionMessages[userObjection];
+                objectionBuster.style.display = "block";
+            } else {
+                objectionBuster.style.display = "none";
+            }
+        }
+
+        // Personalized CTA button text based on objection
         if (ctaButton) {
             const btnSpan = ctaButton.querySelector("span");
-            if (btnSpan) btnSpan.textContent = "Get NordVPN Protection →";
+            if (btnSpan) {
+                const ctaTexts = {
+                    price: "Try NordVPN Risk-Free — $3.09/mo →",
+                    complexity: "Get 1-Click Protection →",
+                    apathy: "Hide My Activity Now →",
+                    awareness: "Start My Private Tunnel →",
+                    existing_user: "Compare NordVPN →"
+                };
+                btnSpan.textContent = ctaTexts[userObjection] || "Get NordVPN Protection →";
+            }
         }
 
         // Fire CAPI CompleteRegistration event on completing quiz & pass rich analytics payload
         sendCapiEvent("CompleteRegistration", {
             content_name: "NordVPN Quiz Complete",
             risk_score: calculatedPercentage,
+            objection: userObjection,
             answers: selectedAnswers,
             quizResult: {
                 score: calculatedPercentage,
+                objection: userObjection,
                 answers: selectedAnswers,
                 telemetry: userTelemetry
             }

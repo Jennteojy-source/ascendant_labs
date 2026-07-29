@@ -85,7 +85,7 @@
 
             <h1 class="hero-title">Is your internet company tracking what you do online?</h1>
             <p class="hero-subtitle">
-                Answer 5 quick questions to see how visible your phone or computer is right now.
+                Answer 7 quick questions to see how visible your phone or computer is right now.
             </p>
 
             <!-- Live Telemetry Exposure Teaser Pill -->
@@ -113,7 +113,7 @@
             </div>
 
             <div class="feature-pills">
-                <div class="pill">⚡ 5 Questions</div>
+                <div class="pill">⚡ 7 Questions</div>
                 <div class="pill">📊 Live IP Scan</div>
                 <div class="pill">🔒 100% Free</div>
             </div>
@@ -124,7 +124,7 @@
             </button>
 
             <p class="hero-trust-note">
-                🔒 Anonymous Audit • Takes 45 Seconds
+                🔒 Anonymous Audit • Takes 60 Seconds
             </p>
         </section>
 
@@ -132,7 +132,7 @@
         <section id="screen-quiz" class="quiz-card screen-hidden">
             <div class="quiz-progress-wrapper">
                 <div class="progress-info">
-                    <span class="progress-label">QUESTION <strong id="current-step-text">1</strong> OF 5</span>
+                    <span class="progress-label">QUESTION <strong id="current-step-text">1</strong> OF <span id="total-steps">7</span></span>
                     <span id="category-badge" class="cat-pill">Network Security</span>
                 </div>
                 <div class="progress-track">
@@ -250,6 +250,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Personalized Objection-Buster (dynamically shown based on Q7 answer) -->
+            <div id="objection-buster" class="objection-buster" style="display: none;"></div>
 
             <!-- NordVPN Official Solution Card (Minimalist Ultra-Fast Scan) -->
             <div class="solution-card">
