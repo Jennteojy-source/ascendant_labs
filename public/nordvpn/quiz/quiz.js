@@ -5,7 +5,7 @@
 (function () {
     "use strict";
 
-    // Quiz Questions Data — 100% Relatable Everyday Questions
+    // Quiz Questions Data — 5 Punchy, High-Converting Questions (Optimized for Broad Meta Ad Traffic)
     const QUIZ_QUESTIONS = [
         {
             id: "wifi",
@@ -31,7 +31,7 @@
             subtitle: "Ad networks follow your browser footprint across different websites.",
             options: [
                 { text: "Rarely", risk: 0 },
-                { text: "Sometimes", risk: 12 },
+                { text: "Sometimes", risk: 15 },
                 { text: "Constantly — It feels like I am being watched", risk: 25 }
             ]
         },
@@ -55,69 +55,35 @@
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>`,
             emoji: "📍",
             shortLabel: "IP Exposure",
-            title: "Are you aware websites can see your exact city location and IP address right now?",
-            subtitle: "Your public IP address reveals your location to any website you open.",
+            title: "Are you aware websites & internet providers can see your exact location right now?",
+            subtitle: "Your public IP address reveals your location and network provider to any website.",
             options: [
-                { text: "Yes, I use a VPN to mask it", risk: 0 },
+                { text: "Yes, I knew my IP address was visible", risk: 0 },
                 { text: "I knew IP exists, but not exact location", risk: 15 },
                 { text: "No, I thought my location was hidden", risk: 25 }
             ]
         },
         {
-            id: "isp_logging",
-            category: "ISP Data Selling",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-            emoji: "🛡️",
-            shortLabel: "ISP Tracking",
-            title: "How do you feel about your internet provider tracking & selling your browsing history?",
-            subtitle: "In many countries, ISPs legally log and monetize customer browsing data.",
-            options: [
-                { text: "I don't mind", risk: 0 },
-                { text: "Somewhat bothered", risk: 15 },
-                { text: "Extremely bothered — My browsing should be private!", risk: 25 }
-            ]
-        },
-        {
-            id: "vpn_usage",
+            id: "vpn_objection",
             category: "VPN Protection",
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
             emoji: "🔒",
-            shortLabel: "VPN Usage",
-            title: "Do you currently use a VPN to protect your internet connection?",
-            subtitle: "A VPN encrypts your traffic and hides your identity from trackers.",
+            shortLabel: "VPN Protection",
+            title: "Do you currently use a VPN, or what is stopping you from protecting your device?",
+            subtitle: "A VPN encrypts your traffic and masks your location with 1 click.",
             options: [
-                { text: "Yes, I use one regularly", risk: 0 },
-                { text: "I tried one but stopped using it", risk: 10 },
-                { text: "No, I've never used one", risk: 15 }
-            ]
-        },
-        {
-            id: "vpn_objection",
-            category: "Your Concerns",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`,
-            emoji: "🤔",
-            shortLabel: "VPN Hesitation",
-            title: "What's the biggest reason you haven't stuck with a VPN?",
-            subtitle: "Understanding your concern helps us give you the right recommendation.",
-            options: [
-                { text: "They seem too expensive", risk: 0, objection: "price" },
-                { text: "They seem complicated or too technical", risk: 0, objection: "complexity" },
-                { text: "I don't think I really need one", risk: 0, objection: "apathy" },
-                { text: "I don't fully understand what a VPN does", risk: 0, objection: "awareness" }
+                { text: "I don't use one — seems too expensive", risk: 20, objection: "price" },
+                { text: "I don't use one — seems complicated to set up", risk: 20, objection: "complexity" },
+                { text: "I don't use one — not sure if I really need it", risk: 20, objection: "apathy" },
+                { text: "Yes, I already use a VPN regularly", risk: 0, objection: "existing_user" }
             ]
         }
     ];
 
-    // Q7 conditional logic constants
-    const Q6_INDEX = 5; // vpn_usage question index
-    const Q7_INDEX = 6; // vpn_objection question index
-    const Q6_SKIP_ANSWER = "Yes, I use one regularly";
-
     // State Variables
     let currentStepIndex = 0;
     let selectedAnswers = [];
-    let userObjection = null; // tracks Q7 objection type for results personalization
-    let skipQ7 = false; // true when user already uses a VPN
+    let userObjection = null; // tracks Q5 objection type for results personalization
     let userTelemetry = {
         ip: null,
         city: null,
@@ -367,12 +333,10 @@
     }
 
     function getVisibleQuestionCount() {
-        return skipQ7 ? QUIZ_QUESTIONS.length - 1 : QUIZ_QUESTIONS.length;
+        return QUIZ_QUESTIONS.length;
     }
 
     function getVisibleStepNumber(index) {
-        // If Q7 is skipped and we're past Q6, don't count Q7
-        if (skipQ7 && index > Q7_INDEX) return index; // shouldn't happen
         return index + 1;
     }
 
@@ -380,7 +344,6 @@
         currentStepIndex = 0;
         selectedAnswers = [];
         userObjection = null;
-        skipQ7 = false;
         sendCapiEvent("Lead", {
             content_name: "NordVPN Quiz Start",
             step: "start"
@@ -393,8 +356,8 @@
         const question = QUIZ_QUESTIONS[index];
         if (!question) return;
 
-        const totalVisible = getVisibleQuestionCount();
-        const stepNum = skipQ7 && index > Q6_INDEX ? index : index + 1;
+        const totalVisible = QUIZ_QUESTIONS.length;
+        const stepNum = index + 1;
         currentStepText.textContent = stepNum;
 
         // Update dynamic total
@@ -435,22 +398,13 @@
             risk: optionObj.risk
         };
 
-        // Track objection from Q7
+        // Track objection from Q5
         if (optionObj.objection) {
             userObjection = optionObj.objection;
         }
 
         // Snappy transition
         setTimeout(() => {
-            // Q6 conditional logic: skip Q7 if user already uses a VPN
-            if (questionIndex === Q6_INDEX && optionObj.text === Q6_SKIP_ANSWER) {
-                skipQ7 = true;
-                userObjection = "existing_user";
-                // Skip Q7 entirely, go to analyzing
-                runAnalyzingScreen();
-                return;
-            }
-
             if (currentStepIndex < QUIZ_QUESTIONS.length - 1) {
                 currentStepIndex++;
                 renderQuestion(currentStepIndex);
@@ -545,7 +499,7 @@
 
     function showResultsScreen() {
         const totalRiskPoints = selectedAnswers.reduce((sum, item) => sum + (item ? item.risk : 0), 0);
-        const maxPoints = 145;
+        const maxPoints = 125;
         const calculatedPercentage = Math.min(100, Math.max(30, Math.round((totalRiskPoints / maxPoints) * 100)));
 
         const finalScoreNum = document.getElementById("final-score-num");
@@ -677,9 +631,9 @@
                     : `✓ <strong>Hides Your Location:</strong> Masks your IP address from every website`);
             }
 
-            // Check Q5 (ISP Tracking) — index 4
-            const ispAnswer = selectedAnswers[4];
-            if (ispAnswer && ispAnswer.risk > 0) {
+            // Check Q5 (VPN Protection / ISP Tracking) — index 4
+            const vpnAnswer = selectedAnswers[4];
+            if (vpnAnswer) {
                 protectionPoints.push(ispName
                     ? `✓ <strong>Blocks ISP Spying:</strong> Stops ${ispName} from logging your browsing`
                     : `✓ <strong>Blocks ISP Spying:</strong> Stops your provider from logging your browsing`);
