@@ -1684,4 +1684,112 @@ body {
     opacity: 0.75;
 }
 
+/* ISP Exposure Comparison Card */
+.isp-comparison-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-card);
+}
+
+.isp-comp-header {
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.comp-title {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+}
+
+.isp-comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .isp-comp-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.isp-col {
+    background: var(--bg-option);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+}
+
+.isp-unprotected {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.isp-protected {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.col-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.col-title {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.isp-unprotected .col-title { color: var(--accent-rose); }
+.isp-protected .col-title { color: var(--accent-emerald); }
+
+.comp-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.comp-list li {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.comp-list li strong {
+    color: var(--text-main);
+}
+
+.x-mark {
+    color: var(--accent-rose);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.check-mark {
+    color: var(--accent-emerald);
+    font-weight: 800;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+
 

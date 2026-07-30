@@ -5,77 +5,78 @@
 (function () {
     "use strict";
 
-    // Quiz Questions Data — 5 Punchy, High-Converting Questions (Optimized for Broad Meta Ad Traffic)
+    // Quiz Questions Data — 100% User-Friendly (No Technical Jargon)
     const QUIZ_QUESTIONS = [
         {
-            id: "wifi",
-            category: "Network Security",
+            id: "connection_type",
+            category: "Internet Usage",
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>`,
-            emoji: "📶",
-            shortLabel: "Public Wi-Fi",
-            title: "How often do you connect to public Wi-Fi in cafes, airports, or hotels?",
-            subtitle: "Connecting to open public networks exposes your phone or laptop traffic.",
+            emoji: "🌐",
+            shortLabel: "Connection Type",
+            title: "Where do you connect to the internet most?",
+            subtitle: "Your internet company can track and log every website you visit on unencrypted networks.",
             options: [
-                { text: "Never — I only use cellular / home Wi-Fi", risk: 0 },
-                { text: "Occasionally when traveling", risk: 15 },
-                { text: "Frequently (Weekly or Daily)", risk: 30 }
+                { text: "Home Wi-Fi", risk: 20 },
+                { text: "Mobile / Cellular Data", risk: 15 },
+                { text: "Public Wi-Fi (Cafes, Hotels, Airports)", risk: 30 }
             ]
         },
         {
-            id: "ads",
-            category: "Ad Surveillance",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
-            emoji: "👁️",
-            shortLabel: "Targeted Ads",
-            title: "Have you ever searched an item and seen creepy ads for it 10 minutes later?",
-            subtitle: "Ad networks follow your browser footprint across different websites.",
-            options: [
-                { text: "Rarely", risk: 0 },
-                { text: "Sometimes", risk: 15 },
-                { text: "Constantly — It feels like I am being watched", risk: 25 }
-            ]
-        },
-        {
-            id: "incognito",
-            category: "Browsing Privacy",
+            id: "incognito_myth",
+            category: "Private Browsing",
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>`,
             emoji: "🕵️",
-            shortLabel: "Incognito Myth",
-            title: "Did you know 'Incognito Mode' does NOT hide your browsing from your Wi-Fi owner or ISP?",
-            subtitle: "Incognito only deletes local browser history — your network still logs every site.",
+            shortLabel: "Incognito Check",
+            title: "Do you use Private Browsing or Incognito mode?",
+            subtitle: "Incognito only clears history on your device screen. Your internet company still logs every website.",
             options: [
-                { text: "Yes, I already knew that", risk: 0 },
-                { text: "I had no idea! I thought it was completely private", risk: 25 },
-                { text: "I use Incognito expecting full privacy", risk: 25 }
+                { text: "Yes — Thought Incognito hid sites from everyone", risk: 25 },
+                { text: "Sometimes — Wasn't sure what it actually hid", risk: 20 },
+                { text: "No — I knew my internet company could still see my sites", risk: 0 }
             ]
         },
         {
-            id: "location",
-            category: "Location Tracking",
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>`,
-            emoji: "📍",
-            shortLabel: "IP Exposure",
-            title: "Are you aware websites & internet providers can see your exact location right now?",
-            subtitle: "Your public IP address reveals your location and network provider to any website.",
+            id: "data_sales",
+            category: "Browsing History",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+            emoji: "💰",
+            shortLabel: "Data Sales",
+            title: "Did you know internet companies can legally sell your browsing history?",
+            subtitle: "Without protection, internet companies build search profiles linked directly to your location.",
             options: [
-                { text: "Yes, I knew my IP address was visible", risk: 0 },
-                { text: "I knew IP exists, but not exact location", risk: 15 },
-                { text: "No, I thought my location was hidden", risk: 25 }
+                { text: "No idea! I thought my browsing was private", risk: 25 },
+                { text: "Heard rumors, but didn't think mine did", risk: 20 },
+                { text: "Yes — I knew companies log and sell browsing activity", risk: 10 }
+            ]
+        },
+        {
+            id: "sensitive_searches",
+            category: "Search Privacy",
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+            emoji: "👁️",
+            shortLabel: "Search Activity",
+            title: "Do you ever look up private, medical, or financial topics online?",
+            subtitle: "Unless your connection is locked down, every website name you open can be recorded.",
+            options: [
+                { text: "Yes — Frequently", risk: 25 },
+                { text: "Sometimes", risk: 15 },
+                { text: "Rarely", risk: 0 }
             ]
         },
         {
             id: "vpn_objection",
-            category: "VPN Protection",
+            category: "Privacy Protection",
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
             emoji: "🔒",
-            shortLabel: "VPN Protection",
-            title: "Do you currently use a VPN, or what is stopping you from protecting your device?",
-            subtitle: "A VPN encrypts your traffic and masks your location with 1 click.",
+            shortLabel: "Protection App",
+            title: "What is currently stopping you from locking down your privacy?",
+            subtitle: "A protection app (VPN) scrambles your internet activity into an unreadable tunnel in 1 tap.",
             options: [
-                { text: "I don't use one — seems too expensive", risk: 20, objection: "price" },
-                { text: "I don't use one — seems complicated to set up", risk: 20, objection: "complexity" },
-                { text: "I don't use one — not sure if I really need it", risk: 20, objection: "apathy" },
-                { text: "Yes, I already use a VPN regularly", risk: 0, objection: "existing_user" }
+                { text: "Thought Incognito mode was enough until today", risk: 25, objection: "awareness" },
+                { text: "Seems too expensive", risk: 20, objection: "price" },
+                { text: "Seems too confusing to set up", risk: 20, objection: "complexity" },
+                { text: "Not sure if I really need one", risk: 20, objection: "apathy" },
+                { text: "I already use a protection app regularly", risk: 0, objection: "existing_user" }
             ]
         }
     ];
@@ -605,46 +606,46 @@
             // Build personalized points based on what the user actually answered
             const protectionPoints = [];
 
-            // Check Q1 (Public Wi-Fi) — index 0
-            const wifiAnswer = selectedAnswers[0];
-            if (wifiAnswer && wifiAnswer.risk > 0) {
-                protectionPoints.push(`✓ <strong>Secures Public Wi-Fi:</strong> Encrypts your connection on open networks`);
+            // Check Q1 (ISP Connection) — index 0
+            const connAnswer = selectedAnswers[0];
+            if (connAnswer && connAnswer.risk > 0) {
+                protectionPoints.push(ispName
+                    ? `✓ <strong>Blocks ${ispName} Logging:</strong> Encrypts browsing before your ISP sees it`
+                    : `✓ <strong>Blocks ISP Logging:</strong> Encrypts browsing before your provider sees it`);
             }
 
-            // Check Q2 (Targeted Ads) — index 1
-            const adsAnswer = selectedAnswers[1];
-            if (adsAnswer && adsAnswer.risk > 0) {
-                protectionPoints.push(`✓ <strong>Stops Ad Tracking:</strong> Blocks trackers that follow you across sites`);
-            }
-
-            // Check Q3 (Incognito Myth) — index 2
-            const incognitoAnswer = selectedAnswers[2];
+            // Check Q2 (Incognito Myth) — index 1
+            const incognitoAnswer = selectedAnswers[1];
             if (incognitoAnswer && incognitoAnswer.risk > 0) {
-                protectionPoints.push(`✓ <strong>True Private Browsing:</strong> Actually hides activity from your network — not just local history`);
+                protectionPoints.push(`✓ <strong>True Incognito Shield:</strong> Hides site names from your network provider`);
             }
 
-            // Check Q4 (IP/Location) — index 3
-            const locationAnswer = selectedAnswers[3];
-            if (locationAnswer && locationAnswer.risk > 0) {
-                protectionPoints.push(city
-                    ? `✓ <strong>Hides Your Location:</strong> Masks your ${city} IP from every website`
-                    : `✓ <strong>Hides Your Location:</strong> Masks your IP address from every website`);
+            // Check Q3 (ISP Data Sales) — index 2
+            const salesAnswer = selectedAnswers[2];
+            if (salesAnswer && salesAnswer.risk > 0) {
+                protectionPoints.push(`✓ <strong>Stops Data Monetization:</strong> Prevents ISPs from logging & selling search history`);
             }
 
-            // Check Q5 (VPN Protection / ISP Tracking) — index 4
+            // Check Q4 (DNS Exposure) — index 3
+            const dnsAnswer = selectedAnswers[3];
+            if (dnsAnswer && dnsAnswer.risk > 0) {
+                protectionPoints.push(`✓ <strong>Encrypted DNS:</strong> Scrambles all domain requests into unreadable noise`);
+            }
+
+            // Check Q5 (VPN Shield / Objection) — index 4
             const vpnAnswer = selectedAnswers[4];
             if (vpnAnswer) {
-                protectionPoints.push(ispName
-                    ? `✓ <strong>Blocks ISP Spying:</strong> Stops ${ispName} from logging your browsing`
-                    : `✓ <strong>Blocks ISP Spying:</strong> Stops your provider from logging your browsing`);
+                protectionPoints.push(city
+                    ? `✓ <strong>Masks Location & IP:</strong> Protects your ${city} IP address from websites`
+                    : `✓ <strong>Masks Location & IP:</strong> Protects your physical IP address from websites`);
             }
 
             // If user scored low risk on everything, show generic top 3
             if (protectionPoints.length === 0) {
                 protectionPoints.push(
-                    ispName ? `✓ <strong>Stops ISP Tracking:</strong> Hides activity from ${ispName}` : `✓ <strong>Stops ISP Tracking:</strong> Hides activity from your provider`,
-                    city ? `✓ <strong>Hides Location & IP:</strong> Protects your ${city} address` : `✓ <strong>Hides Location & IP:</strong> Protects your physical address`,
-                    `✓ <strong>Blocks Ads & Trackers:</strong> Built-in automatic protection`
+                    ispName ? `✓ <strong>Blocks ${ispName} Logging:</strong> Encrypts activity from your ISP` : `✓ <strong>Blocks ISP Logging:</strong> Encrypts activity from your provider`,
+                    `✓ <strong>True Incognito Shield:</strong> Hides website domains from DNS logs`,
+                    city ? `✓ <strong>Masks Location & IP:</strong> Protects your ${city} IP address` : `✓ <strong>Masks Location & IP:</strong> Protects your physical IP address`
                 );
             }
 
@@ -657,16 +658,16 @@
             });
         }
 
-        // Render personalized objection-buster based on Q7 answer
+        // Render personalized objection-buster based on Q5 answer
         const objectionBuster = document.getElementById("objection-buster");
         if (objectionBuster) {
             const deviceName = getDeviceOs().replace(/ \(.*\)/, "");
             const objectionMessages = {
-                price: `💰 NordVPN works out to just <strong>$3.09/mo</strong> — less than a single coffee. And there's a <strong>30-day money-back guarantee</strong>, so it's completely risk-free to try.`,
-                complexity: `⚡ NordVPN is literally <strong>1 tap to connect</strong>. Download the app on your ${deviceName}, press the button — that's it. No settings, no configuration. Works instantly.`,
-                apathy: `🔍 Your quiz shows <strong>${ispName || "your ISP"}</strong> can see every website you visit right now. That's not a theory — look at your data above. A VPN makes this <strong>invisible</strong> to them.`,
-                awareness: `🔐 A VPN creates a <strong>private tunnel</strong> between your ${deviceName} and the internet. Right now <strong>${ispName || "your ISP"}</strong> logs everything you do online — a VPN makes that impossible.`,
-                existing_user: `✅ Great that you already use a VPN! NordVPN offers the <strong>fastest speeds</strong> and <strong>strongest encryption</strong> available — see if it beats your current provider.`
+                awareness: `🕵️ <strong>Incognito Myth Busted:</strong> Incognito mode only wipes screen history. Your ISP still logs every site you visit. NordVPN encrypts your connection so your ISP sees zero activity.`,
+                price: `💰 <strong>Affordable Protection:</strong> NordVPN is just <strong>$3.09/mo</strong> (less than a coffee) with a <strong>30-day money-back guarantee</strong>.`,
+                complexity: `⚡ <strong>1-Tap Setup:</strong> Download NordVPN on your ${deviceName} and tap Quick Connect — encrypted in under 15 seconds.`,
+                apathy: `🔍 <strong>Active Exposure:</strong> Your ISP logs every domain you visit right now. NordVPN makes your browsing 100% unreadable.`,
+                existing_user: `✅ <strong>Fastest Speeds:</strong> NordVPN offers top speeds and an audited zero-logs policy — see if it beats your current provider.`
             };
 
             if (userObjection && objectionMessages[userObjection]) {
