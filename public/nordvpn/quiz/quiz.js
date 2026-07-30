@@ -224,20 +224,6 @@
                 if (data.country) userTelemetry.country = data.country;
                 if (data.isp) userTelemetry.isp = data.isp;
                 telemetryReady = true;
-
-                // Dynamically update Live Telemetry Teaser on Page 1 for maximum CTR curiosity!
-                const teaserEl = document.getElementById("intro-teaser-text");
-                if (teaserEl) {
-                    const locStr = displayLoc();
-                    const ispStr = displayIsp();
-                    if (locStr && ispStr) {
-                        teaserEl.innerHTML = `⚠️ <strong>UNPROTECTED:</strong> ${locStr} (${ispStr}) Exposed`;
-                    } else if (locStr) {
-                        teaserEl.innerHTML = `⚠️ <strong>UNPROTECTED:</strong> ${locStr} Network Exposed`;
-                    } else {
-                        teaserEl.innerHTML = `⚠️ <strong>UNPROTECTED:</strong> Public IP &amp; Location Exposed`;
-                    }
-                }
             }
         } catch (e) {
             console.warn("Telemetry fetch error:", e);
