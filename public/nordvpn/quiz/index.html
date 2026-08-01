@@ -22,9 +22,9 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css?v=3.0">
+    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css?v=4.0">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
 
     <!-- Meta Pixel Code -->
@@ -80,45 +80,46 @@
         <section id="screen-intro" class="quiz-card screen-active">
             <div class="hero-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>ONLINE PRIVACY QUIZ</span>
+                <span>60-SECOND PRIVACY CHECKUP</span>
             </div>
 
-            <h1 class="hero-title">How Private Is Your Online Activity?</h1>
+            <h1 class="hero-title">What's Your Privacy Score?</h1>
             <p class="hero-subtitle">
-                Answer 5 quick questions to calculate your privacy score and learn how to keep your data safe.
+                Answer 5 quick questions to calculate your privacy score and get friendly guidance on keeping your data safe.
             </p>
 
             <div class="hero-graphic">
-                <div class="radar-circle circle-2"></div>
-                <div class="radar-circle circle-1"></div>
-                <div class="radar-sweep"></div>
-                <div class="shield-center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        <path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+                <div class="preview-dial-container">
+                    <svg class="preview-dial-svg" viewBox="0 0 120 120">
+                        <circle class="preview-dial-bg" cx="60" cy="60" r="52"></circle>
+                        <circle class="preview-dial-bar" cx="60" cy="60" r="52" stroke-dasharray="326.72" stroke-dashoffset="95"></circle>
                     </svg>
+                    <div class="preview-dial-center">
+                        <span class="preview-score-num">72</span>
+                        <span class="preview-score-lbl">EXPOSED</span>
+                    </div>
                 </div>
                 <div class="floating-tag tag-1">
-                    <span class="dot red"></span> IP Exposed
+                    <span class="dot red"></span> ISP Logging
                 </div>
                 <div class="floating-tag tag-2">
-                    <span class="dot yellow"></span> ISP Logging
+                    <span class="dot yellow"></span> Wi-Fi Leaks
                 </div>
             </div>
 
             <div class="feature-pills">
-                <div class="pill">⚡ 5 Questions</div>
+                <div class="pill">⚡ 5 Quick Questions</div>
                 <div class="pill">🎯 Instant Score</div>
                 <div class="pill">🔒 100% Free</div>
             </div>
 
             <button id="btn-start" class="btn-primary start-btn">
-                <span>Take the Quiz</span>
+                <span>Find Out Yours — Free</span>
                 <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
 
             <p class="hero-trust-note">
-                🔒 100% Anonymous • Takes 60 Seconds
+                🔒 100% Private &amp; Anonymous • Takes 60 Seconds
             </p>
         </section>
 
@@ -245,26 +246,23 @@
                 </div>
             </div>
 
-            <!-- NordVPN Official Solution Card (Clean, Unified Conversion Box) -->
+            <!-- NordVPN Official Solution Card (Clean, Guidance-Focused Layout) -->
             <div class="solution-card">
                 <div class="solution-top">
                     <div class="nord-brand-box">
-                        <img src="/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg" alt="NordVPN" class="nord-official-icon" width="28" height="28" style="flex-shrink: 0;">
+                        <img src="/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg" alt="NordVPN" class="nord-official-icon" width="32" height="32" style="flex-shrink: 0;">
                         <div class="nord-brand-meta">
-                            <span class="partner-name">NordVPN&reg; Protection</span>
-                            <span class="verified-badge">✓ Prescribed Solution</span>
+                            <span class="partner-name">NordVPN&reg;</span>
+                            <span class="trust-badge">★ World's Most Trusted VPN Brand</span>
                         </div>
                     </div>
-                    <span class="deal-pill">75% OFF</span>
+                    <span class="deal-pill">✓ Top Recommendation</span>
                 </div>
 
-                <!-- Personalized Objection-Buster Callout -->
-                <div id="objection-buster" class="objection-buster" style="display: none;"></div>
-
-                <!-- 1-Sentence Simple Bridge -->
-                <p id="vpn-exp-text" class="simple-bridge-text">
-                    Shields your <strong>connection</strong> &amp; hides your <strong>location</strong> in 1 easy click.
-                </p>
+                <!-- Unified Social Proof & Trust Guidance Card -->
+                <div id="nord-trust-box" class="nord-trust-box">
+                    <!-- Dynamically populated in quiz.js -->
+                </div>
 
                 <!-- 3 Short 1-Line Checkmarks -->
                 <div id="protection-list" class="protection-bullets-clean">
@@ -273,11 +271,11 @@
 
                 <!-- Guarantee & CTA -->
                 <div class="deal-guarantee-strip">
-                    🛡️ 30-Day Money-Back Guarantee • Risk-Free Trial
+                    🛡️ 30-Day Risk-Free Guarantee • Easy 1-Tap Setup
                 </div>
 
                 <a id="cta-button" href="https://go.nordvpn.net/aff_c?offer_id=658&aff_id=152405&url_id=902" target="_self" rel="noopener noreferrer" class="btn-primary cta-btn nord-cta">
-                    <span>Get NordVPN Protection →</span>
+                    <span>Try NordVPN Risk-Free →</span>
                 </a>
             </div>
         </section>
