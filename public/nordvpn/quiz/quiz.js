@@ -116,6 +116,31 @@
     let clickId = null;
     let trackingParams = {};
 
+    /**
+     * Set a first-party cookie with a given name, value, and max-age in days.
+     */
+    function setCookie(name, value, days) {
+        const maxAge = days * 24 * 60 * 60;
+        document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
+    }
+
+    /**
+     * Ensure _fbc cookie exists when fbclid is present in the URL.
+     * Meta format: fb.1.{creation_timestamp_ms}.{fbclid}
+     * Set with 90-day expiry per Meta's 2026 attribution window recommendation.
+     */
+    function ensureFbcCookie(urlParams) {
+        const existingFbc = getCookie("_fbc");
+        const fbclid = urlParams.get("fbclid");
+
+        if (fbclid && !existingFbc) {
+            const constructed = `fb.1.${Date.now()}.${fbclid}`;
+            setCookie("_fbc", constructed, 90);
+            return constructed;
+        }
+        return existingFbc || null;
+    }
+
     function initTracking() {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -142,6 +167,9 @@
         // Store clickId for persistence
         localStorage.setItem("nordvpn_click_id", clickId);
 
+        // Ensure _fbc cookie is set from fbclid before Pixel init (covers ad-click traffic)
+        ensureFbcCookie(urlParams);
+
         // Initialize Meta Pixel once with Advanced Matching (external_id), then fire PageView
         if (typeof window.fbq === "function") {
             window.fbq("init", "868721989329074", clickId ? { external_id: clickId } : {});
@@ -149,6 +177,9 @@
         }
 
         // Fire initial CAPI & Pixel ViewContent event on quiz landing
+        // Note: _fbp may not exist yet on this first call (Pixel sets it async).
+        // Per Meta 2026 best practice, do NOT delay — rely on event_id deduplication
+        // between Pixel (client) and CAPI (server) to merge the signals.
         sendCapiEvent("ViewContent", {
             content_name: "NordVPN Privacy Quiz",
             content_category: "VPN"
