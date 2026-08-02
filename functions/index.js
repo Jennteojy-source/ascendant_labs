@@ -48,7 +48,7 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
     user_data: {
       ...(userData.fbc ? { fbc: userData.fbc } : {}),
       ...(userData.fbp ? { fbp: userData.fbp } : {}),
-      ...(userData.external_id ? { external_id: userData.external_id } : {}),
+      ...(userData.external_id ? { external_id: crypto.createHash("sha256").update(userData.external_id).digest("hex") } : {}),
       client_ip_address: userData.client_ip_address || "",
       client_user_agent: userData.client_user_agent || "",
     },
@@ -250,14 +250,14 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
     };
     await db.collection("clicks").doc(clickId).set(clickData, { merge: true });
 
-    // Store rich quiz result analytics when CompleteRegistration or quizResult is sent
-    if (body.quizResult || customData.answers) {
-      const quizPayload = body.quizResult || {};
+    // Store rich quiz result analytics when quizResult is sent (CompleteRegistration)
+    const quizPayload = body.quizResult || customData.quizResult || null;
+    if (quizPayload) {
       await db.collection("quiz_results").doc(clickId).set({
         clickId,
-        score: quizPayload.score || customData.risk_score || 0,
-        objection: quizPayload.objection || customData.objection || null,
-        answers: quizPayload.answers || customData.answers || [],
+        score: quizPayload.score || 0,
+        objection: quizPayload.objection || null,
+        answers: quizPayload.answers || [],
         ip,
         userAgent,
         ...(fbc ? { fbc } : {}),
@@ -268,6 +268,10 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
   } catch (err) {
     console.error("Firestore write error:", err);
   }
+
+  // Strip non-Meta fields from custom_data before sending to CAPI.
+  // Meta only processes flat primitive values in custom_data.
+  const { quizResult, ...metaCustomData } = customData;
 
   try {
     await sendMetaCapiEvent(
@@ -280,7 +284,7 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
         client_ip_address: ip,
         client_user_agent: userAgent,
       },
-      customData,
+      metaCustomData,
       eventSourceUrl
     );
   } catch (err) {

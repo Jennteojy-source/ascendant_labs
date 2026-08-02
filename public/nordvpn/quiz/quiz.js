@@ -194,7 +194,7 @@
 
     function sendCapiEvent(eventName, customData = {}) {
         if (!clickId) return;
-        const eventId = `${eventName.toLowerCase()}_${clickId}`;
+        const eventId = `${eventName.toLowerCase()}_${clickId}_${Date.now()}`;
         const fbp = getCookie("_fbp");
         const fbc = getCookie("_fbc");
 
@@ -370,13 +370,24 @@
 
         ctaButton.href = `${affiliateBaseUrl}?${affParams.toString()}`;
 
-        // Bind InitiateCheckout CAPI event on CTA click
-        ctaButton.addEventListener("click", () => {
+        // Bind InitiateCheckout CAPI & Pixel event on CTA click with hybrid navigation guard
+        ctaButton.addEventListener("click", (e) => {
+            if (ctaButton.dataset.navigating === "true") return;
+
+            e.preventDefault();
+            ctaButton.dataset.navigating = "true";
+
             sendCapiEvent("InitiateCheckout", {
                 content_name: "NordVPN Affiliate CTA",
-                currency: "USD",
-                value: 0
+                content_ids: ["nordvpn_658"],
+                content_type: "product"
             });
+
+            const destinationUrl = ctaButton.href;
+            setTimeout(() => {
+                ctaButton.dataset.navigating = "false";
+                window.location.href = destinationUrl;
+            }, 120);
         });
     }
 
@@ -701,12 +712,13 @@
             }
         }
 
-        // Fire CAPI CompleteRegistration event on completing quiz & pass rich analytics payload
+        // Fire CAPI CompleteRegistration event — Meta only processes flat primitive custom_data.
+        // Rich quiz analytics (answers, telemetry) reach Firestore via quizResult in the CAPI body.
         sendCapiEvent("CompleteRegistration", {
             content_name: "NordVPN Quiz Complete",
-            risk_score: calculatedPercentage,
-            objection: userObjection,
-            answers: selectedAnswers,
+            content_ids: ["nordvpn_658"],
+            content_type: "product",
+            status: calculatedPercentage >= 50 ? "high_risk" : "low_risk",
             quizResult: {
                 score: calculatedPercentage,
                 objection: userObjection,
