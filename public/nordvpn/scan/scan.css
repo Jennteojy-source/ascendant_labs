@@ -1,0 +1,187 @@
+.scan-page {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.scan-start-btn {
+    min-height: 56px;
+    width: 100%;
+    font-size: 1.05rem;
+    margin-top: 2px;
+}
+
+.scan-reveal {
+    margin: 2px 0 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-option);
+}
+
+.scan-reveal-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent-rose);
+    margin-bottom: 8px;
+}
+
+.scan-reveal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    border-top: 1px solid var(--border-color);
+}
+
+.scan-reveal-row:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+.scan-reveal-locked {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    flex-shrink: 0;
+}
+
+.scan-page .deal-guarantee-strip {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.scan-page .result-headline {
+    margin-top: 6px;
+}
+
+.scan-page .nord-official-icon {
+    flex-shrink: 0;
+}
+
+.scan-page .cta-btn {
+    min-height: 54px;
+    width: 100%;
+}
+
+.cta-stack {
+    margin-top: 2px;
+}
+
+.scan-page .item-val {
+    overflow-wrap: anywhere;
+}
+
+.scan-page .app-footer,
+.scan-page + .app-footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 640px) {
+    .scan-page {
+        margin-top: 8px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .scan-page .quiz-card {
+        padding: 18px 16px 16px;
+    }
+
+    .scan-page .hero-badge {
+        margin-bottom: 10px;
+        font-size: 0.68rem;
+        padding: 4px 10px;
+    }
+
+    .scan-page .hero-title {
+        font-size: 1.62rem;
+        line-height: 1.18;
+        margin-bottom: 8px;
+    }
+
+    .scan-page .hero-subtitle {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 12px;
+    }
+
+    .scan-reveal {
+        margin-bottom: 14px;
+        padding: 10px 12px;
+    }
+
+    .scan-reveal-row {
+        font-size: 0.84rem;
+        padding: 7px 0;
+    }
+
+    .scan-start-btn {
+        min-height: 52px;
+        font-size: 1rem;
+    }
+
+    .scan-page .hero-trust-note {
+        margin-top: 10px;
+        font-size: 0.72rem;
+        text-align: center;
+    }
+
+    .scan-page .result-headline {
+        font-size: 1.22rem;
+        line-height: 1.2;
+    }
+
+    .scan-page .solution-top {
+        margin-bottom: 8px;
+    }
+
+    .scan-page .simple-bridge-text {
+        margin: 0 0 10px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    .scan-page .protection-bullets-clean {
+        margin-bottom: 12px;
+        gap: 6px;
+    }
+
+    .scan-page .bullet-row-simple {
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    .cta-stack {
+        position: sticky;
+        bottom: 0;
+        z-index: 6;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+        background: linear-gradient(180deg, transparent 0%, var(--bg-card) 18%);
+    }
+
+    .scan-page .cta-btn {
+        font-size: 0.95rem !important;
+        min-height: 52px;
+    }
+
+    .scan-page .deal-guarantee-strip {
+        margin-top: 8px;
+        font-size: 0.7rem;
+    }
+
+    .scan-page .nord-official-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .scan-page .item-val {
+        font-size: 0.72rem;
+    }
+}

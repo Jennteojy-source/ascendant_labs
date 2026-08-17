@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Free Connection Scan | See What Your ISP Can See | Ascendant Labs</title>
+    <meta name="description" content="Scan your connection in one tap. See your IP, location, and internet provider, then get a simple way to hide them.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://ascendantlabs.co/nordvpn/scan">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ascendantlabs.co/nordvpn/scan">
+    <meta property="og:title" content="See What Your Internet Provider Can See">
+    <meta property="og:description" content="One-tap scan of your IP, location, and ISP. Then see how NordVPN hides them.">
+    <meta property="og:site_name" content="Ascendant Labs">
+
+    <link rel="dns-prefetch" href="https://go.nordvpn.net">
+    <link rel="preconnect" href="https://go.nordvpn.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css?v=4.0">
+    <link rel="stylesheet" href="/nordvpn/scan/scan.css?v=1.5">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▲</text></svg>">
+
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=868721989329074&ev=PageView&noscript=1"
+    /></noscript>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <a href="/" class="app-logo">
+                <span class="logo-icon">▲</span>
+                Ascendant<span class="logo-highlight">Labs</span>
+            </a>
+            <div class="header-controls">
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark/Light mode">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="quiz-container scan-page">
+        <section id="screen-intro" class="quiz-card screen-active">
+            <div class="hero-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>FREE CONNECTION SCAN</span>
+            </div>
+
+            <h1 class="hero-title">See what your ISP can see</h1>
+            <p class="hero-subtitle">Your provider and public Wi-Fi can already see the sites you open.</p>
+
+            <div class="scan-reveal">
+                <div class="scan-reveal-label">Visible on this connection</div>
+                <div class="scan-reveal-row">
+                    <span>Internet provider</span>
+                    <span class="scan-reveal-locked">Hidden</span>
+                </div>
+                <div class="scan-reveal-row">
+                    <span>Location</span>
+                    <span class="scan-reveal-locked">Hidden</span>
+                </div>
+                <div class="scan-reveal-row">
+                    <span>IP address</span>
+                    <span class="scan-reveal-locked">Hidden</span>
+                </div>
+            </div>
+
+            <button id="btn-scan" class="btn-primary start-btn scan-start-btn" type="button">
+                <span>Scan My Connection</span>
+                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+            <p class="hero-trust-note">Free • Private • Then see how to hide this</p>
+        </section>
+
+        <section id="screen-analyzing" class="quiz-card screen-hidden">
+            <div class="analyzing-content">
+                <div class="scanner-ring-container">
+                    <div class="outer-ring"></div>
+                    <div class="inner-ring"></div>
+                    <div class="scanned-score" id="analyzing-percent">0%</div>
+                </div>
+                <h2 class="analyzing-title">Scanning</h2>
+                <p id="analyzing-status" class="analyzing-status">Checking IP, location, and provider...</p>
+            </div>
+        </section>
+
+        <section id="screen-result" class="quiz-card screen-hidden">
+            <div class="result-hero">
+                <div id="result-status-tag" class="result-badge risk-critical">
+                    <span class="badge-dot"></span>
+                    <span id="result-risk-level">CONNECTION EXPOSED</span>
+                </div>
+                <h2 id="result-headline" class="result-headline">Your ISP can see this</h2>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="telemetry-grid">
+                    <div class="telemetry-item" id="tel-item-isp">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">ISP</span>
+                            <span id="telemetry-isp" class="item-val alert">Scanning...</span>
+                        </div>
+                    </div>
+                    <div class="telemetry-item" id="tel-item-city">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 00-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 00-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">Location</span>
+                            <span id="telemetry-city" class="item-val alert">Scanning...</span>
+                        </div>
+                    </div>
+                    <div class="telemetry-item" id="tel-item-ip">
+                        <div class="tel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">IP address</span>
+                            <span id="telemetry-ip" class="item-val alert">Scanning...</span>
+                        </div>
+                    </div>
+                    <div class="telemetry-item" id="tel-item-device">
+                        <div class="tel-icon">
+                            <svg id="device-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>
+                        </div>
+                        <div class="tel-data">
+                            <span class="item-label">Device</span>
+                            <span id="telemetry-device" class="item-val">Detecting...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="solution-card">
+                <div class="solution-top">
+                    <div class="nord-brand-box">
+                        <img src="/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg" alt="NordVPN" class="nord-official-icon" width="32" height="32">
+                        <div class="nord-brand-meta">
+                            <span class="partner-name">NordVPN&reg;</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="vpn-why" class="simple-bridge-text">A VPN hides the sites you visit from your provider, and masks this IP from websites.</p>
+                <div class="protection-bullets-clean">
+                    <div class="bullet-row-simple">&#10003; Encrypts browsing on this connection</div>
+                    <div class="bullet-row-simple">&#10003; Masks your IP and location</div>
+                </div>
+                <div class="cta-stack">
+                    <a id="cta-button" href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902" target="_self" rel="noopener noreferrer" class="btn-primary cta-btn nord-cta">
+                        <span>Hide This With NordVPN →</span>
+                    </a>
+                    <div class="deal-guarantee-strip">30-day money-back guarantee</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 Ascendant Labs</p>
+        </div>
+    </footer>
+
+    <script src="/nordvpn/scan/scan.js?v=1.6"></script>
+</body>
+</html>

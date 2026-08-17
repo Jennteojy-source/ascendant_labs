@@ -17,12 +17,25 @@
             "value": "no-cache, no-store, must-revalidate"
           }
         ]
+      },
+      {
+        "source": "/nordvpn/scan/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
       }
     ],
     "rewrites": [
       {
         "source": "/nordvpn/quiz",
         "destination": "/nordvpn/quiz/index.html"
+      },
+      {
+        "source": "/nordvpn/scan",
+        "destination": "/nordvpn/scan/index.html"
       },
       {
         "source": "/api/telemetry",
