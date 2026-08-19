@@ -4,7 +4,12 @@ const admin = require("firebase-admin");
 const crypto = require("crypto");
 const http = require("http");
 const https = require("https");
-const { config, buildAffiliateUrl } = require("./config");
+const {
+  config,
+  buildAffiliateUrl,
+  buildPartnerUrl,
+  recommendFromScan,
+} = require("./config");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -433,6 +438,380 @@ exports.onConversionCreated = onDocumentCreated("conversions/{transactionId}", a
   await handleConversionCreated(event.params.transactionId, snapshot.data());
 });
 
+function graphPostJson(hostname, path, token, payload, extraHeaders = {}) {
+  const postData = JSON.stringify(payload);
+  const options = {
+    hostname,
+    path,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(postData),
+      Authorization: `Bearer ${token}`,
+      ...extraHeaders,
+    },
+  };
+
+  return new Promise((resolve) => {
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        console.log(`Graph POST ${path} status ${res.statusCode}: ${body}`);
+        resolve({ status: res.statusCode, body });
+      });
+    });
+    req.on("error", (e) => {
+      console.error(`Graph POST ${path} error: ${e.message}`);
+      resolve({ status: 0, body: e.message });
+    });
+    req.write(postData);
+    req.end();
+  });
+}
+
+function sendWhatsAppText(to, text) {
+  if (!config.wabaToken || !config.whatsappPhoneNumberId || !to || !text) {
+    return Promise.resolve();
+  }
+  const digits = String(to).replace(/\D/g, "");
+  return graphPostJson(
+    "graph.facebook.com",
+    `/v21.0/${config.whatsappPhoneNumberId}/messages`,
+    config.wabaToken,
+    {
+      messaging_product: "whatsapp",
+      to: digits,
+      type: "text",
+      text: { preview_url: false, body: text },
+    }
+  );
+}
+
+function sendAgentEvent(to, event) {
+  if (!config.wabaToken || !config.whatsappPhoneNumberId || !to) {
+    return Promise.resolve({ skipped: true });
+  }
+  const digits = String(to).replace(/\D/g, "");
+  return graphPostJson(
+    "api.facebook.com",
+    `/${config.whatsappPhoneNumberId}/agent_event`,
+    config.wabaToken,
+    {
+      to: `+${digits}`,
+      event,
+    },
+    { "X-API-Version": "2.0.0" }
+  );
+}
+
+function buildWhatsAppReturnUrl(scan) {
+  const phone = config.whatsappDisplayNumber;
+  const lines = [
+    "SCAN_COMPLETE",
+    `sid:${scan.sid}`,
+    scan.country ? `country:${scan.country}` : null,
+    scan.city ? `city:${scan.city}` : null,
+    scan.isp ? `isp:${scan.isp}` : null,
+    scan.ip ? `ip:${scan.ip}` : null,
+    scan.device ? `device:${scan.device}` : null,
+  ].filter(Boolean);
+  const text = encodeURIComponent(lines.join("\n"));
+  return {
+    waMe: `https://wa.me/${phone}?text=${text}`,
+    deepLink: `whatsapp://send?phone=${phone}&text=${text}`,
+  };
+}
+
+function extractScanSid(text) {
+  const match = String(text || "").match(/\bsid:([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : "";
+}
+
+function cors(res) {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+}
+
+function browserBreakoutHtml(dest) {
+  const safe = String(dest).replace(/</g, "");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening recommended partner</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background:#1f1814; color:#fbf5ef; display:flex; min-height:100vh; align-items:center; justify-content:center; margin:0; padding:24px; text-align:center; }
+    a { color:#d86326; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div>
+    <p>Opening your recommended partner in the browser…</p>
+    <p><a id="continue" href="${safe}" rel="noopener noreferrer">Tap here if it does not open</a></p>
+  </div>
+  <script>
+    (function () {
+      var url = ${JSON.stringify(dest)};
+      var ua = navigator.userAgent || "";
+      if (/Android/i.test(ua)) {
+        var path = url.replace(/^https?:\\/\\//, "");
+        window.location.href = "intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;end";
+        setTimeout(function () { window.location.href = url; }, 700);
+        return;
+      }
+      window.location.href = url;
+    })();
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * First-party short links for partner offers.
+ * Used in WhatsApp as plain URLs so they can leave the in-app CTA webview.
+ */
+exports.affiliateRedirect = onRequest(async (req, res) => {
+  cors(res);
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  const raw = String(req.originalUrl || req.url || req.path || "");
+  const parts = raw.split("?")[0].split("/").filter(Boolean);
+  const slug = parts[parts.length - 1] || "";
+  const clickId =
+    getQueryValue(req, "c") ||
+    getQueryValue(req, "click_id") ||
+    getQueryValue(req, "fbclid") ||
+    "";
+  const dest = buildPartnerUrl(slug, clickId);
+
+  if (!dest) {
+    res.status(404).json({
+      error: "Unknown or unconfigured partner link",
+      slug,
+    });
+    return;
+  }
+
+  const ua = req.get("user-agent") || "";
+  if (/WhatsApp/i.test(ua)) {
+    res.set("Cache-Control", "no-store");
+    res.status(200).send(browserBreakoutHtml(dest));
+    return;
+  }
+
+  res.set("Cache-Control", "no-store");
+  res.redirect(302, dest);
+});
+
+/**
+ * Persist a connection scan and notify Meta Business Agent when a WhatsApp number is known.
+ */
+exports.completeConnectionScan = onRequest(async (req, res) => {
+  cors(res);
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  const body = req.body || {};
+  const sid = String(body.sid || crypto.randomUUID()).slice(0, 80);
+  const waId = String(body.waId || body.wa || "").replace(/\D/g, "");
+  const ip = getClientIp(req);
+  const info = await resolveIpInfo(ip);
+  const displayIp = formatDisplayIp(ip);
+  const device = String(body.device || "").slice(0, 80);
+
+  const scan = {
+    sid,
+    ip: displayIp,
+    rawIp: ip || "",
+    city: info?.city || body.city || "",
+    district: info?.district || "",
+    region: info?.region || body.region || "",
+    country: info?.country || body.country || "",
+    isp: info?.isp || body.isp || "",
+    device,
+    waId: waId || "",
+    clickId: body.clickId || "",
+    userAgent: req.get("user-agent") || "",
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  const recommendation = recommendFromScan(scan);
+  scan.recommendation = recommendation;
+
+  try {
+    await db.collection("connection_scans").doc(sid).set(scan, { merge: true });
+    if (waId) {
+      await db.collection("wa_conversations").doc(waId).set({
+        waId,
+        lastSid: sid,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.error("Scan Firestore write error:", err);
+  }
+
+  if (waId) {
+    const event = {
+      type: "connection_scan_completed",
+      description: `Connection scan finished for ${scan.city || scan.country || "this user"}. ISP ${scan.isp || "unknown"}, country ${scan.country || "unknown"}. Recommend ${recommendation.primary} first.`,
+      payload: {
+        sid,
+        ip: scan.ip,
+        city: scan.city,
+        country: scan.country,
+        isp: scan.isp,
+        device: scan.device,
+        primary: recommendation.primary,
+        alternative: recommendation.alternative,
+        password: recommendation.password,
+        angle: recommendation.angle,
+        primary_link: recommendation.shortLinks.primary,
+        alternative_link: recommendation.shortLinks.alternative,
+        password_link: recommendation.shortLinks.password,
+      },
+    };
+    await sendAgentEvent(waId, event);
+  }
+
+  const returnUrls = buildWhatsAppReturnUrl(scan);
+  res.status(200).json({
+    success: true,
+    sid,
+    telemetry: {
+      ip: scan.ip,
+      city: scan.city,
+      region: scan.region,
+      country: scan.country,
+      isp: scan.isp,
+      device: scan.device,
+    },
+    recommendation,
+    returnUrls,
+  });
+});
+
+exports.getConnectionScan = onRequest(async (req, res) => {
+  cors(res);
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  const sid = getQueryValue(req, "sid") || String(req.path || "").split("/").filter(Boolean).pop();
+  if (!sid || sid === "scan") {
+    res.status(400).json({ error: "Missing sid" });
+    return;
+  }
+
+  try {
+    const doc = await db.collection("connection_scans").doc(sid).get();
+    if (!doc.exists) {
+      res.status(404).json({ error: "Scan not found" });
+      return;
+    }
+    const data = doc.data() || {};
+    res.status(200).json({
+      sid,
+      telemetry: {
+        ip: data.ip || null,
+        city: data.city || null,
+        region: data.region || null,
+        country: data.country || null,
+        isp: data.isp || null,
+        device: data.device || null,
+      },
+      recommendation: data.recommendation || recommendFromScan(data),
+    });
+  } catch (err) {
+    console.error("getConnectionScan error:", err);
+    res.status(500).json({ error: "Lookup failed" });
+  }
+});
+
+exports.whatsappWebhook = onRequest(async (req, res) => {
+  if (req.method === "GET") {
+    const mode = getQueryValue(req, "hub.mode");
+    const token = getQueryValue(req, "hub.verify_token");
+    const challenge = getQueryValue(req, "hub.challenge");
+    if (mode === "subscribe" && token && token === config.webhookVerifyToken) {
+      res.status(200).send(challenge);
+      return;
+    }
+    res.status(403).send("Forbidden");
+    return;
+  }
+
+  const body = req.body || {};
+  try {
+    const entries = body.entry || [];
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      for (const change of changes) {
+        const value = change.value || {};
+        const messages = value.messages || [];
+        for (const message of messages) {
+          const from = String(message.from || "").replace(/\D/g, "");
+          const text = (message.text && message.text.body) || "";
+          const sid = extractScanSid(text);
+          if (!from) continue;
+
+          const convo = {
+            waId: from,
+            lastMessage: text.slice(0, 500),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          };
+          if (sid) convo.lastSid = sid;
+          await db.collection("wa_conversations").doc(from).set(convo, { merge: true });
+
+          if (sid) {
+            const scanDoc = await db.collection("connection_scans").doc(sid).get();
+            if (scanDoc.exists) {
+              const scan = scanDoc.data() || {};
+              await db.collection("connection_scans").doc(sid).set({ waId: from }, { merge: true });
+              const recommendation = scan.recommendation || recommendFromScan(scan);
+              await sendAgentEvent(from, {
+                type: "connection_scan_completed",
+                description: `User returned from connection scan ${sid}. ISP ${scan.isp || "unknown"} in ${scan.country || "unknown"}.`,
+                payload: {
+                  sid,
+                  ip: scan.ip,
+                  city: scan.city,
+                  country: scan.country,
+                  isp: scan.isp,
+                  device: scan.device,
+                  primary: recommendation.primary,
+                  alternative: recommendation.alternative,
+                  password: recommendation.password,
+                  angle: recommendation.angle,
+                  primary_link: recommendation.shortLinks?.primary,
+                  alternative_link: recommendation.shortLinks?.alternative,
+                  password_link: recommendation.shortLinks?.password,
+                },
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("whatsappWebhook error:", err);
+  }
+
+  res.status(200).send("EVENT_RECEIVED");
+});
+
 // Export raw logic handlers for testing
 exports.handleConversionCreated = handleConversionCreated;
 exports.sendMetaCapiEvent = sendMetaCapiEvent;
+exports.buildAffiliateUrl = buildAffiliateUrl;
+exports.sendAgentEvent = sendAgentEvent;
+exports.sendWhatsAppText = sendWhatsAppText;

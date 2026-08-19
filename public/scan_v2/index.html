@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Connection Scan | Ascendant Labs</title>
+    <meta name="description" content="See what this connection exposes, then return to chat for a tailored internet security recommendation.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://ascendantlabs.co/scan_v2">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/nordvpn/quiz/quiz.css?v=4.0">
+    <link rel="stylesheet" href="/nordvpn/scan/scan.css?v=1.5">
+    <link rel="stylesheet" href="/scan_v2/scan_v2.css?v=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▲</text></svg>">
+</head>
+<body class="scan-v2-body">
+    <main class="quiz-container scan-page scan-v2">
+        <section id="screen-analyzing" class="quiz-card screen-active">
+            <div class="analyzing-content">
+                <div class="scanner-ring-container">
+                    <div class="outer-ring"></div>
+                    <div class="inner-ring"></div>
+                    <div class="scanned-score" id="analyzing-percent">0%</div>
+                </div>
+                <h1 class="analyzing-title">Scanning this connection</h1>
+                <p id="analyzing-status" class="analyzing-status">Checking IP, location, and network provider…</p>
+            </div>
+        </section>
+
+        <section id="screen-done" class="quiz-card screen-hidden">
+            <div class="result-hero">
+                <div class="result-badge risk-critical">
+                    <span class="badge-dot"></span>
+                    <span>SCAN COMPLETE</span>
+                </div>
+                <h2 class="result-headline">Returning to chat</h2>
+                <p id="done-summary" class="hero-subtitle">Your advisor now has this connection snapshot.</p>
+            </div>
+            <a id="return-link" class="btn-primary start-btn" href="https://wa.me/6580340915">Back to WhatsApp</a>
+        </section>
+    </main>
+    <script src="/scan_v2/scan_v2.js?v=1.0"></script>
+</body>
+</html>

@@ -26,6 +26,15 @@
             "value": "no-cache, no-store, must-revalidate"
           }
         ]
+      },
+      {
+        "source": "/scan_v2/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
       }
     ],
     "rewrites": [
@@ -38,8 +47,28 @@
         "destination": "/nordvpn/scan/index.html"
       },
       {
+        "source": "/scan_v2",
+        "destination": "/scan_v2/index.html"
+      },
+      {
         "source": "/api/telemetry",
         "function": "getIpTelemetry"
+      },
+      {
+        "source": "/api/scan-complete",
+        "function": "completeConnectionScan"
+      },
+      {
+        "source": "/api/scan",
+        "function": "getConnectionScan"
+      },
+      {
+        "source": "/api/whatsapp",
+        "function": "whatsappWebhook"
+      },
+      {
+        "source": "/r/**",
+        "function": "affiliateRedirect"
       },
       {
         "source": "/api/track-quiz-event",
