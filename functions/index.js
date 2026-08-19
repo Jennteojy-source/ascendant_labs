@@ -10,11 +10,22 @@ admin.initializeApp();
 const db = admin.firestore();
 
 function getClientIp(req) {
-  const forwarded = req.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
+  let forwarded = "";
+  if (typeof req.get === "function") {
+    forwarded = req.get("x-forwarded-for") || "";
+  } else if (req.headers && req.headers["x-forwarded-for"]) {
+    forwarded = req.headers["x-forwarded-for"];
   }
-  return req.ip || "";
+
+  if (forwarded) {
+    const parts = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    // If the chain contains a true IPv6 address, prioritize it for Meta CAPI
+    const ipv6 = parts.find((ip) => ip.includes(":") && !ip.startsWith("::ffff:"));
+    if (ipv6) return ipv6;
+    return parts[0].replace(/^::ffff:/, "");
+  }
+  const direct = req.ip || (req.connection && req.connection.remoteAddress) || "";
+  return direct.replace(/^::ffff:/, "");
 }
 
 function getQueryValue(req, key) {
@@ -235,9 +246,27 @@ exports.trackQuizEvent = onRequest(async (req, res) => {
   const ip = getClientIp(req);
   const userAgent = req.get("user-agent") || "";
 
-  // Pass through _fbc and _fbp cookies from client (set by Meta Pixel). Never reconstruct.
-  const fbc = body.fbc || null;
-  const fbp = body.fbp || null;
+  // Pass through _fbc and _fbp cookies from client
+  let fbc = body.fbc || null;
+  let fbp = body.fbp || null;
+
+  // Fallback 1: Reconstruct fbc if fbclid exists in trackingParams or clickId
+  const fbclid = trackingParams.fbclid || (clickId && clickId.length > 20 && !clickId.startsWith("clk_") ? clickId : null);
+  if (!fbc && fbclid) {
+    fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+
+  // Fallback 2: Retrieve previously stored fbc/fbp from Firestore if missing on later funnel steps (Lead / InitiateCheckout)
+  if (!fbc || !fbp) {
+    try {
+      const existingClick = await db.collection("clicks").doc(clickId).get();
+      if (existingClick.exists) {
+        const clickData = existingClick.data() || {};
+        if (!fbc && clickData.fbc) fbc = clickData.fbc;
+        if (!fbp && clickData.fbp) fbp = clickData.fbp;
+      }
+    } catch (_) {}
+  }
 
   // Store click data and quiz results in Firestore for deep analytics
   try {
@@ -303,12 +332,13 @@ exports.nordVpnWebhook = onRequest(async (req, res) => {
     const clickId =
       getQueryValue(req, "click_id") ||
       getQueryValue(req, "aff_click_id") ||
-      getQueryValue(req, "aff_sub");
-    const transactionId = getQueryValue(req, "transaction_id");
+      getQueryValue(req, "aff_sub") ||
+      getQueryValue(req, "adv_sub");
+    const transactionId = getQueryValue(req, "transaction_id") || getQueryValue(req, "tx_id");
     const payout = parseFloat(getQueryValue(req, "payout")) || 0;
     const offerId = parseInt(getQueryValue(req, "offer_id"), 10) || Number(config.nordVpn.offerId);
-    const saleAmount = parseFloat(getQueryValue(req, "sale_amount")) || 0;
-    const currency = getQueryValue(req, "currency");
+    const saleAmount = parseFloat(getQueryValue(req, "sale_amount")) || parseFloat(getQueryValue(req, "amount")) || 0;
+    const currency = getQueryValue(req, "currency") || "USD";
     const goalId = getQueryValue(req, "goal_id");
     const countryCode = getQueryValue(req, "country_code");
     const status = getQueryValue(req, "status");

@@ -48,7 +48,7 @@ const config = {
   nordVpn: {
     baseUrl: optionalEnv("NORDVPN_AFFILIATE_BASE_URL", "https://go.nordvpn.net/aff_c"),
     affId: optionalEnv("NORDVPN_AFF_ID", "152405"),
-    offerId: optionalEnv("NORDVPN_OFFER_ID", "15"),
+    offerId: optionalEnv("NORDVPN_OFFER_ID", "658"),
     urlId: optionalEnv("NORDVPN_URL_ID", "902"),
   },
 };

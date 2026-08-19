@@ -81,107 +81,257 @@
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
+.check-mark {
+    color: var(--accent-emerald);
+    font-weight: 900;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.partner-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rank-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(229, 152, 40, 0.15);
+    color: #c26116;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+[data-theme="dark"] .rank-badge {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.scan-page .protection-bullets-clean {
+    margin: 12px 0 14px;
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.scan-page .bullet-row-simple {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    text-align: left;
+    color: var(--text-main);
+}
+
+/* Subtle Partner Pricing Strip */
+.partner-pricing-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 10px 0 14px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: var(--bg-option);
+    border: 1px solid var(--border-color);
+}
+
+.pricing-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(216, 99, 38, 0.15);
+    color: var(--accent-terracotta);
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.pricing-label {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+}
+
+.pricing-label strong {
+    font-size: 0.96rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+/* High-Converting Pulsing CTA Animation */
+@keyframes ctaPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 4px 16px rgba(216, 99, 38, 0.35);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 8px 24px rgba(216, 99, 38, 0.65), 0 0 0 4px rgba(216, 99, 38, 0.18);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 16px rgba(216, 99, 38, 0.35);
+    }
+}
+
+.pulse-cta {
+    animation: ctaPulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.pulse-cta:hover {
+    animation: none;
+    transform: scale(1.025);
+    box-shadow: 0 10px 30px rgba(216, 99, 38, 0.75);
+    filter: brightness(1.06);
+}
+
+.pulse-cta:active {
+    transform: scale(0.98);
+}
+
 @media (max-width: 640px) {
     .scan-page {
-        margin-top: 8px;
+        margin-top: 6px;
         padding-left: 0;
         padding-right: 0;
     }
 
     .scan-page .quiz-card {
-        padding: 18px 16px 16px;
+        padding: 16px 14px 14px;
     }
 
     .scan-page .hero-badge {
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         font-size: 0.68rem;
         padding: 4px 10px;
     }
 
     .scan-page .hero-title {
-        font-size: 1.62rem;
+        font-size: 1.55rem;
         line-height: 1.18;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
 
     .scan-page .hero-subtitle {
-        font-size: 0.9rem;
-        line-height: 1.4;
-        margin-bottom: 12px;
+        font-size: 0.88rem;
+        line-height: 1.35;
+        margin-bottom: 10px;
     }
 
     .scan-reveal {
-        margin-bottom: 14px;
-        padding: 10px 12px;
+        margin-bottom: 12px;
+        padding: 8px 10px;
     }
 
     .scan-reveal-row {
-        font-size: 0.84rem;
-        padding: 7px 0;
+        font-size: 0.82rem;
+        padding: 6px 0;
     }
 
     .scan-start-btn {
-        min-height: 52px;
-        font-size: 1rem;
-    }
-
-    .scan-page .hero-trust-note {
-        margin-top: 10px;
-        font-size: 0.72rem;
-        text-align: center;
+        min-height: 50px;
+        font-size: 0.98rem;
     }
 
     .scan-page .result-headline {
-        font-size: 1.22rem;
+        font-size: 1.25rem;
         line-height: 1.2;
+        margin-top: 4px;
+        margin-bottom: 10px;
+    }
+
+    .scan-page .telemetry-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .scan-page .telemetry-item {
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+    }
+
+    .scan-page .tel-icon {
+        display: none;
+    }
+
+    .scan-page .item-label {
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .scan-page .item-val {
+        font-size: 0.78rem;
+        line-height: 1.25;
+        font-weight: 700;
+    }
+
+    .scan-page .solution-card {
+        padding: 12px 12px 10px;
+        margin-top: 10px;
     }
 
     .scan-page .solution-top {
         margin-bottom: 8px;
     }
 
-    .scan-page .simple-bridge-text {
-        margin: 0 0 10px;
-        padding: 8px 10px;
-        font-size: 0.8rem;
-        line-height: 1.4;
-        text-align: left;
-    }
-
     .scan-page .protection-bullets-clean {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         gap: 6px;
+        display: flex;
+        flex-direction: column;
     }
 
     .scan-page .bullet-row-simple {
-        font-size: 0.8rem;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 0.82rem;
         line-height: 1.35;
+        text-align: left;
     }
 
-    .cta-stack {
-        position: sticky;
-        bottom: 0;
-        z-index: 6;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-        background: linear-gradient(180deg, transparent 0%, var(--bg-card) 18%);
+    .partner-pricing-strip {
+        padding: 7px 10px;
+        margin: 8px 0 10px;
+    }
+
+    .pricing-badge {
+        font-size: 0.68rem;
+        padding: 2px 6px;
+    }
+
+    .pricing-label {
+        font-size: 0.78rem;
     }
 
     .scan-page .cta-btn {
         font-size: 0.95rem !important;
-        min-height: 52px;
+        min-height: 50px;
     }
 
     .scan-page .deal-guarantee-strip {
-        margin-top: 8px;
+        margin-top: 6px;
         font-size: 0.7rem;
     }
 
     .scan-page .nord-official-icon {
-        width: 28px;
-        height: 28px;
-    }
-
-    .scan-page .item-val {
-        font-size: 0.72rem;
+        width: 24px;
+        height: 24px;
     }
 }
+

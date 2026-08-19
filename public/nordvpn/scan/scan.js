@@ -37,13 +37,14 @@
 
     function ensureFbcCookie(urlParams) {
         const existingFbc = getCookie("_fbc");
-        const fbclid = urlParams.get("fbclid");
-        if (fbclid && !existingFbc) {
+        if (existingFbc) return existingFbc;
+        const fbclid = (urlParams && urlParams.get("fbclid")) || localStorage.getItem("nordvpn_fbclid");
+        if (fbclid) {
             const constructed = `fb.1.${Date.now()}.${fbclid}`;
             setCookie("_fbc", constructed, 90);
             return constructed;
         }
-        return existingFbc || null;
+        return null;
     }
 
     function initTracking() {
@@ -54,6 +55,7 @@
         });
 
         if (urlParams.get("fbclid")) {
+            localStorage.setItem("nordvpn_fbclid", urlParams.get("fbclid"));
             clickId = urlParams.get("fbclid");
         } else if (urlParams.get("click_id")) {
             clickId = urlParams.get("click_id");
@@ -82,7 +84,7 @@
         if (!clickId) return;
         const eventId = `${eventName.toLowerCase()}_${clickId}_${Date.now()}`;
         const fbp = getCookie("_fbp");
-        const fbc = getCookie("_fbc");
+        const fbc = getCookie("_fbc") || ensureFbcCookie();
 
         if (typeof window.fbq === "function") {
             try {
@@ -167,7 +169,7 @@
         if (!ctaButton) return;
 
         const affParams = new URLSearchParams({
-            offer_id: "15",
+            offer_id: "658",
             aff_id: "152405",
             url_id: "902"
         });
@@ -190,8 +192,8 @@
             e.preventDefault();
             ctaButton.dataset.navigating = "true";
             sendCapiEvent("InitiateCheckout", {
-                content_name: "NordVPN Affiliate CTA",
-                content_ids: ["nordvpn_15"],
+                content_name: "NordVPN FastCheckout CTA",
+                content_ids: ["nordvpn_658"],
                 content_type: "product"
             });
             const destinationUrl = ctaButton.href;
@@ -289,10 +291,9 @@
                 : '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>';
         }
 
-        const vpnWhy = document.getElementById("vpn-why");
-        if (vpnWhy) {
-            const provider = isp || "your provider";
-            vpnWhy.textContent = `A VPN hides the sites you visit from ${provider}, and masks this IP from websites.`;
+        const dynamicIspName = document.getElementById("dynamic-isp-name");
+        if (dynamicIspName) {
+            dynamicIspName.textContent = isp || "your internet provider";
         }
 
         switchScreen(screenResult);
@@ -307,7 +308,7 @@
 
         sendCapiEvent("Lead", {
             content_name: "NordVPN Connection Scan",
-            content_ids: ["nordvpn_15"],
+            content_ids: ["nordvpn_658"],
             content_type: "product",
             status: "scan_started",
             quizResult: {
@@ -325,21 +326,30 @@
 
         let progress = 0;
         const interval = setInterval(() => {
-            progress += 8;
+            progress += 2;
             if (progress > 100) progress = 100;
             if (percentEl) percentEl.textContent = `${progress}%`;
 
-            if (progress >= 40 && progress < 80) {
+            if (progress < 25) {
+                if (statusEl) statusEl.textContent = "Inspecting connection interface & DNS...";
+            } else if (progress >= 25 && progress < 55) {
                 if (statusEl) {
                     statusEl.textContent = userTelemetry.ip
-                        ? `Found IP ${userTelemetry.ip}`
-                        : "Checking your connection...";
+                        ? `Detected IP Address: ${userTelemetry.ip}`
+                        : "Detecting public IP address...";
+                }
+            } else if (progress >= 55 && progress < 80) {
+                if (statusEl) {
+                    const loc = displayLoc();
+                    statusEl.textContent = loc
+                        ? `Pinpointed Location: ${loc}`
+                        : "Tracing routing & geolocation...";
                 }
             } else if (progress >= 80) {
                 if (statusEl) {
                     statusEl.textContent = userTelemetry.isp
-                        ? `Provider: ${userTelemetry.isp}`
-                        : "Preparing results...";
+                        ? `Identified Provider: ${userTelemetry.isp}`
+                        : "Assessing network logging exposure...";
                 }
             }
 
@@ -347,7 +357,7 @@
                 clearInterval(interval);
                 waitForTelemetry(400).then(showResultsScreen);
             }
-        }, 32);
+        }, 28);
     }
 
     function init() {

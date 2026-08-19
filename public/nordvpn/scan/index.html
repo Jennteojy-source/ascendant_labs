@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <title>Free Connection Scan | See What Your ISP Can See | Ascendant Labs</title>
-    <meta name="description" content="Scan your connection in one tap. See your IP, location, and internet provider, then get a simple way to hide them.">
+    <title>Free Connection Scan | See What Your Internet Provider Can See | Ascendant Labs</title>
+    <meta name="description" content="Scan your connection in one tap. See your IP, location, and internet provider (Wi-Fi or cellular), then get a simple way to hide them.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://ascendantlabs.co/nordvpn/scan">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ascendantlabs.co/nordvpn/scan">
     <meta property="og:title" content="See What Your Internet Provider Can See">
-    <meta property="og:description" content="One-tap scan of your IP, location, and ISP. Then see how NordVPN hides them.">
+    <meta property="og:description" content="One-tap scan of your IP, location, and internet provider. Then see how to hide them.">
     <meta property="og:site_name" content="Ascendant Labs">
 
     <link rel="dns-prefetch" href="https://go.nordvpn.net">
@@ -61,21 +61,21 @@
                 <span>FREE CONNECTION SCAN</span>
             </div>
 
-            <h1 class="hero-title">See what your ISP can see</h1>
-            <p class="hero-subtitle">Your provider and public Wi-Fi can already see the sites you open.</p>
+            <h1 class="hero-title">See what your internet provider can see</h1>
+            <p class="hero-subtitle">Your internet company (Wi-Fi or cell data) can see the websites you open.</p>
 
             <div class="scan-reveal">
                 <div class="scan-reveal-label">Visible on this connection</div>
                 <div class="scan-reveal-row">
-                    <span>Internet provider</span>
+                    <span>Internet provider (Wi-Fi / Cell)</span>
                     <span class="scan-reveal-locked">Hidden</span>
                 </div>
                 <div class="scan-reveal-row">
-                    <span>Location</span>
+                    <span>Location (City / Region)</span>
                     <span class="scan-reveal-locked">Hidden</span>
                 </div>
                 <div class="scan-reveal-row">
-                    <span>IP address</span>
+                    <span>IP address (Device ID)</span>
                     <span class="scan-reveal-locked">Hidden</span>
                 </div>
             </div>
@@ -95,7 +95,7 @@
                     <div class="scanned-score" id="analyzing-percent">0%</div>
                 </div>
                 <h2 class="analyzing-title">Scanning</h2>
-                <p id="analyzing-status" class="analyzing-status">Checking IP, location, and provider...</p>
+                <p id="analyzing-status" class="analyzing-status">Checking IP, location, and internet provider...</p>
             </div>
         </section>
 
@@ -105,7 +105,7 @@
                     <span class="badge-dot"></span>
                     <span id="result-risk-level">CONNECTION EXPOSED</span>
                 </div>
-                <h2 id="result-headline" class="result-headline">Your ISP can see this</h2>
+                <h2 id="result-headline" class="result-headline">Your internet provider can see this</h2>
             </div>
 
             <div class="telemetry-card">
@@ -115,7 +115,7 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
                         </div>
                         <div class="tel-data">
-                            <span class="item-label">ISP</span>
+                            <span class="item-label">Internet provider</span>
                             <span id="telemetry-isp" class="item-val alert">Scanning...</span>
                         </div>
                     </div>
@@ -152,23 +152,43 @@
             <div class="solution-card">
                 <div class="solution-top">
                     <div class="nord-brand-box">
-                        <img src="/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg" alt="NordVPN" class="nord-official-icon" width="32" height="32">
+                        <img src="/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg" alt="NordVPN" class="nord-official-icon" width="28" height="28">
                         <div class="nord-brand-meta">
-                            <span class="partner-name">NordVPN&reg;</span>
+                            <div class="partner-title-row">
+                                <span class="partner-name">NordVPN&reg;</span>
+                                <span class="rank-badge">★ #1 Rated VPN</span>
+                            </div>
+                            <span class="trust-badge">14M+ Users • Audited Zero-Logs</span>
                         </div>
                     </div>
                 </div>
 
-                <p id="vpn-why" class="simple-bridge-text">A VPN hides the sites you visit from your provider, and masks this IP from websites.</p>
                 <div class="protection-bullets-clean">
-                    <div class="bullet-row-simple">&#10003; Encrypts browsing on this connection</div>
-                    <div class="bullet-row-simple">&#10003; Masks your IP and location</div>
+                    <div class="bullet-row-simple">
+                        <span class="check-mark">&#10003;</span>
+                        <span>Hides all browsing &amp; downloads from <strong id="dynamic-isp-name">your provider</strong></span>
+                    </div>
+                    <div class="bullet-row-simple">
+                        <span class="check-mark">&#10003;</span>
+                        <span>1-Tap instant IP &amp; location masking</span>
+                    </div>
+                    <div class="bullet-row-simple">
+                        <span class="check-mark">&#10003;</span>
+                        <span>Protects up to 10 devices simultaneously</span>
+                    </div>
                 </div>
+
+                <!-- Clean, Informative Partner Pricing Strip -->
+                <div class="partner-pricing-strip">
+                    <div class="pricing-badge">74% OFF DEAL</div>
+                    <div class="pricing-label">From <strong>$3.09/mo</strong> (+ 3 months free)</div>
+                </div>
+
                 <div class="cta-stack">
-                    <a id="cta-button" href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902" target="_self" rel="noopener noreferrer" class="btn-primary cta-btn nord-cta">
-                        <span>Hide This With NordVPN →</span>
+                    <a id="cta-button" href="https://go.nordvpn.net/aff_c?offer_id=658&aff_id=152405&url_id=902" target="_self" rel="noopener noreferrer" class="btn-primary cta-btn nord-cta pulse-cta">
+                        <span>Mask My Connection with NordVPN →</span>
                     </a>
-                    <div class="deal-guarantee-strip">30-day money-back guarantee</div>
+                    <div class="deal-guarantee-strip">🛡️ 30-Day Money-Back Guarantee • Cancel Anytime</div>
                 </div>
             </div>
         </section>

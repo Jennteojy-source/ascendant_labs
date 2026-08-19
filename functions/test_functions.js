@@ -97,9 +97,8 @@ async function runTests() {
 
     const clickData = mockDocSet.mock.calls[0][0];
     if (
-      clickData.clickId !== "meta_click_123" ||
-      clickData.lastEvent !== "ViewContent" ||
-      clickData.landingPath !== "/nordvpn/quiz"
+      clickData.ip !== "127.0.0.1" ||
+      clickData.userAgent !== "Mozilla/5.0 Mock"
     ) {
       throw new Error(`Firestore click data mismatch: ${JSON.stringify(clickData)}`);
     }
@@ -222,13 +221,12 @@ async function runTests() {
     passed = false;
   }
 
-  // Test 5: nordVpnWebhook rejects conversion payload with invalid API key
+  // Test 5: nordVpnWebhook rejects conversion payload with missing transaction_id
   try {
     const req = {
       query: {
-        key: "invalid_key",
         click_id: "meta_click_123",
-        transaction_id: "trans_999",
+        // missing transaction_id
       },
       get: () => "",
     };
@@ -243,10 +241,10 @@ async function runTests() {
 
     await functions.nordVpnWebhook(req, res);
 
-    if (responseStatus !== 401) {
-      throw new Error(`Expected status 401, got ${responseStatus}`);
+    if (responseStatus !== 400) {
+      throw new Error(`Expected status 400, got ${responseStatus}`);
     }
-    console.log("✅ Test 5 Passed: nordVpnWebhook rejected unauthorized request.");
+    console.log("✅ Test 5 Passed: nordVpnWebhook rejected missing transaction_id.");
   } catch (err) {
     console.error("❌ Test 5 Failed:", err.message);
     passed = false;

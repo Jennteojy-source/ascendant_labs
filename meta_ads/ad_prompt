@@ -1,49 +1,178 @@
-# 🎯 Meta Ads Best Practices & Asset Guide (ShieldNet Privacy)
-## Campaign Goal: Traffic to Ascendant Labs 60-Sec Privacy Audit (NordVPN Affiliate Funnel)
+# 🎯 Meta Ads Master Guide & Prompt Blueprint (ShieldNet Privacy)
+## Campaign Goal: Direct Traffic to One-Tap Connection Scan (NordVPN Affiliate Funnel)
 
+- **Target Landing Page**: `https://ascendantlabs.co/nordvpn/scan`
 - **Facebook Page**: ShieldNet Privacy
 - **Instagram Profile**: @shieldnet.privacy
-- **Target Landing Page**: https://ascendantlabs.co/nordvpn/quiz
-- **Final Affiliate Offer CTA**: https://nordvpn.com/special/?utm_medium=affiliate&utm_term=&utm_content=7e72f867-cbe2-4812-a2d0-61f2ff891b96&utm_source=aff152405&utm_campaign=off15
+- **Affiliate Offer CTA**: `https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902`
 
 ---
 
-## 💡 Meta Ads Industry Best Practices: Logos & Branding inside Images
+## 🏆 Core Creative Style: Warm Editorial Risk & Connection Scan
 
-### Should you put your page logo ("ShieldNet Privacy") inside the image creative?
-**NO.** According to Meta Ads performance benchmark data and top direct-response advertisers:
-1. **Redundant Branding**: Meta ALREADY displays your page name and logo at the top of every ad unit (e.g. `ShieldNet Privacy • Sponsored`). Adding another logo inside the image creates visual clutter.
-2. **"Native Content" Feel**: Images without corporate logos look like authentic native UI tools or interactive widgets, significantly increasing Click-Through-Rate (CTR) and lowering Cost-Per-Click (CPC).
-3. **Competitor Validation**: Leading VPN advertisers (e.g., ExpressVPN) NEVER embed brand logos in their ad image graphics. The image is 100% dedicated to the high-curiosity hook.
+The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** is the **Warm Editorial Risk Gauge & Status Card** aesthetic:
+- **Color Palette**: Warm terracotta, amber, peach, and soft cream Scandinavian tones.
+- **Typography**: Bold, high-contrast serif headlines at the top.
+- **Visual Centerpiece**: Semicircular risk gauge meters ("High Risk" / "82% Risk" / "85% Risk") + clean plain-English status checklists displaying live connection exposure.
+- **No-Logo Rule**: Keep the image free of brand logos so it feels like an authentic native interactive diagnostic utility.
 
 ---
 
-## 📐 Optimal Meta Ad Creative Dimensions
+### 🎨 Creative #1: "What Can Your Internet Provider See?" (Scan Variant 1)
 
-| Placement | Optimal Ratio | Resolution | Industry Recommendation |
+- **Asset Reference**: `meta_ads/meta_ad_scan_variant_1.jpg`
+- **Visual Focus**: Editorial scene with warm amber backdrop, bold serif headline, and a floating card with a semicircular **HIGH RISK** gauge meter and live connection status indicators.
+- **On-Image Text**:
+  - Top Headline: `WHAT CAN YOUR INTERNET PROVIDER SEE?`
+  - Status Indicators:
+    - `• Internet Provider: Visible`
+    - `• IP & Location: Exposed`
+    - `• Browsing Logs: Active`
+  - Bottom CTA Badge: `SCAN YOUR CONNECTION — FREE`
+
+#### 📝 Copy Packages for Variant 1 (Target: `https://ascendantlabs.co/nordvpn/scan`):
+
+**Option 1A (Curiosity & Exposure Hook - Top Recommendation)**
+- **Primary Text**: Did you know your internet provider logs every single website you visit and device you connect? 🔍 Run a free 1-tap connection scan to see what is currently visible on your network — your IP address, city location, and provider logs.
+- **Headline**: See What Your Internet Provider Can See 🛡️
+- **Description**: 1-tap live connection scan • Free instant results
+- **CTA Button**: Learn More / Check Connection
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+**Option 1B (Direct Diagnostic Angle)**
+- **Primary Text**: How much data does your internet provider actually collect while you browse? Run our 1-tap diagnostic scan to inspect your live connection and see how to mask your digital footprint in seconds.
+- **Headline**: Is Your ISP Tracking You? 👁️
+- **Description**: Free 5-second connection audit • ShieldNet Privacy
+- **CTA Button**: Learn More
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+---
+
+### 🎨 Creative #2: "Is Your Wi-Fi Really Private?" (Scan Variant 2)
+
+- **Asset Reference**: `meta_ads/meta_ad_scan_variant_2.jpg`
+- **Visual Focus**: Warm amber-toned editorial setup featuring a mobile device running a connection test with an **82% Risk Meter** and network logging indicators.
+- **On-Image Text**:
+  - Top Headline: `IS YOUR WI-FI REALLY PRIVATE?`
+  - Status Indicators:
+    - `82% RISK` (Semicircular gauge)
+    - `• Wi-Fi & Carrier: Logged`
+    - `• IP Address: Visible`
+    - `• Location: Pinpointed`
+  - Bottom CTA Badge: `TEST YOUR CONNECTION NOW`
+
+#### 📝 Copy Packages for Variant 2 (Target: `https://ascendantlabs.co/nordvpn/scan`):
+
+**Option 2A (Wi-Fi & Mobile Carrier Angle)**
+- **Primary Text**: Most people assume their Wi-Fi connection is private. In reality, your network carrier and local router can log your IP, location, and DNS requests. Scan your connection in 5 seconds to see what's exposed.
+- **Headline**: Test Your Connection Exposure 📱
+- **Description**: 1-Tap IP & network diagnostic • Instant & free
+- **CTA Button**: Learn More / Test Now
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+**Option 2B (Public Wi-Fi & Travel Angle)**
+- **Primary Text**: Connecting to home or public Wi-Fi without encryption leaves your IP address and physical location open to tracking. Tap below to run a free, instant connection scan.
+- **Headline**: What Does Your Connection Reveal? 🌐
+- **Description**: Free 1-tap live security scan
+- **CTA Button**: Learn More
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+---
+
+### 🎨 Creative #3: "Is Incognito Really Private?" (Scan Variant 3)
+
+- **Asset Reference**: `meta_ads/meta_ad_scan_variant_3_incognito.jpg`
+- **Visual Focus**: Ultra-clean floating card on warm cream backdrop, semicircular orange-red **HIGH RISK** gauge meter, with red indicator dots highlighting the Incognito myth.
+- **On-Image Text**:
+  - Top Headline: `IS INCOGNITO REALLY PRIVATE?`
+  - Status Indicators:
+    - `CONNECTION EXPOSED` (HIGH RISK)
+    - `• Internet Provider: Visible`
+    - `• Real IP & City: Exposed`
+    - `• Browsing History: Logged`
+  - Bottom CTA Badge: `SCAN YOUR CONNECTION — FREE`
+
+#### 📝 Copy Packages for Variant 3 (Target: `https://ascendantlabs.co/nordvpn/scan`):
+
+**Option 3A (The "Incognito Myth" Angle - High CTR)**
+- **Primary Text**: Incognito mode only deletes local cookies on your screen — it does NOT hide your activity from your internet provider or network operator. Your real IP, city location, and browsing history are still recorded. Run a free 1-tap scan to see what your connection reveals right now.
+- **Headline**: Incognito Doesn't Hide Your IP ⚠️
+- **Description**: See what your provider can see in 1 tap • Free
+- **CTA Button**: Learn More
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+**Option 3B (Surprise Reality Check)**
+- **Primary Text**: Think your browsing is secret in private mode? 🤔 Test your live connection with our free 5-second diagnostic to check if your IP and ISP logs are currently exposed.
+- **Headline**: Is Your Connection Really Private? 🔍
+- **Description**: Free live connection scanner by ShieldNet Privacy
+- **CTA Button**: Learn More / Check Now
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+---
+
+### 🎨 Creative #4: "What Does Your Wi-Fi Reveal?" (Scan Variant 4)
+
+- **Asset Reference**: `meta_ads/meta_ad_scan_variant_4_wifi_reveal.jpg`
+- **Visual Focus**: Crisp minimalist floating diagnostic card with **85% RISK** speedometer dial and real-time exposure badges.
+- **On-Image Text**:
+  - Top Headline: `WHAT DOES YOUR WI-FI REVEAL?`
+  - Status Indicators:
+    - `85% RISK` (CONNECTION EXPOSED)
+    - `• Wi-Fi & Carrier: Logged`
+    - `• Real Location: Exposed`
+    - `• IP Address: Visible`
+  - Bottom CTA Badge: `TEST YOUR CONNECTION NOW`
+
+#### 📝 Copy Packages for Variant 4 (Target: `https://ascendantlabs.co/nordvpn/scan`):
+
+**Option 4A (Everyday Surveillance / Social Proof)**
+- **Primary Text**: Over 85% of standard internet connections openly broadcast your IP address and physical location to every website you visit. Tap below to run an instant connection scan and see your live risk rating.
+- **Headline**: What Does Your Wi-Fi Reveal? 🌐
+- **Description**: 1-Tap IP & Privacy Diagnostic • Free instant test
+- **CTA Button**: Learn More / Test Now
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+**Option 4B (Network Security Check)**
+- **Primary Text**: Is your internet connection leaking your real location and IP address? Find out in 5 seconds with our free diagnostic tool.
+- **Headline**: Check Your Live Connection Risk 🛡️
+- **Description**: Free diagnostic by ShieldNet Privacy
+- **CTA Button**: Learn More
+- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
+
+---
+
+## 💡 Meta Ads Direct-Response Best Practices for Scan Funnel
+
+### 1. Logo Placement Rule: Keep Graphics Clean
+- **Do NOT embed your brand logo inside the ad graphic**. Meta automatically renders the page name (`ShieldNet Privacy • Sponsored`) at the top of the post.
+- Clean, unbranded editorial UI graphics perform up to **2.4x better on CTR** because users perceive them as genuine diagnostic tools rather than corporate banner ads.
+
+### 2. Copy Hierarchy
+- **Hook (Line 1 of Primary Text)**: Provoke immediate curiosity with a question or surprising reality check (`Did you know your ISP logs every connection?` / `Incognito doesn't hide your IP`).
+- **Body**: 1–2 short sentences explaining what the scan does in plain English (No technical jargon like "telemetry" or "packets").
+- **Call-to-Action (End of Text)**: Clear instruction with an emoji pointing down (`Scan your connection free 👇`).
+
+### 3. Headline & Description Synergy
+- **Headline**: 4–6 words with an emoji (e.g. `See What Your Internet Provider Can See 🛡️` or `Incognito Doesn't Hide Your IP ⚠️`).
+- **Description**: Highlight "Free", "1-Tap", and "Instant results" to minimize friction.
+
+---
+
+## 📐 Optimal Creative Dimensions & Aspect Ratios
+
+| Placement | Ratio | Dimensions | Best Use Case |
 | :--- | :--- | :--- | :--- |
-| **Mobile Feed (Instagram & FB)** | **4:5 Vertical** | **1080 × 1350 px** | ⭐ **#1 Best Performing Feed Format**. Takes 20% more screen space on mobile feeds without being cropped. |
-| **Universal / Feed Default** | **1:1 Square** | **1080 × 1080 px** | Standard for desktop, marketplace, and multi-placement auto-scaling. |
-| **Stories & Reels** | **9:16 Vertical** | **1080 × 1920 px** | Fullscreen portrait mode for Instagram/Facebook Stories & Reels. |
+| **Mobile Feed (IG & FB)** | **4:5 Vertical** | **1080 × 1350 px** | ⭐ **Top Performer** (Takes 20% more mobile screen real estate). |
+| **Universal / Desktop Feed** | **1:1 Square** | **1080 × 1080 px** | Default feed square, perfect for multi-placement delivery. |
+| **Stories & Reels** | **9:16 Vertical** | **1080 × 1920 px** | Fullscreen immersive portrait format for Instagram & FB Stories. |
 
 ---
 
-## 🖼️ Optimized Ad Creatives (No-Logo Clean UI)
+## 🚀 Quick Reference Launch Matrix (`https://ascendantlabs.co/nordvpn/scan`)
 
-### Creative #1: Clean Dark UI Vulnerability Matrix
-- **File**: `meta_ads/nordvpn_quiz_ad.png`
-- **Hook**: High-contrast dark UI checklist (Public Wi-Fi, Cookie Tracking, Location Data, Browsing Activity) with yellow/red warning badges.
-- **Copy Package**:
-  - **Primary Text**: How exposed is your data? 🔍 Answer 5 quick questions to calculate your IP, location, and tracking risk score — your result might surprise you.
-  - **Headline**: See Your Privacy Exposure Score 🛡️
-  - **Description**: Free 60-second interactive audit by ShieldNet Privacy
-  - **CTA**: Learn More
-
-### Creative #2: Phone Gauge Meter & Exposure Score
-- **File**: `meta_ads/score_gauge_ad.png`
-- **Hook**: Mobile screen displaying a 85% Exposed gauge meter with text *"Most people score higher than they expect."*
-- **Copy Package**:
-  - **Primary Text**: Most people score higher than they expect... 📈 Take our 60-second interactive audit to test your network security & ad surveillance footprint.
-  - **Headline**: What's Your Privacy Score? 📱
-  - **Description**: Instant live IP & data exposure risk score
-  - **CTA**: Take Quiz / Learn More
+| Ad Creative | Image File | Headline | Primary CTA | Destination URL |
+| :--- | :--- | :--- | :--- | :--- |
+| **Scan Variant 1** | `meta_ad_scan_variant_1.jpg` | *See What Your Internet Provider Can See 🛡️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 2** | `meta_ad_scan_variant_2.jpg` | *Is Your Connection Really Private? ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 3 (Incognito)** | `meta_ad_scan_variant_3_incognito.jpg` | *Incognito Doesn't Hide Your IP ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 4 (Wi-Fi)** | `meta_ad_scan_variant_4_wifi_reveal.jpg` | *What Does Your Wi-Fi Reveal? 🌐* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
