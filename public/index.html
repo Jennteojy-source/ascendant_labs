@@ -1,71 +1,813 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Ascendant Labs — performance marketing and affiliate growth.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Ascendant Labs | Digital Privacy & Cybersecurity Intelligence</title>
+    <meta name="description" content="Independent cybersecurity research, real-time connection exposure diagnostics, and verified VPN security evaluations for NordVPN and Proton VPN.">
     <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://ascendantlabs.co/">
+
+    <!-- Open Graph / Meta -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ascendantlabs.co/">
-    <meta property="og:title" content="Ascendant Labs">
-    <meta property="og:description" content="Performance marketing and affiliate growth.">
-    <title>Ascendant Labs</title>
+    <meta property="og:title" content="Ascendant Labs — Digital Privacy & Cybersecurity Intelligence">
+    <meta property="og:description" content="Audit your connection footprint in real-time. Discover independently benchmarked privacy shields and VPN security tools.">
+    <meta property="og:site_name" content="Ascendant Labs">
+
+    <!-- Fonts & Preconnects -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/styles.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▲</text></svg>">
+
+    <!-- Meta Pixel Tracking -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '868721989329074');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=868721989329074&ev=PageView&noscript=1"/></noscript>
+
+    <!-- Structured Data Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Ascendant Labs",
+      "url": "https://ascendantlabs.co",
+      "logo": "https://ascendantlabs.co/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg",
+      "description": "Independent cybersecurity research, connection exposure diagnostics, and VPN security evaluations.",
+      "sameAs": [
+        "https://www.facebook.com/shieldnet.privacy"
+      ]
+    }
+    </script>
 </head>
 <body>
-    <header class="header">
+    <div class="ambient-glow-top"></div>
+    <div class="ambient-glow-mid"></div>
+
+    <!-- Navigation Header -->
+    <header class="site-header">
         <div class="container header-inner">
-            <a href="/" class="logo">Ascendant<span>Labs</span></a>
-            <a href="mailto:contact@ascendantlabs.co" class="btn">Contact</a>
+            <a href="/" class="logo-brand">
+                <div class="logo-icon-wrap">▲</div>
+                <span>Ascendant</span>Labs
+            </a>
+
+            <nav class="nav-links">
+                <a href="#vpn-matrix" class="nav-link">VPN Matrix</a>
+                <a href="/nordvpn/scan" class="nav-link">
+                    <span>Connection Scan</span>
+                    <span class="badge-pulse"></span>
+                </a>
+                <a href="/nordvpn/quiz" class="nav-link">Risk Assessment Quiz</a>
+                <a href="#security-tools" class="nav-link">Security Tools</a>
+                <a href="#threats" class="nav-link">Threat Guide</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+            </nav>
+
+            <div class="header-actions">
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Color Theme" type="button">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                </button>
+                <a href="/nordvpn/scan" class="btn btn-primary btn-sm header-quick-scan">
+                    <span>Quick Scan</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open Navigation Menu" type="button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+            </div>
         </div>
     </header>
 
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-menu-overlay" class="mobile-menu-overlay">
+        <a href="/nordvpn/scan" class="btn btn-primary btn-lg" style="width: 100%;">
+            <span>Run Free Connection Scan</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="/nordvpn/quiz" class="btn btn-secondary btn-lg" style="width: 100%;">60s Privacy Risk Quiz</a>
+        <hr style="border: 0; border-top: 1px solid var(--border-subtle); margin: 10px 0;">
+        <a href="#vpn-matrix" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">NordVPN vs. Proton VPN</a>
+        <a href="#security-tools" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Privacy & Security Suite</a>
+        <a href="#threats" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Threat Intelligence</a>
+        <a href="#methodology" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Testing Methodology</a>
+        <a href="#faq" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Common Questions</a>
+    </div>
+
     <main>
-        <section class="hero">
-            <div class="container hero-inner">
-                <p class="eyebrow">Performance Marketing</p>
-                <h1>Scale paid traffic with measurable attribution.</h1>
-                <p class="lead">
-                    Ascendant Labs builds landing pages, tracking infrastructure, and affiliate funnels
-                    so you can connect ad clicks to downstream conversions.
-                </p>
-                <div class="hero-actions">
-                    <a href="/nordvpn/quiz" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
-                        <img src="/nordvpn/assets/Affiliate-teal-icon-512x512@3x.svg" width="20" height="20" alt="NordVPN">
-                        <span>Take NordVPN Privacy Quiz</span>
-                    </a>
-                    <a href="mailto:contact@ascendantlabs.co" class="btn">Get in touch</a>
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <div class="hero-badge-pill">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span>Independent Digital Privacy Lab</span>
+                    </div>
+
+                    <h1 class="hero-title">
+                        Your connection broadcasts your <span class="hero-title-highlight">digital identity.</span>
+                    </h1>
+
+                    <p class="hero-lead">
+                        Internet service providers, public Wi-Fi operators, and tracking brokers record your browsing activity every day. Run an instant connection audit or discover verified privacy shields.
+                    </p>
+
+                    <div class="hero-cta-group">
+                        <a href="/nordvpn/scan" class="btn btn-primary btn-lg">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Scan My Connection (Free)</span>
+                        </a>
+                        <a href="/nordvpn/quiz" class="btn btn-secondary btn-lg">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>Take 60s Privacy Quiz</span>
+                        </a>
+                    </div>
+
+                    <div class="hero-trust-bar">
+                        <div class="trust-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Zero Data Logging</span>
+                        </div>
+                        <div class="trust-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>10Gbps Audited Speeds</span>
+                        </div>
+                        <div class="trust-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Swiss & Panama Jurisdictions</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Network Telemetry Diagnostic Preview -->
+                <div class="hero-diagnostic-card" id="hero-diagnostic-widget">
+                    <div class="card-header-status">
+                        <div class="live-indicator">
+                            <span class="live-dot"></span>
+                            <span>Live Connection Diagnostic</span>
+                        </div>
+                        <span id="live-status-badge" class="security-score-badge">CHECKING EXPOSURE...</span>
+                    </div>
+
+                    <h3 class="telemetry-title">Current Network Footprint</h3>
+                    <p class="telemetry-desc">What websites, advertising networks, and carriers detect on your active connection:</p>
+
+                    <div class="telemetry-metrics-list">
+                        <div class="metric-row">
+                            <span class="metric-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                <span>Public IP Address</span>
+                            </span>
+                            <span id="live-ip-val" class="metric-val">Scanning...</span>
+                        </div>
+
+                        <div class="metric-row">
+                            <span class="metric-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+                                <span>Internet Provider (ISP)</span>
+                            </span>
+                            <span id="live-isp-val" class="metric-val">Analyzing...</span>
+                        </div>
+
+                        <div class="metric-row">
+                            <span class="metric-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <span>Estimated Location</span>
+                            </span>
+                            <span id="live-loc-val" class="metric-val">Detecting...</span>
+                        </div>
+
+                        <div class="metric-row">
+                            <span class="metric-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                                <span>Tunnel Encryption</span>
+                            </span>
+                            <span class="metric-val exposed">Unencrypted (Direct)</span>
+                        </div>
+                    </div>
+
+                    <div class="diagnostic-cta-card">
+                        <a href="/nordvpn/scan" class="btn btn-primary" style="width: 100%;">
+                            <span>Run Full Exposure Audit</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </a>
+                        <p class="diagnostic-footer-note">Inspect DNS leak paths, carrier logs, and mask your identity in 1 tap</p>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="features">
-            <div class="container features-grid">
-                <article class="feature-card">
-                    <h2>Click capture</h2>
-                    <p>Route Meta ad traffic through your domain to capture fbclid and campaign parameters before redirecting to partner offers.</p>
-                </article>
-                <article class="feature-card">
-                    <h2>Affiliate redirects</h2>
-                    <p>Pass tracking IDs into affiliate sub-parameters so partner networks can post conversions back to your webhook.</p>
-                </article>
-                <article class="feature-card">
-                    <h2>Conversion logging</h2>
-                    <p>Store click and conversion events in Firebase for reporting, reconciliation, and optimization.</p>
-                </article>
+        <!-- Lab Benchmark Stats Strip -->
+        <section class="lab-stats-strip">
+            <div class="container stats-grid">
+                <div class="stat-card">
+                    <div class="stat-num">10 Gbps</div>
+                    <div class="stat-label">RAM-Only Speed Tested</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">100%</div>
+                    <div class="stat-label">Audited No-Logs Verification</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">140+</div>
+                    <div class="stat-label">Global Server Regions Monitored</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">256-bit</div>
+                    <div class="stat-label">Next-Gen Quantum-Resistant Ciphers</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VPN Comparison Matrix Section -->
+        <section id="vpn-matrix" class="section comparison-section">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Lab Comparison</span>
+                    <h2 class="section-title">NordVPN vs. Proton VPN</h2>
+                    <p class="section-subtitle">
+                        Our researchers continuously stress-test, audit, and benchmark the two leading privacy networks in the industry. Compare features, speeds, jurisdictions, and exclusive laboratory deals.
+                    </p>
+                </div>
+
+                <!-- Comparison Table -->
+                <div class="comparison-table-wrap">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 28%;">Feature & Benchmark</th>
+                                <th class="brand-col brand-nord">
+                                    <div class="brand-header-badge">
+                                        <span>NordVPN</span>
+                                        <span class="badge-winner">Speed #1</span>
+                                    </div>
+                                    <div class="brand-tagline">Best for high-speed streaming, threat defense, and global servers</div>
+                                    <div class="brand-rating">★★★★★ 9.8 / 10</div>
+                                </th>
+                                <th class="brand-col brand-proton">
+                                    <div class="brand-header-badge">
+                                        <span>Proton VPN</span>
+                                        <span class="badge-winner">Privacy #1</span>
+                                    </div>
+                                    <div class="brand-tagline">Best for Swiss privacy laws, open-source code, and Secure Core</div>
+                                    <div class="brand-rating">★★★★★ 9.7 / 10</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="feature-title">
+                                    Privacy Jurisdiction
+                                    <span>Legal protection from government subpoenas & 14-Eyes</span>
+                                </td>
+                                <td class="brand-val highlight">Panama (No mandatory retention)</td>
+                                <td class="brand-val highlight">Switzerland (Strict Swiss privacy laws)</td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    Encryption Protocol & Speed
+                                    <span>Core tunneling protocol and throughput benchmarks</span>
+                                </td>
+                                <td class="brand-val highlight">
+                                    NordLynx (WireGuard) • 950+ Mbps
+                                </td>
+                                <td class="brand-val">
+                                    WireGuard / Stealth • 880+ Mbps
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    Server Network
+                                    <span>Global server infrastructure & country coverage</span>
+                                </td>
+                                <td class="brand-val">
+                                    6,400+ servers in 111 countries
+                                </td>
+                                <td class="brand-val">
+                                    6,500+ servers in 112 countries
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    Independent Security Audits
+                                    <span>Third-party verification of zero-log claims</span>
+                                </td>
+                                <td class="brand-val">
+                                    <span class="badge-check">✓ PwC & Deloitte (Multiple Audits)</span>
+                                </td>
+                                <td class="brand-val">
+                                    <span class="badge-check">✓ Securitum & Open-Source Audited</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    Advanced Threat Defense
+                                    <span>Blocks malware, phishing, ads, and trackers</span>
+                                </td>
+                                <td class="brand-val highlight">
+                                    Threat Protection Pro (Executable scan)
+                                </td>
+                                <td class="brand-val">
+                                    NetShield (DNS ad & malware filter)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    Multi-Hop & Obfuscation
+                                    <span>Cascaded routing for extreme censorship bypass</span>
+                                </td>
+                                <td class="brand-val">
+                                    Double VPN & Obfuscated Servers
+                                </td>
+                                <td class="brand-val highlight">
+                                    Secure Core (Underground bunker relays)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    Simultaneous Devices
+                                    <span>Connections allowed per single account</span>
+                                </td>
+                                <td class="brand-val">10 Devices</td>
+                                <td class="brand-val">10 Devices</td>
+                            </tr>
+                            <tr>
+                                <td class="feature-title">
+                                    P2P Torrenting & Streaming
+                                    <span>Netflix, BBC iPlayer, Prime & high-speed P2P</span>
+                                </td>
+                                <td class="brand-val highlight">Full Ultra-HD Support • Dedicated P2P</td>
+                                <td class="brand-val">Supported on Plus Servers • Fast P2P</td>
+                            </tr>
+                            <tr class="table-cta-row">
+                                <td>
+                                    <div style="font-weight: 700; color: var(--text-primary);">Exclusive Lab Deal</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">30-Day Money-Back Guarantee</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <div class="price-box">
+                                        <div class="price-main">$3.09 <span class="price-period">/ mo</span></div>
+                                        <span class="price-discount">Save 74% + 3 Extra Months</span>
+                                    </div>
+                                    <a href="/r/vpn" class="btn btn-nord" style="width: 100%;" target="_blank" rel="noopener noreferrer">
+                                        <span>Get NordVPN Deal</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </a>
+                                </td>
+                                <td style="text-align: center;">
+                                    <div class="price-box">
+                                        <div class="price-main">$3.59 <span class="price-period">/ mo</span></div>
+                                        <span class="price-discount">Save 64% on 2-Year Plan</span>
+                                    </div>
+                                    <a href="/r/proton-vpn" class="btn btn-proton" style="width: 100%;" target="_blank" rel="noopener noreferrer">
+                                        <span>Get Proton VPN Deal</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- In-Depth Summary Cards -->
+                <div class="vpn-cards-grid">
+                    <!-- NordVPN Detailed Card -->
+                    <article class="vpn-hero-card nord-card">
+                        <div class="card-top-pill pill-nord">Top Recommendation for Performance</div>
+                        <div>
+                            <div class="card-brand-header">
+                                <div class="brand-title-wrap">
+                                    <h3>NordVPN</h3>
+                                    <span style="color: var(--amber-400); font-weight: 700; font-size: 0.9rem;">★ 9.8 / 10 • Editor's Choice</span>
+                                </div>
+                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--nord-blue);">$3.09<span style="font-size: 0.85rem; color: var(--text-muted);">/mo</span></div>
+                            </div>
+                            <p class="brand-desc">
+                                NordVPN dominates our speed benchmarks with its proprietary NordLynx protocol. It combines blazing download rates with Threat Protection Pro to block malicious files, web trackers, and intrusive advertising before they reach your browser.
+                            </p>
+                            <ul class="perks-list">
+                                <li class="perk-item">
+                                    <span class="perk-icon">✓</span>
+                                    <div><strong>Fastest Verified Protocol:</strong> NordLynx provides sub-10ms latency overhead and 950+ Mbps burst throughput.</div>
+                                </li>
+                                <li class="perk-item">
+                                    <span class="perk-icon">✓</span>
+                                    <div><strong>Threat Protection Pro:</strong> Deep file inspection that neutralizes malware downloads without requiring an antivirus suite.</div>
+                                </li>
+                                <li class="perk-item">
+                                    <span class="perk-icon">✓</span>
+                                    <div><strong>Meshnet Virtual LAN:</strong> Route traffic remotely through your personal home devices from anywhere in the world.</div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <a href="/r/vpn" class="btn btn-nord btn-lg" target="_blank" rel="noopener noreferrer" style="width: 100%;">
+                                <span>Get NordVPN Protection</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                            <div style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">Includes 30-day money-back guarantee • Instant setup</div>
+                        </div>
+                    </article>
+
+                    <!-- Proton VPN Detailed Card -->
+                    <article class="vpn-hero-card proton-card">
+                        <div class="card-top-pill pill-proton">Top Recommendation for Swiss Privacy</div>
+                        <div>
+                            <div class="card-brand-header">
+                                <div class="brand-title-wrap">
+                                    <h3>Proton VPN</h3>
+                                    <span style="color: var(--amber-400); font-weight: 700; font-size: 0.9rem;">★ 9.7 / 10 • Swiss Encrypted</span>
+                                </div>
+                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--proton-purple);">$3.59<span style="font-size: 0.85rem; color: var(--text-muted);">/mo</span></div>
+                            </div>
+                            <p class="brand-desc">
+                                Built by CERN scientists in Geneva, Proton VPN operates under the world's most stringent privacy laws. 100% open-source applications and audited Secure Core architecture protect high-risk users, journalists, and privacy purists.
+                            </p>
+                            <ul class="perks-list">
+                                <li class="perk-item">
+                                    <span class="perk-icon">✓</span>
+                                    <div><strong>Swiss Legal Protection:</strong> Outside US and EU surveillance treaties (not subject to 14-Eyes requests).</div>
+                                </li>
+                                <li class="perk-item">
+                                    <span class="perk-icon">✓</span>
+                                    <div><strong>Secure Core Architecture:</strong> Routes traffic through underground Swiss and Icelandic military-grade shelters before leaving the network.</div>
+                                </li>
+                                <li class="perk-item">
+                                    <span class="perk-icon">✓</span>
+                                    <div><strong>100% Open Source & Audited:</strong> Every line of code is published openly on GitHub and verified by third parties.</div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <a href="/r/proton-vpn" class="btn btn-proton btn-lg" target="_blank" rel="noopener noreferrer" style="width: 100%;">
+                                <span>Get Proton VPN Protection</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                            <div style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">Includes 30-day money-back guarantee • Free tier available</div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Diagnostic & Assessment Tools Hub -->
+        <section id="tools" class="section" style="background: var(--bg-surface-raised);">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Interactive Privacy Utilities</span>
+                    <h2 class="section-title">Diagnose & Audit Your Exposure</h2>
+                    <p class="section-subtitle">
+                        Use our free, zero-logging client diagnostics to detect vulnerabilities across your connection, device identity, and browsing behavior.
+                    </p>
+                </div>
+
+                <div class="tools-grid">
+                    <!-- Tool 1: Connection Scan -->
+                    <div class="tool-card">
+                        <div>
+                            <div class="tool-badge-pill">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                <span>Real-Time Network Diagnostic</span>
+                            </div>
+                            <h3>1-Tap Connection Exposure Scan</h3>
+                            <p>
+                                Instantly check what your Wi-Fi router, mobile carrier, or internet service provider logs while you browse. Analyzes IP leaks, geographic pinpointing, and carrier telemetry in 5 seconds.
+                            </p>
+                            <div class="tool-features-chips">
+                                <span class="feature-chip">IP Visibility Check</span>
+                                <span class="feature-chip">ISP Carrier Snooping</span>
+                                <span class="feature-chip">DNS Leak Vectors</span>
+                                <span class="feature-chip">Instant Solution</span>
+                            </div>
+                        </div>
+                        <a href="/nordvpn/scan" class="btn btn-primary btn-lg">
+                            <span>Launch Connection Scanner</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </a>
+                    </div>
+
+                    <!-- Tool 2: Privacy Quiz -->
+                    <div class="tool-card">
+                        <div>
+                            <div class="tool-badge-pill">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                                <span>Interactive Risk Calculator</span>
+                            </div>
+                            <h3>60-Second Data Exposure Quiz</h3>
+                            <p>
+                                Answer a series of structured diagnostic questions to calculate your personalized Data Exposure Risk Score. Learn how vulnerable your passwords, location, and browsing logs are to commercial brokers.
+                            </p>
+                            <div class="tool-features-chips">
+                                <span class="feature-chip">Personalized Risk Score</span>
+                                <span class="feature-chip">Wi-Fi Vulnerability</span>
+                                <span class="feature-chip">Password Breach Check</span>
+                                <span class="feature-chip">Tailored Defense Plan</span>
+                            </div>
+                        </div>
+                        <a href="/nordvpn/quiz" class="btn btn-secondary btn-lg">
+                            <span>Start 60-Second Quiz</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Extended Security Ecosystem (NordPass, Proton Pass, Mail) -->
+                <div id="security-tools" style="margin-top: 56px;">
+                    <div style="text-align: center; margin-bottom: 28px;">
+                        <h3 style="font-size: 1.4rem;">Complete Your Security Stack</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem;">A VPN secures your network pipeline. Pair it with encrypted identity and password vaults.</p>
+                    </div>
+
+                    <div class="suite-tools-grid">
+                        <div class="suite-card">
+                            <div class="suite-card-top">
+                                <div class="suite-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </div>
+                                <h4>NordPass Password Vault</h4>
+                                <p>XChaCha20 biometric password & passkey manager. Eliminates password reuse, alerts on dark web breaches, and auto-fills credentials.</p>
+                            </div>
+                            <a href="/r/pass" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer" style="margin-top: 16px;">
+                                <span>Explore NordPass Deal</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </div>
+
+                        <div class="suite-card">
+                            <div class="suite-card-top">
+                                <div class="suite-icon" style="color: var(--proton-purple);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                </div>
+                                <h4>Proton Pass & Alias Vault</h4>
+                                <p>Swiss end-to-end encrypted password manager with integrated email alias cloaking. Prevents marketers from tracking your primary address.</p>
+                            </div>
+                            <a href="/r/proton-pass" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer" style="margin-top: 16px;">
+                                <span>Explore Proton Pass</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </div>
+
+                        <div class="suite-card">
+                            <div class="suite-card-top">
+                                <div class="suite-icon" style="color: var(--cyan-400);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                </div>
+                                <h4>Proton Mail & Encrypted Cloud</h4>
+                                <p>Zero-access encrypted inbox and cloud storage hosted in Switzerland. Protects personal correspondence from automated data-mining.</p>
+                            </div>
+                            <a href="/r/proton-mail" class="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer" style="margin-top: 16px;">
+                                <span>Explore Proton Mail</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Threat Intelligence Breakdown Guide -->
+        <section id="threats" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Threat Intelligence</span>
+                    <h2 class="section-title">What Happens on Unencrypted Networks</h2>
+                    <p class="section-subtitle">
+                        Understanding how surveillance operates is the first step toward neutralizing it. Here is how modern networks harvest user activity:
+                    </p>
+                </div>
+
+                <div class="threats-grid">
+                    <div class="threat-card">
+                        <div class="threat-icon-wrap">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </div>
+                        <h3>ISP Browsing Logs</h3>
+                        <p>In many regions, internet service providers legally log every domain query (DNS lookup) you make, building behavioral profiles sold to ad networks.</p>
+                    </div>
+
+                    <div class="threat-card">
+                        <div class="threat-icon-wrap">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                        </div>
+                        <h3>Public Wi-Fi Snooping</h3>
+                        <p>Open Wi-Fi at airports, hotels, and cafes allows threat actors on the same local subnet to perform packet inspection and man-in-the-middle attacks.</p>
+                    </div>
+
+                    <div class="threat-card">
+                        <div class="threat-icon-wrap">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <h3>DNS & WebRTC Leaks</h3>
+                        <p>Even when using private browsing windows or standard proxies, browsers often leak real IP coordinates through WebRTC requests and system DNS fallbacks.</p>
+                    </div>
+
+                    <div class="threat-card">
+                        <div class="threat-icon-wrap">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <h3>Data Broker Dossiers</h3>
+                        <p>Ad exchanges cross-reference IP addresses with device fingerprints to track your physical movement and purchasing patterns across all connected devices.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testing Methodology & Lab Trust Section -->
+        <section id="methodology" class="section" style="background: var(--bg-surface-raised);">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Scientific Methodology</span>
+                    <h2 class="section-title">How Ascendant Labs Audits Security Tools</h2>
+                    <p class="section-subtitle">
+                        We don't rely on marketing claims. Our evaluations are conducted across active testbeds with objective data points.
+                    </p>
+                </div>
+
+                <div class="methodology-grid">
+                    <div class="methodology-card">
+                        <div class="method-step-num">Pillar 01</div>
+                        <h3>Speed & Throughput Benchmarks</h3>
+                        <p>We execute multi-threaded iPerf3 throughput tests across 10Gbps symmetric fiber lines, measuring latency spikes, packet loss, and jitter under maximum streaming loads.</p>
+                    </div>
+
+                    <div class="methodology-card">
+                        <div class="method-step-num">Pillar 02</div>
+                        <h3>Cryptographic & Leak Testing</h3>
+                        <p>We stress-test tunnel stability with Wireshark packet capture, verifying that IPv6, DNS, and WebRTC packets remain strictly sealed within the WireGuard tunnel during disconnects.</p>
+                    </div>
+
+                    <div class="methodology-card">
+                        <div class="method-step-num">Pillar 03</div>
+                        <h3>Jurisdiction & Zero-Log Audits</h3>
+                        <p>We verify company headquarters, judicial warrant policies, RAM-only diskless infrastructure, and independently published reports from accredited auditing firms (PwC, Deloitte, Securitum).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Frequently Asked Questions</span>
+                    <h2 class="section-title">Digital Privacy & VPN Essentials</h2>
+                    <p class="section-subtitle">Clear, technical answers to the most common questions regarding network protection.</p>
+                </div>
+
+                <div class="faq-wrap">
+                    <div class="faq-item active">
+                        <button class="faq-question" type="button">
+                            <span>What can my internet provider see when I browse without a VPN?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Even when websites use HTTPS (which encrypts the specific page content and passwords), your internet service provider can still see the domain names of every website you visit, the timestamps, and the volume of data exchanged. With a verified VPN like NordVPN or Proton VPN, all traffic from your device is encrypted in a secure tunnel, meaning your ISP sees only random encrypted data addressed to the VPN server.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Why is Swiss jurisdiction important for Proton VPN?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Switzerland is renowned for having some of the strongest privacy legislation in the world. It is outside the EU and US intelligence agreements (such as the 5-Eyes, 9-Eyes, and 14-Eyes surveillance alliances). Under Swiss law, VPN services cannot be compelled to log user activity or execute mass surveillance directives without a specific Swiss federal court order.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What makes NordVPN's NordLynx protocol faster than traditional VPNs?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-answer">
+                            NordLynx is built around the modern WireGuard protocol, which contains just ~4,000 lines of code compared to OpenVPN's 70,000+ lines. NordVPN implemented a custom double Network Address Translation (NAT) system that combines WireGuard's extreme speed and lightweight cryptography with zero identifiable IP logging on the server.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Why should I avoid free VPN services?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Maintaining thousands of high-speed servers across the globe requires significant capital. Free VPN services typically monetize by injecting advertisements, throttling connection speeds, or collecting and selling user browsing data to third-party brokers. The only notable exception is Proton VPN's free tier, which is subsidized by their paying subscribers and adheres to their strict audited no-logs policy.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>How does Ascendant Labs evaluate and test VPNs?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Ascendant Labs tests services across 4 rigorous pillars: speed degradation tests over 10Gbps connections, packet capture analysis for DNS and WebRTC leaks, judicial jurisdiction evaluations, and independent audit verifications. When you purchase through our links, we may earn an affiliate commission at no extra cost to you, which funds our independent testing infrastructure.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA Banner Section -->
+        <section class="cta-banner-section">
+            <div class="container">
+                <div class="cta-banner-card">
+                    <h2 class="serif-display">Take Control of Your Digital Footprint</h2>
+                    <p>
+                        Don't leave your browsing data, passwords, and location exposed to internet providers and data brokers. Run an audit or activate an encrypted shield now.
+                    </p>
+                    <div class="cta-banner-buttons">
+                        <a href="/nordvpn/scan" class="btn btn-primary btn-lg">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Run Free Connection Scan</span>
+                        </a>
+                        <a href="#vpn-matrix" class="btn btn-secondary btn-lg">
+                            <span>Compare VPN Recommendations</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
-    <footer class="footer">
-        <div class="container footer-inner">
-            <p>&copy; 2026 Ascendant Labs</p>
-            <a href="mailto:contact@ascendantlabs.co">contact@ascendantlabs.co</a>
+    <!-- Comprehensive Site Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h4>Ascendant<span>Labs</span></h4>
+                    <p>
+                        Independent cybersecurity research, connection exposure diagnostics, and digital privacy benchmarks.
+                    </p>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        Laboratory Contact: <a href="mailto:contact@ascendantlabs.co" style="color: var(--cyan-400);">contact@ascendantlabs.co</a>
+                    </div>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Diagnostic Tools</h5>
+                    <ul class="footer-links-list">
+                        <li><a href="/nordvpn/scan">Connection Exposure Scan</a></li>
+                        <li><a href="/nordvpn/quiz">Data Risk Assessment Quiz</a></li>
+                        <li><a href="#vpn-matrix">NordVPN vs Proton VPN</a></li>
+                        <li><a href="#threats">Threat Intelligence Guide</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Verified Solutions</h5>
+                    <ul class="footer-links-list">
+                        <li><a href="/r/vpn" target="_blank" rel="noopener noreferrer">NordVPN (Speed & Defense)</a></li>
+                        <li><a href="/r/proton-vpn" target="_blank" rel="noopener noreferrer">Proton VPN (Swiss Privacy)</a></li>
+                        <li><a href="/r/pass" target="_blank" rel="noopener noreferrer">NordPass Password Vault</a></li>
+                        <li><a href="/r/proton-pass" target="_blank" rel="noopener noreferrer">Proton Pass & Alias</a></li>
+                        <li><a href="/r/proton-mail" target="_blank" rel="noopener noreferrer">Proton Mail & Drive</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Laboratory</h5>
+                    <ul class="footer-links-list">
+                        <li><a href="#methodology">Testing Methodology</a></li>
+                        <li><a href="#faq">Frequently Asked Questions</a></li>
+                        <li><a href="mailto:contact@ascendantlabs.co">Security Disclosures</a></li>
+                        <li><a href="mailto:contact@ascendantlabs.co">Editorial Integrity</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- FTC Affiliate Disclosure -->
+            <div class="footer-disclosure">
+                <strong>FTC & Affiliate Disclosure:</strong> Ascendant Labs is an independent research and digital privacy testing hub. We independently evaluate cybersecurity software based on rigorous technical benchmarks, jurisdiction audits, and real-world cryptographic stress testing. To fund our research and keep our diagnostic utilities free, we participate in affiliate programs with vetted partners, including NordVPN and Proton AG. When you click our partner links (such as /r/vpn or /r/proton-vpn) and complete a purchase, we may receive compensation at no additional cost to you.
+            </div>
+
+            <div class="footer-bottom">
+                <div>&copy; 2026 Ascendant Labs. All rights reserved.</div>
+                <div style="display: flex; gap: 20px;">
+                    <a href="#vpn-matrix">VPN Reviews</a>
+                    <a href="/nordvpn/scan">Network Diagnostics</a>
+                    <a href="mailto:contact@ascendantlabs.co">Contact Lab</a>
+                </div>
+            </div>
         </div>
     </footer>
+
+    <!-- Client-Side Scripts -->
+    <script src="/app.js"></script>
 </body>
 </html>

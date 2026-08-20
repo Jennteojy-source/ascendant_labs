@@ -352,7 +352,7 @@
 
         const affiliateBaseUrl = "https://go.nordvpn.net/aff_c";
         const affParams = new URLSearchParams({
-            offer_id: "658",
+            offer_id: "15",
             aff_id: "152405",
             url_id: "902"
         });
@@ -379,7 +379,7 @@
 
             sendCapiEvent("InitiateCheckout", {
                 content_name: "NordVPN Affiliate CTA",
-                content_ids: ["nordvpn_658"],
+                content_ids: ["nordvpn_15"],
                 content_type: "product"
             });
 
@@ -716,7 +716,7 @@
         // Rich quiz analytics (answers, telemetry) reach Firestore via quizResult in the CAPI body.
         sendCapiEvent("CompleteRegistration", {
             content_name: "NordVPN Quiz Complete",
-            content_ids: ["nordvpn_658"],
+            content_ids: ["nordvpn_15"],
             content_type: "product",
             status: calculatedPercentage >= 50 ? "high_risk" : "low_risk",
             quizResult: {

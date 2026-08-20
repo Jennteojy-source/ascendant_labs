@@ -9,7 +9,10 @@
     const screenAnalyzing = document.getElementById("screen-analyzing");
     const screenDone = document.getElementById("screen-done");
     const returnLink = document.getElementById("return-link");
+    const returnHint = document.getElementById("return-hint");
     const doneSummary = document.getElementById("done-summary");
+
+    const FALLBACK_WA = "https://wa.me/6580340915";
 
     function getDeviceOs() {
         const ua = navigator.userAgent || "";
@@ -29,28 +32,15 @@
         });
     }
 
-    function returnToWhatsApp(returnUrls) {
-        const deep = (returnUrls && returnUrls.deepLink) || "";
-        const web = (returnUrls && returnUrls.waMe) || "https://wa.me/6580340915";
-        if (returnLink) returnLink.href = web;
-
-        const tryClose = () => {
-            try { window.close(); } catch (_) {}
-            setTimeout(() => {
-                if (!window.closed) window.location.replace(deep || web);
-            }, 200);
-        };
-
-        if (deep) {
-            window.location.href = deep;
-            setTimeout(() => {
-                window.location.replace(web);
-                setTimeout(tryClose, 400);
-            }, 450);
-            return;
+    function setReturnLink(returnUrls) {
+        const web = (returnUrls && returnUrls.waMe) || FALLBACK_WA;
+        if (returnLink) {
+            returnLink.href = web;
+            returnLink.textContent = "Return to chat";
         }
-        window.location.replace(web);
-        setTimeout(tryClose, 400);
+        if (returnHint) {
+            returnHint.textContent = "Your advisor already has this scan. Tap below to go back to WhatsApp.";
+        }
     }
 
     async function completeScan() {
@@ -69,56 +59,93 @@
         return res.json();
     }
 
-    function animate(statusMessages) {
-        return new Promise((resolve) => {
-            let progress = 0;
-            const timer = setInterval(() => {
-                progress += 4;
-                if (progress > 100) progress = 100;
-                if (percentEl) percentEl.textContent = `${progress}%`;
-                if (statusEl) {
-                    if (progress < 25) statusEl.textContent = statusMessages[0];
-                    else if (progress < 55) statusEl.textContent = statusMessages[1];
-                    else if (progress < 80) statusEl.textContent = statusMessages[2];
-                    else statusEl.textContent = statusMessages[3];
+    /**
+     * Eases to 92% over ~5s, then holds there until release() is called so the
+     * counter never reads 100% while telemetry is still in flight.
+     */
+    function startAnimation(phases) {
+        const RAMP_MS = 5000;
+        const HOLD_PCT = 92;
+        const SETTLE_MS = 700;
+        const MAX_WAIT_MS = 9000;
+        const started = Date.now();
+        let releaseRequested = false;
+        let releasedAt = 0;
+        let shown = -1;
+
+        const done = new Promise((resolve) => {
+            const tick = () => {
+                const elapsed = Date.now() - started;
+                if (!releasedAt && (releaseRequested || elapsed > MAX_WAIT_MS) && elapsed >= RAMP_MS) {
+                    releasedAt = Date.now();
                 }
-                if (progress >= 100) {
-                    clearInterval(timer);
+
+                let progress;
+                if (releasedAt) {
+                    const ratio = Math.min((Date.now() - releasedAt) / SETTLE_MS, 1);
+                    progress = HOLD_PCT + ratio * (100 - HOLD_PCT);
+                } else {
+                    const linear = Math.min(elapsed / RAMP_MS, 1);
+                    progress = (1 - Math.pow(1 - linear, 2.2)) * HOLD_PCT;
+                }
+
+                const rounded = Math.min(Math.floor(progress), 100);
+                if (percentEl) percentEl.textContent = `${rounded}%`;
+
+                const index = Math.min(Math.floor(rounded / 25), phases.length - 1);
+                if (statusEl && index !== shown) {
+                    shown = index;
+                    statusEl.textContent = phases[index];
+                }
+
+                if (rounded >= 100) {
                     resolve();
+                    return;
                 }
-            }, 32);
+                setTimeout(tick, 60);
+            };
+            tick();
         });
+
+        return {
+            done,
+            release() { releaseRequested = true; },
+        };
     }
 
     async function run() {
-        const messages = [
+        const phases = [
             "Checking IP, location, and network provider…",
-            "Reading public IP…",
-            "Pinpointing city and network…",
+            "Reading your public IP…",
+            "Pinpointing city and network operator…",
             "Packing results for your advisor…",
         ];
-        const animation = animate(messages);
+
+        const animation = startAnimation(phases);
         let payload = null;
+
         try {
             payload = await completeScan();
             const tel = (payload && payload.telemetry) || {};
-            if (tel.ip) messages[1] = `Detected IP: ${tel.ip}`;
-            if (tel.city || tel.country) messages[2] = `Location: ${[tel.city, tel.country].filter(Boolean).join(", ")}`;
-            if (tel.isp) messages[3] = `Provider: ${tel.isp}`;
+            if (tel.ip) phases[1] = `Public IP detected: ${tel.ip}`;
+            if (tel.city || tel.country) phases[2] = `Located: ${[tel.city, tel.country].filter(Boolean).join(", ")}`;
+            if (tel.isp) phases[3] = `Your provider: ${tel.isp}`;
         } catch (err) {
             console.warn("Scan complete error:", err);
         }
-        await animation;
+
+        animation.release();
+        await animation.done;
 
         const tel = (payload && payload.telemetry) || {};
         const bits = [tel.isp, tel.city, tel.country].filter(Boolean);
         if (doneSummary) {
             doneSummary.textContent = bits.length
-                ? `Visible on this network: ${bits.join(" · ")}. Returning to WhatsApp.`
-                : "Scan saved. Returning to WhatsApp.";
+                ? `Exposed on this connection: ${bits.join(" · ")}`
+                : "Scan saved. Your advisor already has it.";
         }
+        setReturnLink(payload && payload.returnUrls);
         switchScreen(screenDone);
-        setTimeout(() => returnToWhatsApp(payload && payload.returnUrls), 700);
     }
 
     if (document.readyState === "loading") {

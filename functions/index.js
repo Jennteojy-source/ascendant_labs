@@ -8,6 +8,7 @@ const {
   config,
   buildAffiliateUrl,
   buildPartnerUrl,
+  findPartner,
   recommendFromScan,
 } = require("./config");
 
@@ -488,38 +489,275 @@ function sendWhatsAppText(to, text) {
   );
 }
 
-function sendAgentEvent(to, event) {
+const SCAN_CTA_URL = "https://ascendantlabs.co/scan_v2";
+const SCAN_CTA_IMAGE = "https://ascendantlabs.co/scan_v2/scan_card.jpg";
+
+function extractInboundText(message) {
+  if (!message) return "";
+  if (message.text && message.text.body) return String(message.text.body);
+  if (message.button && message.button.text) return String(message.button.text);
+  if (message.interactive && message.interactive.button_reply) {
+    return String(message.interactive.button_reply.title || message.interactive.button_reply.id || "");
+  }
+  if (message.interactive && message.interactive.list_reply) {
+    return String(message.interactive.list_reply.title || message.interactive.list_reply.id || "");
+  }
+  if (message.image && message.image.caption) return String(message.image.caption);
+  if (message.video && message.video.caption) return String(message.video.caption);
+  if (message.document && message.document.caption) return String(message.document.caption);
+  return message.type ? `[${message.type}]` : "";
+}
+
+function cloneJson(value) {
+  if (value == null) return null;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (_) {
+    return null;
+  }
+}
+
+async function storeWaMessage(waId, fields) {
+  if (!waId) return;
+  const ts = Date.now();
+  const messageId = String(fields.id || `msg_${ts}_${crypto.randomBytes(3).toString("hex")}`).slice(0, 128);
+  const text = String(fields.text || "").slice(0, 8000);
+  const convoRef = db.collection("wa_conversations").doc(waId);
+  const msgRef = convoRef.collection("messages").doc(messageId);
+  const existing = await msgRef.get();
+  const record = {
+    id: messageId,
+    waId,
+    direction: fields.direction || "inbound",
+    type: fields.type || "text",
+    text,
+    source: fields.source || "messages",
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    ts: fields.ts || ts,
+    raw: cloneJson(fields.raw) || null,
+  };
+
+  await msgRef.set(record, { merge: true });
+
+  const convoUpdate = {
+    waId,
+    lastMessage: text.slice(0, 500),
+    lastDirection: record.direction,
+    lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  if (!existing.exists) {
+    convoUpdate.messageCount = admin.firestore.FieldValue.increment(1);
+  }
+  if (fields.sid) convoUpdate.lastSid = fields.sid;
+  if (fields.contactName) convoUpdate.contactName = fields.contactName;
+  await convoRef.set(convoUpdate, { merge: true });
+}
+
+function sendScanCtaCard(to) {
   if (!config.wabaToken || !config.whatsappPhoneNumberId || !to) {
     return Promise.resolve({ skipped: true });
   }
   const digits = String(to).replace(/\D/g, "");
   return graphPostJson(
+    "graph.facebook.com",
+    `/v21.0/${config.whatsappPhoneNumberId}/messages`,
+    config.wabaToken,
+    {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: digits,
+      type: "interactive",
+      interactive: {
+        type: "cta_url",
+        header: {
+          type: "image",
+          image: { link: SCAN_CTA_IMAGE },
+        },
+        body: {
+          text: "I'll check this connection first so we can see what your internet provider already knows. Tap Scan my connection — it auto-scans. When it's done, tap Return to chat.",
+        },
+        footer: {
+          text: "Takes about 6 seconds",
+        },
+        action: {
+          name: "cta_url",
+          parameters: {
+            display_text: "Scan my connection",
+            url: `${SCAN_CTA_URL}?wa=${digits}`,
+          },
+        },
+      },
+    }
+  );
+}
+
+function releaseThreadControl(to) {
+  if (!config.wabaToken || !config.whatsappPhoneNumberId || !to) {
+    return Promise.resolve({ skipped: true });
+  }
+  const digits = String(to).replace(/\D/g, "");
+  return graphPostJson(
+    "graph.facebook.com",
+    `/v21.0/${config.whatsappPhoneNumberId}/thread_control`,
+    config.wabaToken,
+    {
+      messaging_product: "whatsapp",
+      action: "release",
+      to: digits,
+    }
+  );
+}
+
+async function maybeSendScanCta(waId, inboundText) {
+  if (!waId) return;
+  const alreadyScanned = /\bSCAN_COMPLETE\b/i.test(inboundText || "");
+  if (alreadyScanned) return;
+
+  const convoRef = db.collection("wa_conversations").doc(waId);
+  const snap = await convoRef.get();
+  const data = snap.exists ? snap.data() || {} : {};
+  if (data.scanCtaSentAt || data.lastSid) return;
+
+  const result = await sendScanCtaCard(waId);
+  const sent = result && result.status >= 200 && result.status < 300;
+  if (sent) {
+    await releaseThreadControl(waId);
+  }
+  await convoRef.set({
+    scanCtaSentAt: admin.firestore.FieldValue.serverTimestamp(),
+    scanCtaStatus: result && result.status ? result.status : 0,
+  }, { merge: true });
+  await storeWaMessage(waId, {
+    id: `cta_${Date.now()}`,
+    direction: "outbound",
+    type: "cta_url",
+    text: "Scan my connection",
+    source: "cloud_api",
+    raw: { url: `${SCAN_CTA_URL}?wa=${waId}`, status: result && result.status },
+  });
+}
+
+function appendQuery(url, key, value) {
+  if (!url || !value) return url || "";
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.get(key)) parsed.searchParams.set(key, value);
+    return parsed.toString();
+  } catch (_) {
+    const joiner = url.includes("?") ? "&" : "?";
+    return `${url}${joiner}${key}=${encodeURIComponent(value)}`;
+  }
+}
+
+function offerLabel(slug) {
+  const found = findPartner(slug);
+  return found && found[1] && found[1].label ? found[1].label : "VPN";
+}
+
+function buildScanCompletedEvent(scan, recommendation, description) {
+  const sid = scan.sid || "";
+  const waId = String(scan.waId || "").replace(/\D/g, "");
+  const primaryLink = appendQuery(
+    recommendation.shortLinks?.primary || `https://ascendantlabs.co/r/vpn`,
+    "sid",
+    sid
+  );
+  const alternativeLink = appendQuery(
+    recommendation.shortLinks?.alternative || `https://ascendantlabs.co/r/proton-vpn`,
+    "sid",
+    sid
+  );
+  const payloadObj = {
+    sid,
+    ip: scan.ip,
+    city: scan.city,
+    country: scan.country,
+    isp: scan.isp,
+    device: scan.device,
+    primary: recommendation.primary,
+    alternative: recommendation.alternative,
+    angle: recommendation.angle,
+    primary_link: primaryLink,
+    alternative_link: alternativeLink,
+    scan_cta_url: waId ? `https://ascendantlabs.co/scan_v2?wa=${waId}` : "https://ascendantlabs.co/scan_v2",
+    offer_cta_url: primaryLink,
+    offer_cta_label: `Open ${offerLabel(recommendation.primary)}`,
+  };
+
+  return {
+    type: "connection_scan_completed",
+    description,
+    payload: JSON.stringify(payloadObj),
+  };
+}
+
+async function sendAgentEvent(to, event) {
+  if (!config.wabaToken || !config.whatsappPhoneNumberId || !to) {
+    return { skipped: true };
+  }
+  const digits = String(to).replace(/\D/g, "");
+  const formattedPayload = typeof event.payload === "string"
+    ? event.payload
+    : JSON.stringify(event.payload || {});
+
+  const agentEventPayload = {
+    type: event.type,
+    description: event.description,
+    payload: formattedPayload,
+  };
+
+  const result = await graphPostJson(
     "api.facebook.com",
     `/${config.whatsappPhoneNumberId}/agent_event`,
     config.wabaToken,
     {
       to: `+${digits}`,
-      event,
+      event: agentEventPayload,
     },
     { "X-API-Version": "2.0.0" }
   );
+
+  try {
+    const eventId = `evt_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+    let parsedPayload = null;
+    try {
+      parsedPayload = JSON.parse(formattedPayload);
+    } catch (_) {
+      parsedPayload = formattedPayload;
+    }
+
+    await db.collection("wa_conversations").doc(digits).collection("agent_events").doc(eventId).set({
+      id: eventId,
+      waId: digits,
+      type: event && event.type ? event.type : "unknown",
+      description: event && event.description ? event.description : "",
+      payload: parsedPayload,
+      rawPayload: formattedPayload,
+      event: cloneJson(agentEventPayload),
+      graphStatus: result && result.status ? result.status : 0,
+      graphBody: cloneJson(typeof result.body === "string" ? (() => { try { return JSON.parse(result.body); } catch (_) { return result.body; } })() : result.body),
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      ts: Date.now(),
+    });
+    await db.collection("wa_conversations").doc(digits).set({
+      waId: digits,
+      lastAgentEventType: event && event.type ? event.type : "",
+      lastAgentEventAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (err) {
+    console.error("agent_event Firestore write error:", err);
+  }
+
+  return result;
 }
 
-function buildWhatsAppReturnUrl(scan) {
+function buildWhatsAppReturnUrl() {
   const phone = config.whatsappDisplayNumber;
-  const lines = [
-    "SCAN_COMPLETE",
-    `sid:${scan.sid}`,
-    scan.country ? `country:${scan.country}` : null,
-    scan.city ? `city:${scan.city}` : null,
-    scan.isp ? `isp:${scan.isp}` : null,
-    scan.ip ? `ip:${scan.ip}` : null,
-    scan.device ? `device:${scan.device}` : null,
-  ].filter(Boolean);
-  const text = encodeURIComponent(lines.join("\n"));
   return {
-    waMe: `https://wa.me/${phone}?text=${text}`,
-    deepLink: `whatsapp://send?phone=${phone}&text=${text}`,
+    waMe: `https://wa.me/${phone}`,
+    deepLink: `whatsapp://send?phone=${phone}`,
   };
 }
 
@@ -569,6 +807,64 @@ function browserBreakoutHtml(dest) {
 </html>`;
 }
 
+async function logOfferClick(req, fields) {
+  const ip = getClientIp(req);
+  const clickId = fields.clickId;
+  const record = {
+    clickId,
+    slug: fields.slug || "",
+    partnerId: fields.partnerId || "",
+    destinationUrl: fields.destinationUrl || "",
+    ip,
+    userAgent: req.get("user-agent") || "",
+    referer: req.get("referer") || "",
+    source: fields.source || "web",
+    sid: fields.sid || "",
+    fbclid: getQueryValue(req, "fbclid") || "",
+    waId: String(getQueryValue(req, "wa") || "").replace(/\D/g, ""),
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  try {
+    await db.collection("offer_clicks").add(record);
+    if (clickId) {
+      await db.collection("clicks").doc(clickId).set({
+        ip,
+        userAgent: record.userAgent,
+        partner: record.partnerId,
+        slug: record.slug,
+        destinationUrl: record.destinationUrl,
+        source: record.source,
+        sid: record.sid || "",
+        lastOfferClickAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.error("offer_clicks write error:", err);
+  }
+
+  sendMetaCapiEvent(
+    "InitiateCheckout",
+    `offerclick_${clickId}_${Date.now()}`,
+    {
+      client_ip_address: ip,
+      client_user_agent: record.userAgent,
+      external_id: clickId,
+      ...(getQueryValue(req, "fbclid")
+        ? { fbc: `fb.1.${Date.now()}.${getQueryValue(req, "fbclid")}` }
+        : {}),
+    },
+    {
+      content_name: `Offer click ${record.slug || record.partnerId}`,
+      content_category: "VPN",
+      content_ids: [record.partnerId || record.slug],
+      content_type: "product",
+    },
+    `https://ascendantlabs.co/r/${record.slug || "vpn"}`
+  ).catch((err) => console.warn("Offer click CAPI error:", err));
+}
+
 /**
  * First-party short links for partner offers.
  * Used in WhatsApp as plain URLs so they can leave the in-app CTA webview.
@@ -583,12 +879,26 @@ exports.affiliateRedirect = onRequest(async (req, res) => {
   const raw = String(req.originalUrl || req.url || req.path || "");
   const parts = raw.split("?")[0].split("/").filter(Boolean);
   const slug = parts[parts.length - 1] || "";
+  const sid = getQueryValue(req, "sid") || getQueryValue(req, "s") || "";
+  const ua = req.get("user-agent") || "";
+  const source = /WhatsApp/i.test(ua) ? "whatsapp" : (getQueryValue(req, "utm_source") || "web");
   const clickId =
     getQueryValue(req, "c") ||
     getQueryValue(req, "click_id") ||
+    sid ||
     getQueryValue(req, "fbclid") ||
-    "";
-  const dest = buildPartnerUrl(slug, clickId);
+    `clk_${crypto.randomBytes(6).toString("hex")}${Date.now().toString(36)}`;
+
+  const dest = buildPartnerUrl(slug, clickId, { source, slug, sid });
+
+  await logOfferClick(req, {
+    clickId,
+    slug,
+    partnerId: slug || "",
+    destinationUrl: dest || "",
+    source,
+    sid,
+  });
 
   if (!dest) {
     res.status(404).json({
@@ -598,7 +908,6 @@ exports.affiliateRedirect = onRequest(async (req, res) => {
     return;
   }
 
-  const ua = req.get("user-agent") || "";
   if (/WhatsApp/i.test(ua)) {
     res.set("Cache-Control", "no-store");
     res.status(200).send(browserBreakoutHtml(dest));
@@ -660,29 +969,17 @@ exports.completeConnectionScan = onRequest(async (req, res) => {
   }
 
   if (waId) {
-    const event = {
-      type: "connection_scan_completed",
-      description: `Connection scan finished for ${scan.city || scan.country || "this user"}. ISP ${scan.isp || "unknown"}, country ${scan.country || "unknown"}. Recommend ${recommendation.primary} first.`,
-      payload: {
-        sid,
-        ip: scan.ip,
-        city: scan.city,
-        country: scan.country,
-        isp: scan.isp,
-        device: scan.device,
-        primary: recommendation.primary,
-        alternative: recommendation.alternative,
-        password: recommendation.password,
-        angle: recommendation.angle,
-        primary_link: recommendation.shortLinks.primary,
-        alternative_link: recommendation.shortLinks.alternative,
-        password_link: recommendation.shortLinks.password,
-      },
-    };
-    await sendAgentEvent(waId, event);
+    await sendAgentEvent(
+      waId,
+      buildScanCompletedEvent(
+        scan,
+        recommendation,
+        `Connection scan finished for ${scan.city || scan.country || "this user"}. ISP ${scan.isp || "unknown"}, country ${scan.country || "unknown"}. Recommend ${recommendation.primary} first.`
+      )
+    );
   }
 
-  const returnUrls = buildWhatsAppReturnUrl(scan);
+  const returnUrls = buildWhatsAppReturnUrl();
   res.status(200).json({
     success: true,
     sid,
@@ -737,6 +1034,153 @@ exports.getConnectionScan = onRequest(async (req, res) => {
   }
 });
 
+async function handleScanReturn(from, sid) {
+  if (!from || !sid) return;
+  const scanDoc = await db.collection("connection_scans").doc(sid).get();
+  if (!scanDoc.exists) return;
+  const scan = scanDoc.data() || {};
+  await db.collection("connection_scans").doc(sid).set({ waId: from }, { merge: true });
+  const recommendation = scan.recommendation || recommendFromScan(scan);
+  await sendAgentEvent(
+    from,
+    buildScanCompletedEvent(
+      { ...scan, sid, waId: from },
+      recommendation,
+      `User returned from connection scan ${sid}. ISP ${scan.isp || "unknown"} in ${scan.country || "unknown"}.`
+    )
+  );
+}
+
+function digitsOnly(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function unwrapStandbyItems(items) {
+  const messages = [];
+  const echoes = [];
+  for (const item of items || []) {
+    if (!item || typeof item !== "object") continue;
+    if (Array.isArray(item.messages)) messages.push(...item.messages);
+    if (Array.isArray(item.message_echoes)) echoes.push(...item.message_echoes);
+    if (item.message && (item.sender || item.recipient)) {
+      const from = digitsOnly(item.sender && item.sender.id);
+      messages.push({
+        ...item.message,
+        from: item.message.from || from,
+        id: item.message.mid || item.message.id,
+      });
+      continue;
+    }
+    if (item.to && (item.from || item.type || item.text)) {
+      echoes.push(item);
+      continue;
+    }
+    if (item.from || item.type || item.text || item.id) {
+      messages.push(item);
+    }
+  }
+  return { messages, echoes };
+}
+
+function collectInboundMessages(value) {
+  const fromValue = [...(value.messages || [])];
+  const fromStandby = unwrapStandbyItems(value.standby);
+  return [...fromValue, ...fromStandby.messages];
+}
+
+function collectEchoMessages(value) {
+  const fromValue = [
+    ...(value.message_echoes || []),
+    ...(value.smb_message_echoes || []),
+  ];
+  const fromStandby = unwrapStandbyItems(value.standby);
+  return [...fromValue, ...fromStandby.echoes];
+}
+
+async function persistInboundMessage(message, extras = {}) {
+  const from = digitsOnly(message.from || message.wa_id);
+  const businessNumber = extras.businessNumber || "";
+  if (!from || (businessNumber && from === businessNumber)) return;
+  const text = extractInboundText(message);
+  const sid = extractScanSid(text);
+  const ts = Number(message.timestamp) ? Number(message.timestamp) * 1000 : Date.now();
+  await storeWaMessage(from, {
+    id: message.id,
+    direction: "inbound",
+    type: message.type || "text",
+    text,
+    sid,
+    contactName: extras.contactName || "",
+    source: extras.source || "messages",
+    ts,
+    raw: message,
+  });
+  await handleScanReturn(from, sid);
+}
+
+async function persistEchoMessage(echo, extras = {}) {
+  const businessNumber = extras.businessNumber || "";
+  const to = digitsOnly(echo.to || echo.recipient_id);
+  const from = digitsOnly(echo.from);
+  const waId = to && to !== businessNumber ? to : (from && from !== businessNumber ? from : to);
+  if (!waId || waId === businessNumber) return;
+  const ts = Number(echo.timestamp) ? Number(echo.timestamp) * 1000 : Date.now();
+  await storeWaMessage(waId, {
+    id: echo.id,
+    direction: "outbound",
+    type: echo.type || "text",
+    text: extractInboundText(echo),
+    source: extras.source || "echo",
+    ts,
+    raw: echo,
+  });
+}
+
+async function persistHistory(value, extras = {}) {
+  const chunks = value.history || [];
+  const businessNumber = extras.businessNumber || "";
+  for (const chunk of chunks) {
+    for (const thread of (chunk.threads || [])) {
+      const waId = digitsOnly(thread.id);
+      if (!waId) continue;
+      for (const message of (thread.messages || [])) {
+        const from = digitsOnly(message.from);
+        const direction = from && from === businessNumber ? "outbound" : "inbound";
+        const target = direction === "inbound" ? from || waId : waId;
+        const ts = Number(message.timestamp) ? Number(message.timestamp) * 1000 : Date.now();
+        await storeWaMessage(target, {
+          id: message.id,
+          direction,
+          type: message.type || "text",
+          text: extractInboundText(message),
+          source: "history",
+          ts,
+          raw: message,
+        });
+      }
+    }
+  }
+}
+
+async function processWhatsAppChange(change) {
+  const field = String(change.field || "messages");
+  const value = change.value || {};
+  const contacts = value.contacts || [];
+  const contactName = contacts[0] && contacts[0].profile ? contacts[0].profile.name : "";
+  const businessNumber = digitsOnly(value.metadata && value.metadata.display_phone_number);
+  const source = field === "standby" ? "standby" : field;
+
+  for (const message of collectInboundMessages(value)) {
+    await persistInboundMessage(message, { contactName, source, businessNumber });
+  }
+  for (const echo of collectEchoMessages(value)) {
+    await persistEchoMessage(echo, { businessNumber, source: source === "standby" ? "standby" : "echo" });
+  }
+  if (field === "history" || value.history) {
+    await persistHistory(value, { businessNumber });
+  }
+}
+
 exports.whatsappWebhook = onRequest(async (req, res) => {
   if (req.method === "GET") {
     const mode = getQueryValue(req, "hub.mode");
@@ -754,52 +1198,14 @@ exports.whatsappWebhook = onRequest(async (req, res) => {
   try {
     const entries = body.entry || [];
     for (const entry of entries) {
-      const changes = entry.changes || [];
-      for (const change of changes) {
-        const value = change.value || {};
-        const messages = value.messages || [];
-        for (const message of messages) {
-          const from = String(message.from || "").replace(/\D/g, "");
-          const text = (message.text && message.text.body) || "";
-          const sid = extractScanSid(text);
-          if (!from) continue;
-
-          const convo = {
-            waId: from,
-            lastMessage: text.slice(0, 500),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          };
-          if (sid) convo.lastSid = sid;
-          await db.collection("wa_conversations").doc(from).set(convo, { merge: true });
-
-          if (sid) {
-            const scanDoc = await db.collection("connection_scans").doc(sid).get();
-            if (scanDoc.exists) {
-              const scan = scanDoc.data() || {};
-              await db.collection("connection_scans").doc(sid).set({ waId: from }, { merge: true });
-              const recommendation = scan.recommendation || recommendFromScan(scan);
-              await sendAgentEvent(from, {
-                type: "connection_scan_completed",
-                description: `User returned from connection scan ${sid}. ISP ${scan.isp || "unknown"} in ${scan.country || "unknown"}.`,
-                payload: {
-                  sid,
-                  ip: scan.ip,
-                  city: scan.city,
-                  country: scan.country,
-                  isp: scan.isp,
-                  device: scan.device,
-                  primary: recommendation.primary,
-                  alternative: recommendation.alternative,
-                  password: recommendation.password,
-                  angle: recommendation.angle,
-                  primary_link: recommendation.shortLinks?.primary,
-                  alternative_link: recommendation.shortLinks?.alternative,
-                  password_link: recommendation.shortLinks?.password,
-                },
-              });
-            }
-          }
-        }
+      if (Array.isArray(entry.standby) && entry.standby.length) {
+        await processWhatsAppChange({
+          field: "standby",
+          value: { standby: entry.standby, metadata: entry.metadata || {} },
+        });
+      }
+      for (const change of (entry.changes || [])) {
+        await processWhatsAppChange(change);
       }
     }
   } catch (err) {
@@ -813,5 +1219,8 @@ exports.whatsappWebhook = onRequest(async (req, res) => {
 exports.handleConversionCreated = handleConversionCreated;
 exports.sendMetaCapiEvent = sendMetaCapiEvent;
 exports.buildAffiliateUrl = buildAffiliateUrl;
+exports.buildScanCompletedEvent = buildScanCompletedEvent;
 exports.sendAgentEvent = sendAgentEvent;
 exports.sendWhatsAppText = sendWhatsAppText;
+exports.storeWaMessage = storeWaMessage;
+

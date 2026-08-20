@@ -169,7 +169,7 @@
         if (!ctaButton) return;
 
         const affParams = new URLSearchParams({
-            offer_id: "658",
+            offer_id: "15",
             aff_id: "152405",
             url_id: "902"
         });
@@ -193,7 +193,7 @@
             ctaButton.dataset.navigating = "true";
             sendCapiEvent("InitiateCheckout", {
                 content_name: "NordVPN FastCheckout CTA",
-                content_ids: ["nordvpn_658"],
+                content_ids: ["nordvpn_15"],
                 content_type: "product"
             });
             const destinationUrl = ctaButton.href;
@@ -308,7 +308,7 @@
 
         sendCapiEvent("Lead", {
             content_name: "NordVPN Connection Scan",
-            content_ids: ["nordvpn_658"],
+            content_ids: ["nordvpn_15"],
             content_type: "product",
             status: "scan_started",
             quizResult: {

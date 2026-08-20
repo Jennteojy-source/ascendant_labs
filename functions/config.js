@@ -53,7 +53,7 @@ const config = {
   nordVpn: {
     baseUrl: optionalEnv("NORDVPN_AFFILIATE_BASE_URL", "https://go.nordvpn.net/aff_c"),
     affId: optionalEnv("NORDVPN_AFF_ID", "152405"),
-    offerId: optionalEnv("NORDVPN_OFFER_ID", "658"),
+    offerId: optionalEnv("NORDVPN_OFFER_ID", "15"),
     urlId: optionalEnv("NORDVPN_URL_ID", "902"),
   },
   partners: {
@@ -61,55 +61,96 @@ const config = {
       label: "NordVPN",
       shortPath: "vpn",
       aliases: ["nordvpn", "vpn", "nord-vpn"],
-      url: optionalEnv("NORDVPN_AFFILIATE_URL"),
+      baseUrl: optionalEnv("NORDVPN_AFFILIATE_BASE_URL", "https://go.nordvpn.net/aff_c"),
+      affId: optionalEnv("NORDVPN_AFF_ID", "152405"),
+      offerId: optionalEnv("NORDVPN_OFFER_ID", "15"),
+      urlId: optionalEnv("NORDVPN_URL_ID", "902"),
     },
     nordpass: {
       label: "NordPass",
       shortPath: "pass",
       aliases: ["nordpass", "pass", "nord-pass"],
-      url: optionalEnv("NORDPASS_AFFILIATE_URL"),
+      baseUrl: optionalEnv("NORDPASS_AFFILIATE_BASE_URL", "https://go.nordpass.io/aff_c"),
+      affId: optionalEnv("NORDPASS_AFF_ID", "152405"),
+      offerId: optionalEnv("NORDPASS_OFFER_ID", "488"),
+      urlId: optionalEnv("NORDPASS_URL_ID", "9356"),
     },
     proton_vpn: {
       label: "Proton VPN",
       shortPath: "proton-vpn",
       aliases: ["proton_vpn", "proton-vpn", "protonvpn"],
-      url: optionalEnv("PROTON_VPN_AFFILIATE_URL"),
+      baseUrl: optionalEnv("PROTON_AFFILIATE_BASE_URL", "https://go.getproton.me/aff_c"),
+      affId: optionalEnv("PROTON_AFF_ID", "19026"),
+      offerId: optionalEnv("PROTON_VPN_OFFER_ID", "26"),
+      urlId: optionalEnv("PROTON_VPN_URL_ID", ""),
     },
     proton_pass: {
       label: "Proton Pass",
       shortPath: "proton-pass",
       aliases: ["proton_pass", "proton-pass", "protonpass"],
-      url: optionalEnv("PROTON_PASS_AFFILIATE_URL"),
+      baseUrl: optionalEnv("PROTON_AFFILIATE_BASE_URL", "https://go.getproton.me/aff_c"),
+      affId: optionalEnv("PROTON_AFF_ID", "19026"),
+      offerId: optionalEnv("PROTON_PASS_OFFER_ID", "38"),
+      urlId: optionalEnv("PROTON_PASS_URL_ID", ""),
     },
     proton_mail: {
       label: "Proton Mail",
       shortPath: "proton-mail",
       aliases: ["proton_mail", "proton-mail", "protonmail"],
-      url: optionalEnv("PROTON_MAIL_AFFILIATE_URL"),
+      baseUrl: optionalEnv("PROTON_AFFILIATE_BASE_URL", "https://go.getproton.me/aff_c"),
+      affId: optionalEnv("PROTON_AFF_ID", "19026"),
+      offerId: optionalEnv("PROTON_MAIL_OFFER_ID", "7"),
+      urlId: optionalEnv("PROTON_MAIL_URL_ID", ""),
+    },
+    proton_drive: {
+      label: "Proton Drive",
+      shortPath: "proton-drive",
+      aliases: ["proton_drive", "proton-drive", "protondrive", "drive"],
+      baseUrl: optionalEnv("PROTON_AFFILIATE_BASE_URL", "https://go.getproton.me/aff_c"),
+      affId: optionalEnv("PROTON_AFF_ID", "19026"),
+      offerId: optionalEnv("PROTON_DRIVE_OFFER_ID", "43"),
+      urlId: optionalEnv("PROTON_DRIVE_URL_ID", ""),
+    },
+    proton_lumo: {
+      label: "Proton Lumo",
+      shortPath: "proton-lumo",
+      aliases: ["proton_lumo", "proton-lumo", "lumo"],
+      baseUrl: optionalEnv("PROTON_AFFILIATE_BASE_URL", "https://go.getproton.me/aff_c"),
+      affId: optionalEnv("PROTON_AFF_ID", "19026"),
+      offerId: optionalEnv("PROTON_LUMO_OFFER_ID", "68"),
+      urlId: optionalEnv("PROTON_LUMO_URL_ID", ""),
     },
     proton_unlimited: {
       label: "Proton Unlimited",
       shortPath: "proton-unlimited",
       aliases: ["proton_unlimited", "proton-unlimited", "unlimited"],
-      url: optionalEnv("PROTON_UNLIMITED_AFFILIATE_URL"),
+      baseUrl: optionalEnv("PROTON_AFFILIATE_BASE_URL", "https://go.getproton.me/aff_c"),
+      affId: optionalEnv("PROTON_AFF_ID", "19026"),
+      offerId: optionalEnv("PROTON_UNLIMITED_OFFER_ID", "26"),
+      urlId: optionalEnv("PROTON_UNLIMITED_URL_ID", "1198"),
     },
   },
 };
 
-function buildAffiliateUrl(clickId) {
-  const { baseUrl, affId, offerId, urlId } = config.nordVpn;
+function buildTuneUrl(offer, clickId, extras = {}) {
+  if (!offer || !offer.baseUrl || !offer.offerId || !offer.affId) return null;
   const params = new URLSearchParams({
-    offer_id: offerId,
-    aff_id: affId,
-    url_id: urlId,
+    offer_id: String(offer.offerId),
+    aff_id: String(offer.affId),
   });
-
+  if (offer.urlId) params.set("url_id", String(offer.urlId));
   if (clickId) {
     params.set("aff_click_id", clickId);
     params.set("aff_sub", clickId);
   }
+  if (extras.source) params.set("aff_sub2", String(extras.source).slice(0, 64));
+  if (extras.slug) params.set("aff_sub3", String(extras.slug).slice(0, 64));
+  if (extras.sid) params.set("aff_sub4", String(extras.sid).slice(0, 80));
+  return `${offer.baseUrl}?${params.toString()}`;
+}
 
-  return `${baseUrl}?${params.toString()}`;
+function buildAffiliateUrl(clickId, extras = {}) {
+  return buildTuneUrl(config.nordVpn, clickId, extras);
 }
 
 function findPartner(slug) {
@@ -134,15 +175,11 @@ function appendClickId(url, clickId) {
   }
 }
 
-function buildPartnerUrl(slug, clickId) {
+function buildPartnerUrl(slug, clickId, extras = {}) {
   const found = findPartner(slug);
   if (!found) return null;
-  const [id, partner] = found;
-  if (id === "nordvpn" || slug === "vpn") {
-    return clickId ? buildAffiliateUrl(clickId) : buildAffiliateUrl();
-  }
-  if (!partner.url) return null;
-  return appendClickId(partner.url, clickId);
+  const [, partner] = found;
+  return buildTuneUrl(partner, clickId, { ...extras, slug: extras.slug || partner.shortPath });
 }
 
 function shortLinkFor(slug, clickId) {
@@ -186,9 +223,12 @@ function recommendFromScan(telemetry = {}) {
     password: country.includes("eu") || privacyFirst.some((name) => country.includes(name)) ? "proton_pass" : "nordpass",
     angle,
     shortLinks: {
-      primary: shortLinkFor(primary),
-      alternative: shortLinkFor(alternative),
-      password: shortLinkFor(privacyFirst.some((name) => country.includes(name)) ? "proton_pass" : "nordpass"),
+      primary: shortLinkFor(primary, telemetry.sid || telemetry.clickId),
+      alternative: shortLinkFor(alternative, telemetry.sid || telemetry.clickId),
+      password: shortLinkFor(
+        privacyFirst.some((name) => country.includes(name)) ? "proton_pass" : "nordpass",
+        telemetry.sid || telemetry.clickId
+      ),
     },
   };
 }

@@ -32,6 +32,7 @@ const mockCollection = jestFn(() => ({
 }));
 const mockFieldValue = {
   serverTimestamp: () => "mocked-timestamp",
+  increment: (n) => n,
 };
 
 const adminMock = {
@@ -290,6 +291,50 @@ async function runTests() {
     console.log("✅ Test 6 Passed: nordVpnWebhook handled duplicate conversion gracefully.");
   } catch (err) {
     console.error("❌ Test 6 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 7: buildScanCompletedEvent returns stringified payload conforming to Meta JSON schema
+  try {
+    const scan = {
+      sid: "scn_test_123",
+      ip: "107.170.45.227",
+      city: "Singapore",
+      country: "Singapore",
+      isp: "StarHub Cable Vision Ltd",
+      device: "iPhone",
+      waId: "6598533674",
+    };
+    const recommendation = {
+      primary: "nordvpn",
+      alternative: "proton_vpn",
+      angle: "StarHub can observe your traffic.",
+      shortLinks: {
+        primary: "https://ascendantlabs.co/r/vpn?c=scn_test_123",
+        alternative: "https://ascendantlabs.co/r/proton-vpn?c=scn_test_123",
+      },
+    };
+
+    const evt = functions.buildScanCompletedEvent(scan, recommendation, "Scan finished.");
+
+    if (evt.type !== "connection_scan_completed") {
+      throw new Error(`Expected type 'connection_scan_completed', got '${evt.type}'`);
+    }
+    if (typeof evt.description !== "string" || !evt.description) {
+      throw new Error(`Expected description to be a non-empty string`);
+    }
+    if (typeof evt.payload !== "string") {
+      throw new Error(`Expected event.payload to be a JSON string, got type '${typeof evt.payload}'`);
+    }
+
+    const parsed = JSON.parse(evt.payload);
+    if (parsed.sid !== "scn_test_123" || parsed.isp !== "StarHub Cable Vision Ltd" || parsed.primary !== "nordvpn") {
+      throw new Error(`Parsed payload content mismatch: ${JSON.stringify(parsed)}`);
+    }
+
+    console.log("✅ Test 7 Passed: buildScanCompletedEvent produces schema-compliant stringified payload.");
+  } catch (err) {
+    console.error("❌ Test 7 Failed:", err.message);
     passed = false;
   }
 
