@@ -17,6 +17,44 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▲</text></svg>">
 </head>
 <body class="scan-v2-body">
+    <header class="scan-header">
+        <div class="header-inner">
+            <div class="brand-badge">
+                <span class="brand-icon">▲</span>
+                <span class="brand-name">Ascendant Labs</span>
+            </div>
+            <div class="lang-picker-wrapper" id="lang-picker-wrapper">
+                <button class="lang-btn" id="lang-btn" aria-label="Select Language" aria-expanded="false" aria-haspopup="listbox">
+                    <span class="lang-icon">🌐</span>
+                    <span class="lang-current" id="lang-current">English</span>
+                    <span class="lang-arrow">▾</span>
+                </button>
+                <ul class="lang-dropdown" id="lang-dropdown" role="listbox">
+                    <li role="option" data-lang="en" class="lang-option active">
+                        <span class="lang-flag">🇺🇸</span>
+                        <span class="lang-label">English</span>
+                    </li>
+                    <li role="option" data-lang="es" class="lang-option">
+                        <span class="lang-flag">🇪🇸</span>
+                        <span class="lang-label">Español</span>
+                    </li>
+                    <li role="option" data-lang="pt" class="lang-option">
+                        <span class="lang-flag">🇧🇷</span>
+                        <span class="lang-label">Português</span>
+                    </li>
+                    <li role="option" data-lang="ar" class="lang-option">
+                        <span class="lang-flag">🇸🇦</span>
+                        <span class="lang-label">العربية</span>
+                    </li>
+                    <li role="option" data-lang="id" class="lang-option">
+                        <span class="lang-flag">🇮🇩</span>
+                        <span class="lang-label">Bahasa Indonesia</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
     <main class="quiz-container scan-page scan-v2">
         <section id="screen-analyzing" class="quiz-card screen-active">
             <div class="analyzing-content">
@@ -25,7 +63,7 @@
                     <div class="inner-ring"></div>
                     <div class="scanned-score" id="analyzing-percent">0%</div>
                 </div>
-                <h1 class="analyzing-title">Scanning this connection</h1>
+                <h1 class="analyzing-title" id="analyzing-title">Scanning this connection</h1>
                 <p id="analyzing-status" class="analyzing-status">Checking IP, location, and network provider…</p>
             </div>
         </section>
@@ -34,15 +72,15 @@
             <div class="result-hero">
                 <div class="result-badge risk-critical">
                     <span class="badge-dot"></span>
-                    <span>SCAN COMPLETE</span>
+                    <span id="badge-text">SCAN COMPLETE</span>
                 </div>
-                <h2 class="result-headline">Scan saved</h2>
+                <h2 class="result-headline" id="done-title">Scan saved</h2>
                 <p id="done-summary" class="hero-subtitle">Your advisor already has this connection snapshot.</p>
             </div>
             <a id="return-link" class="btn-primary start-btn" href="https://wa.me/6580340915">Return to chat</a>
             <p id="return-hint" class="return-hint return-hint-visible">Tap to go back to WhatsApp. No need to send a message.</p>
         </section>
     </main>
-    <script src="/scan_v2/scan_v2.js?v=1.2"></script>
+    <script src="/scan_v2/scan_v2.js?v=2.0"></script>
 </body>
 </html>
