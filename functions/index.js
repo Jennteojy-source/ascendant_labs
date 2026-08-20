@@ -517,14 +517,71 @@ function cloneJson(value) {
   }
 }
 
+/**
+ * Click-to-WhatsApp ads attach attribution on the first inbound message only.
+ * Cloud API uses message.referral; some payloads also nest context.ad.
+ */
+function extractAdContext(message) {
+  if (!message || typeof message !== "object") return null;
+  const referral = message.referral && typeof message.referral === "object" ? message.referral : null;
+  const contextAd = message.context && message.context.ad && typeof message.context.ad === "object"
+    ? message.context.ad
+    : null;
+  if (!referral && !contextAd) return null;
+
+  const source = contextAd && contextAd.source && typeof contextAd.source === "object" ? contextAd.source : {};
+  const welcome = referral && referral.welcome_message && typeof referral.welcome_message === "object"
+    ? referral.welcome_message
+    : null;
+
+  const ctwaClid = String((referral && referral.ctwa_clid) || (contextAd && (contextAd.ctwa || contextAd.ctwa_clid)) || "").trim();
+  const adId = String((referral && referral.source_id) || source.id || "").trim();
+  const sourceType = String((referral && referral.source_type) || source.type || "").trim();
+  const sourceUrl = String((referral && referral.source_url) || source.url || "").trim();
+  const headline = String((referral && referral.headline) || "").trim();
+  const body = String((referral && referral.body) || "").trim();
+  const welcomeMessage = String((welcome && welcome.text) || "").trim();
+
+  if (!ctwaClid && !adId && !sourceType && !sourceUrl) return null;
+
+  return {
+    fromAd: sourceType ? sourceType === "ad" : true,
+    ctwaClid,
+    adId,
+    sourceType: sourceType || "ad",
+    sourceUrl,
+    headline,
+    body,
+    welcomeMessage,
+    mediaType: String((referral && referral.media_type) || "").trim(),
+  };
+}
+
+function adContextConvoFields(adContext) {
+  if (!adContext) return null;
+  const fields = {
+    fromAd: !!adContext.fromAd,
+    sourceType: adContext.sourceType || "ad",
+  };
+  if (adContext.ctwaClid) fields.ctwaClid = adContext.ctwaClid;
+  if (adContext.adId) fields.adId = adContext.adId;
+  if (adContext.sourceUrl) fields.sourceUrl = adContext.sourceUrl;
+  if (adContext.headline) fields.adHeadline = adContext.headline;
+  if (adContext.body) fields.adBody = adContext.body;
+  if (adContext.welcomeMessage) fields.adWelcomeMessage = adContext.welcomeMessage;
+  if (adContext.mediaType) fields.adMediaType = adContext.mediaType;
+  return fields;
+}
+
 async function storeWaMessage(waId, fields) {
   if (!waId) return;
   const ts = Date.now();
   const messageId = String(fields.id || `msg_${ts}_${crypto.randomBytes(3).toString("hex")}`).slice(0, 128);
   const text = String(fields.text || "").slice(0, 8000);
+  const adContext = fields.adContext || extractAdContext(fields.raw);
   const convoRef = db.collection("wa_conversations").doc(waId);
   const msgRef = convoRef.collection("messages").doc(messageId);
-  const existing = await msgRef.get();
+  const [existing, convoSnap] = await Promise.all([msgRef.get(), convoRef.get()]);
   const record = {
     id: messageId,
     waId,
@@ -536,6 +593,11 @@ async function storeWaMessage(waId, fields) {
     ts: fields.ts || ts,
     raw: cloneJson(fields.raw) || null,
   };
+  if (adContext) {
+    record.adContext = cloneJson(adContext);
+    if (adContext.ctwaClid) record.ctwaClid = adContext.ctwaClid;
+    if (adContext.adId) record.adId = adContext.adId;
+  }
 
   await msgRef.set(record, { merge: true });
 
@@ -551,6 +613,15 @@ async function storeWaMessage(waId, fields) {
   }
   if (fields.sid) convoUpdate.lastSid = fields.sid;
   if (fields.contactName) convoUpdate.contactName = fields.contactName;
+
+  const existingConvo = convoSnap.exists ? convoSnap.data() || {} : {};
+  const alreadyAttributed = !!(existingConvo.ctwaClid || existingConvo.adId);
+  const promo = adContextConvoFields(adContext);
+  if (promo && !alreadyAttributed) {
+    Object.assign(convoUpdate, promo);
+    convoUpdate.adAttributedAt = admin.firestore.FieldValue.serverTimestamp();
+  }
+
   await convoRef.set(convoUpdate, { merge: true });
 }
 
@@ -773,12 +844,13 @@ function cors(res) {
 }
 
 function browserBreakoutHtml(dest) {
-  const safe = String(dest).replace(/</g, "");
+  const safe = String(dest).replace(/[<>"]/g, "");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0;url=${safe}">
   <title>Opening recommended partner</title>
   <style>
     body { font-family: Inter, system-ui, sans-serif; background:#1f1814; color:#fbf5ef; display:flex; min-height:100vh; align-items:center; justify-content:center; margin:0; padding:24px; text-align:center; }
@@ -796,11 +868,9 @@ function browserBreakoutHtml(dest) {
       var ua = navigator.userAgent || "";
       if (/Android/i.test(ua)) {
         var path = url.replace(/^https?:\\/\\//, "");
-        window.location.href = "intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;end";
-        setTimeout(function () { window.location.href = url; }, 700);
-        return;
+        window.location.replace("intent://" + path + "#Intent;scheme=https;action=android.intent.action.VIEW;end");
       }
-      window.location.href = url;
+      window.location.replace(url);
     })();
   </script>
 </body>
@@ -826,9 +896,9 @@ async function logOfferClick(req, fields) {
   };
 
   try {
-    await db.collection("offer_clicks").add(record);
+    const writes = [db.collection("offer_clicks").add(record)];
     if (clickId) {
-      await db.collection("clicks").doc(clickId).set({
+      writes.push(db.collection("clicks").doc(clickId).set({
         ip,
         userAgent: record.userAgent,
         partner: record.partnerId,
@@ -838,8 +908,9 @@ async function logOfferClick(req, fields) {
         sid: record.sid || "",
         lastOfferClickAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+      }, { merge: true }));
     }
+    await Promise.all(writes);
   } catch (err) {
     console.error("offer_clicks write error:", err);
   }
@@ -868,8 +939,9 @@ async function logOfferClick(req, fields) {
 /**
  * First-party short links for partner offers.
  * Used in WhatsApp as plain URLs so they can leave the in-app CTA webview.
+ * Keep a warm instance so CTA taps are not waiting on a cold start.
  */
-exports.affiliateRedirect = onRequest(async (req, res) => {
+exports.affiliateRedirect = onRequest({ minInstances: 1, timeoutSeconds: 30, memory: "256MiB" }, async (req, res) => {
   cors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -891,31 +963,31 @@ exports.affiliateRedirect = onRequest(async (req, res) => {
 
   const dest = buildPartnerUrl(slug, clickId, { source, slug, sid });
 
-  await logOfferClick(req, {
+  const logP = logOfferClick(req, {
     clickId,
     slug,
     partnerId: slug || "",
     destinationUrl: dest || "",
     source,
     sid,
-  });
+  }).catch((err) => console.error("offer_clicks write error:", err));
 
   if (!dest) {
     res.status(404).json({
       error: "Unknown or unconfigured partner link",
       slug,
     });
-    return;
-  }
-
-  if (/WhatsApp/i.test(ua)) {
-    res.set("Cache-Control", "no-store");
-    res.status(200).send(browserBreakoutHtml(dest));
+    await logP;
     return;
   }
 
   res.set("Cache-Control", "no-store");
-  res.redirect(302, dest);
+  if (/WhatsApp/i.test(ua)) {
+    res.status(200).send(browserBreakoutHtml(dest));
+  } else {
+    res.redirect(302, dest);
+  }
+  await logP;
 });
 
 /**
@@ -1068,6 +1140,8 @@ function unwrapStandbyItems(items) {
         ...item.message,
         from: item.message.from || from,
         id: item.message.mid || item.message.id,
+        referral: item.message.referral || item.referral,
+        context: item.message.context || item.context,
       });
       continue;
     }
@@ -1114,6 +1188,7 @@ async function persistInboundMessage(message, extras = {}) {
     source: extras.source || "messages",
     ts,
     raw: message,
+    adContext: extractAdContext(message),
   });
   await handleScanReturn(from, sid);
 }
@@ -1156,6 +1231,7 @@ async function persistHistory(value, extras = {}) {
           source: "history",
           ts,
           raw: message,
+          adContext: extractAdContext(message),
         });
       }
     }
@@ -1223,4 +1299,5 @@ exports.buildScanCompletedEvent = buildScanCompletedEvent;
 exports.sendAgentEvent = sendAgentEvent;
 exports.sendWhatsAppText = sendWhatsAppText;
 exports.storeWaMessage = storeWaMessage;
+exports.extractAdContext = extractAdContext;
 
