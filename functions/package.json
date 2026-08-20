@@ -8,7 +8,8 @@
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "test": "node test_functions.js"
+    "test": "node test_functions.js",
+    "sync-mba": "node scripts/sync_mba.js"
   },
   "engines": {
     "node": "20"

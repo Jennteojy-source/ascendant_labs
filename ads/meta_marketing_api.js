@@ -4,9 +4,9 @@
  * Ascendant Labs / ScaleDM
  * 
  * Usage:
- *   node meta_ads/meta_marketing_api.js
- *   node meta_ads/meta_marketing_api.js --campaign "Nord Sales Campaign V2"
- *   node meta_ads/meta_marketing_api.js --account act_1287963342576057 --date-preset last_7d
+ *   node ads/meta_marketing_api.js
+ *   node ads/meta_marketing_api.js --campaign "Nord Sales Campaign V2"
+ *   node ads/meta_marketing_api.js --account act_1287963342576057 --date-preset last_7d
  */
 
 const fs = require('fs');

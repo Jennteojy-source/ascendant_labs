@@ -20,7 +20,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #1: "What Can Your Internet Provider See?" (Scan Variant 1)
 
-- **Asset Reference**: `meta_ads/meta_ad_scan_variant_1.jpg`
+- **Asset Reference**: `ads/creatives/scan/variant-1.jpg`
 - **Visual Focus**: Editorial scene with warm amber backdrop, bold serif headline, and a floating card with a semicircular **HIGH RISK** gauge meter and live connection status indicators.
 - **On-Image Text**:
   - Top Headline: `WHAT CAN YOUR INTERNET PROVIDER SEE?`
@@ -50,7 +50,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #2: "Is Your Wi-Fi Really Private?" (Scan Variant 2)
 
-- **Asset Reference**: `meta_ads/meta_ad_scan_variant_2.jpg`
+- **Asset Reference**: `ads/creatives/scan/variant-2.jpg`
 - **Visual Focus**: Warm amber-toned editorial setup featuring a mobile device running a connection test with an **82% Risk Meter** and network logging indicators.
 - **On-Image Text**:
   - Top Headline: `IS YOUR WI-FI REALLY PRIVATE?`
@@ -81,7 +81,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #3: "Is Incognito Really Private?" (Scan Variant 3)
 
-- **Asset Reference**: `meta_ads/meta_ad_scan_variant_3_incognito.jpg`
+- **Asset Reference**: `ads/creatives/scan/variant-3-incognito.jpg`
 - **Visual Focus**: Ultra-clean floating card on warm cream backdrop, semicircular orange-red **HIGH RISK** gauge meter, with red indicator dots highlighting the Incognito myth.
 - **On-Image Text**:
   - Top Headline: `IS INCOGNITO REALLY PRIVATE?`
@@ -112,7 +112,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #4: "What Does Your Wi-Fi Reveal?" (Scan Variant 4)
 
-- **Asset Reference**: `meta_ads/meta_ad_scan_variant_4_wifi_reveal.jpg`
+- **Asset Reference**: `ads/creatives/scan/variant-4-wifi-reveal.jpg`
 - **Visual Focus**: Crisp minimalist floating diagnostic card with **85% RISK** speedometer dial and real-time exposure badges.
 - **On-Image Text**:
   - Top Headline: `WHAT DOES YOUR WI-FI REVEAL?`
@@ -172,7 +172,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 | Ad Creative | Image File | Headline | Primary CTA | Destination URL |
 | :--- | :--- | :--- | :--- | :--- |
-| **Scan Variant 1** | `meta_ad_scan_variant_1.jpg` | *See What Your Internet Provider Can See 🛡️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
-| **Scan Variant 2** | `meta_ad_scan_variant_2.jpg` | *Is Your Connection Really Private? ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
-| **Scan Variant 3 (Incognito)** | `meta_ad_scan_variant_3_incognito.jpg` | *Incognito Doesn't Hide Your IP ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
-| **Scan Variant 4 (Wi-Fi)** | `meta_ad_scan_variant_4_wifi_reveal.jpg` | *What Does Your Wi-Fi Reveal? 🌐* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 1** | `ads/creatives/scan/variant-1.jpg` | *See What Your Internet Provider Can See 🛡️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 2** | `ads/creatives/scan/variant-2.jpg` | *Is Your Connection Really Private? ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 3 (Incognito)** | `ads/creatives/scan/variant-3-incognito.jpg` | *Incognito Doesn't Hide Your IP ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
+| **Scan Variant 4 (Wi-Fi)** | `ads/creatives/scan/variant-4-wifi-reveal.jpg` | *What Does Your Wi-Fi Reveal? 🌐* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
