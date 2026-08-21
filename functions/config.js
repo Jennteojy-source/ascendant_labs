@@ -44,6 +44,8 @@ const config = {
   networkId: optionalEnv("NETWORK_ID", "nordvpn"),
   capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("DATASET_ID"),
+  whatsappDatasetId: optionalEnv("WHATSAPP_DATASET_ID", "1306778361353446"),
+  whatsappCapiAccessToken: optionalEnv("WHATSAPP_CAPI_ACCESS_TOKEN", optionalEnv("WABA_TOKEN")),
   webhookApiKey: optionalEnv("WEBHOOK_API_KEY"),
   webhookVerifyToken: optionalEnv("WEBHOOK_VERIFY_TOKEN", optionalEnv("WEBHOOK_API_KEY")),
   wabaToken: optionalEnv("WABA_TOKEN"),

@@ -5,6 +5,7 @@ function jestFn(impl = () => {}) {
     return impl(...args);
   };
   fn.mock = { calls: [] };
+  fn.mockImplementation = (nextImpl) => { impl = nextImpl; };
   return fn;
 }
 
@@ -331,10 +332,131 @@ async function runTests() {
     if (parsed.sid !== "scn_test_123" || parsed.isp !== "StarHub Cable Vision Ltd" || parsed.primary !== "nordvpn") {
       throw new Error(`Parsed payload content mismatch: ${JSON.stringify(parsed)}`);
     }
+    const offerUrl = new URL(parsed.offer_cta_url);
+    if (offerUrl.searchParams.get("wa") !== "6598533674") {
+      throw new Error(`Expected product URL to include wa attribution key, got '${parsed.offer_cta_url}'`);
+    }
 
     console.log("✅ Test 7 Passed: buildScanCompletedEvent produces schema-compliant stringified payload.");
   } catch (err) {
     console.error("❌ Test 7 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 8: Click-to-WhatsApp referral fields are extracted without modifying ctwa_clid
+  try {
+    const rawClid = "ARAkLkA8rmlFeiCktEJQ-QTwRiyYHAFDLMNDBH0CD3qpjd0HR4irJ6LEkR7JwFF4XvnO2E4Nx0";
+    const attribution = functions.extractAdContext({
+      referral: {
+        ctwa_clid: rawClid,
+        source_id: "120212345678901",
+        source_type: "ad",
+        source_url: "https://fb.me/example",
+        headline: "Private connection",
+      },
+    });
+    if (!attribution || attribution.ctwaClid !== rawClid || attribution.adId !== "120212345678901") {
+      throw new Error(`CTWA attribution mismatch: ${JSON.stringify(attribution)}`);
+    }
+    console.log("✅ Test 8 Passed: extractAdContext preserves CTWA click attribution.");
+  } catch (err) {
+    console.error("❌ Test 8 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 9: Business Messaging CAPI uses Meta's LeadSubmitted schema
+  try {
+    const { buildWhatsAppCapiPayload, sendWhatsAppCapiEvent } = require("./lib/capi");
+    const payload = buildWhatsAppCapiPayload({
+      eventName: "LeadSubmitted",
+      eventId: "ctwa_offer_test_1",
+      eventTime: 1787284800123,
+      ctwaClid: "raw_ctwa_click_id",
+      wabaId: "1243210237822104",
+    });
+    const event = payload.data && payload.data[0];
+    if (
+      !event ||
+      event.event_name !== "LeadSubmitted" ||
+      event.action_source !== "business_messaging" ||
+      event.messaging_channel !== "whatsapp" ||
+      event.event_time !== 1787284800 ||
+      event.user_data.ctwa_clid !== "raw_ctwa_click_id" ||
+      event.user_data.whatsapp_business_account_id !== "1243210237822104" ||
+      Object.prototype.hasOwnProperty.call(event, "custom_data")
+    ) {
+      throw new Error(`Invalid WhatsApp CAPI payload: ${JSON.stringify(payload)}`);
+    }
+    const skipped = await sendWhatsAppCapiEvent({
+      eventId: "ctwa_missing_clid",
+      ctwaClid: "",
+    });
+    if (!skipped || !skipped.skipped || skipped.reason !== "missing_ctwa_clid") {
+      throw new Error(`Expected missing-clid event to skip: ${JSON.stringify(skipped)}`);
+    }
+    console.log("✅ Test 9 Passed: LeadSubmitted payload is valid and missing clid is skipped.");
+  } catch (err) {
+    console.error("❌ Test 9 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 10: waId resolves CTWA attribution without a connection scan
+  try {
+    mockDocGet.mockImplementation(() => Promise.resolve({
+      exists: true,
+      data: () => ({
+        waId: "6598533674",
+        ctwaClid: "clid_without_scan",
+        adId: "120212345678901",
+      }),
+    }));
+    const { resolveOfferAttribution } = require("./routes/affiliate");
+    const attribution = await resolveOfferAttribution({ waId: "6598533674", sid: "" });
+    if (
+      attribution.waId !== "6598533674" ||
+      attribution.ctwaClid !== "clid_without_scan" ||
+      attribution.adId !== "120212345678901"
+    ) {
+      throw new Error(`No-scan attribution mismatch: ${JSON.stringify(attribution)}`);
+    }
+    console.log("✅ Test 10 Passed: product attribution resolves by waId without a scan.");
+  } catch (err) {
+    console.error("❌ Test 10 Failed:", err.message);
+    passed = false;
+  }
+
+  // Test 11: redirect response is sent before attribution/logging completes
+  try {
+    let resolveLookup;
+    mockDocGet.mockImplementation(() => new Promise((resolve) => {
+      resolveLookup = resolve;
+    }));
+    let responseSent = false;
+    const req = {
+      originalUrl: "/r/not-configured?wa=6598533674",
+      url: "/r/not-configured?wa=6598533674",
+      path: "/r/not-configured",
+      query: { wa: "6598533674" },
+      get: (header) => (header === "user-agent" ? "WhatsApp Test" : ""),
+      ip: "127.0.0.1",
+    };
+    const res = {
+      set: () => {},
+      status: () => ({
+        json: () => { responseSent = true; },
+        send: () => { responseSent = true; },
+      }),
+      redirect: () => { responseSent = true; },
+    };
+    const pending = functions.affiliateRedirect(req, res);
+    if (!responseSent) {
+      throw new Error("Redirect response waited for Firestore attribution lookup");
+    }
+    resolveLookup({ exists: true, data: () => ({ waId: "6598533674" }) });
+    await pending;
+    console.log("✅ Test 11 Passed: redirect responds before attribution and tracking complete.");
+  } catch (err) {
+    console.error("❌ Test 11 Failed:", err.message);
     passed = false;
   }
 

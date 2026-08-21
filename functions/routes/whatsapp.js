@@ -2,7 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const crypto = require("crypto");
 const { config, findPartner, recommendFromScan } = require("../config");
 const { admin, db } = require("../lib/firebase");
-const { getClientIp, getQueryValue, cors, graphPostJson } = require("../lib/http");
+const { getClientIp, getQueryValue, cors, graphPostJson, WARM_HTTP } = require("../lib/http");
 const { resolveIpInfo, formatDisplayIp } = require("../lib/ip");
 
 function sendWhatsAppText(to, text) {
@@ -209,8 +209,8 @@ function sendScanCtaCard(to) {
   const digits = String(to || "").replace(/\D/g, "");
   return sendCtaUrlCard(digits, {
     image: SCAN_CTA_IMAGE,
-    body: "I'll check this connection first so we can see what your internet provider already knows. Tap Scan my connection — it auto-scans. When it's done, tap Return to chat.",
-    footer: "Takes about 6 seconds",
+    body: "Run a quick connection check so I can diagnose what your network exposes.",
+    footer: "Fast, automatic scan",
     displayText: "Scan my connection",
     url: `${SCAN_CTA_URL}?wa=${digits}`,
   });
@@ -219,6 +219,7 @@ function sendScanCtaCard(to) {
 async function sendOfferCtaCard(to, recommendation, url, sid) {
   const digits = String(to || "").replace(/\D/g, "");
   if (!digits || !url) return { skipped: true };
+  const trackedUrl = appendQuery(url, "wa", digits);
   const convoRef = db.collection("wa_conversations").doc(digits);
   try {
     const snap = await convoRef.get();
@@ -231,10 +232,10 @@ async function sendOfferCtaCard(to, recommendation, url, sid) {
   const label = `Open ${offerLabel(slug)}`.slice(0, 20);
   const result = await sendCtaUrlCard(digits, {
     image: offerCtaImage(slug),
-    body: "Tap below to encrypt this connection with the recommended VPN. Ascendant Labs may earn a commission at no extra cost to you.",
+    body: "Tap below to encrypt this connection with the recommended VPN. 30-day money-back guarantee.",
     footer: "30-day money-back guarantee",
     displayText: label,
-    url,
+    url: trackedUrl,
   });
   try {
     await convoRef.set({
@@ -248,7 +249,7 @@ async function sendOfferCtaCard(to, recommendation, url, sid) {
       type: "cta_url",
       text: label,
       source: "cloud_api",
-      raw: { url, image: offerCtaImage(slug), status: result && result.status },
+      raw: { url: trackedUrl, image: offerCtaImage(slug), status: result && result.status },
     });
   } catch (err) {
     console.error("offer CTA Firestore write error:", err);
@@ -288,18 +289,23 @@ async function maybeSendScanCta(waId, inboundText) {
   if (sent) {
     await releaseThreadControl(waId);
   }
-  await convoRef.set({
-    scanCtaSentAt: admin.firestore.FieldValue.serverTimestamp(),
+  const scanCtaUpdate = {
     scanCtaStatus: result && result.status ? result.status : 0,
-  }, { merge: true });
-  await storeWaMessage(waId, {
-    id: `cta_${Date.now()}`,
-    direction: "outbound",
-    type: "cta_url",
-    text: "Scan my connection",
-    source: "cloud_api",
-    raw: { url: `${SCAN_CTA_URL}?wa=${waId}`, status: result && result.status },
-  });
+  };
+  if (sent) {
+    scanCtaUpdate.scanCtaSentAt = admin.firestore.FieldValue.serverTimestamp();
+  }
+  await convoRef.set(scanCtaUpdate, { merge: true });
+  if (sent) {
+    await storeWaMessage(waId, {
+      id: `cta_${Date.now()}`,
+      direction: "outbound",
+      type: "cta_url",
+      text: "Scan my connection",
+      source: "cloud_api",
+      raw: { url: `${SCAN_CTA_URL}?wa=${waId}`, status: result && result.status },
+    });
+  }
 }
 
 function appendQuery(url, key, value) {
@@ -322,18 +328,19 @@ function offerLabel(slug) {
 function buildScanCompletedEvent(scan, recommendation, description) {
   const sid = scan.sid || "";
   const waId = String(scan.waId || "").replace(/\D/g, "");
-  const primaryLink = appendQuery(
-    recommendation.shortLinks?.primary || `https://ascendantlabs.co/r/vpn`,
+  const primaryLink = appendQuery(appendQuery(
+    recommendation.shortLinks?.primary || "https://ascendantlabs.co/r/vpn",
     "sid",
     sid
-  );
-  const alternativeLink = appendQuery(
-    recommendation.shortLinks?.alternative || `https://ascendantlabs.co/r/proton-vpn`,
+  ), "wa", waId);
+  const alternativeLink = appendQuery(appendQuery(
+    recommendation.shortLinks?.alternative || "https://ascendantlabs.co/r/proton-vpn",
     "sid",
     sid
-  );
+  ), "wa", waId);
   const payloadObj = {
     sid,
+    lang: scan.lang || "",
     ip: scan.ip,
     city: scan.city,
     country: scan.country,
@@ -342,6 +349,8 @@ function buildScanCompletedEvent(scan, recommendation, description) {
     primary: recommendation.primary,
     alternative: recommendation.alternative,
     angle: recommendation.angle,
+    reply_now: true,
+    response_goal: "Diagnose this connection now. Use the exact ISP, location, IP, and device details, explain the practical exposure, then ask one short question to identify the user's main concern. Do not wait for another user message.",
     primary_link: primaryLink,
     alternative_link: alternativeLink,
     scan_cta_url: waId ? `https://ascendantlabs.co/scan_v2?wa=${waId}` : "https://ascendantlabs.co/scan_v2",
@@ -376,7 +385,17 @@ async function sendAgentEvent(to, event) {
     payload: formattedPayload,
   };
 
-  const result = await graphPostJson(
+  const eventId = `evt_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+  let parsedPayload = null;
+  try {
+    parsedPayload = JSON.parse(formattedPayload);
+  } catch (_) {
+    parsedPayload = formattedPayload;
+  }
+
+  const eventRef = db.collection("wa_conversations").doc(digits).collection("agent_events").doc(eventId);
+  const convoRef = db.collection("wa_conversations").doc(digits);
+  const deliveryPromise = graphPostJson(
     "api.facebook.com",
     `/${config.whatsappPhoneNumberId}/agent_event`,
     config.wabaToken,
@@ -387,16 +406,8 @@ async function sendAgentEvent(to, event) {
     { "X-API-Version": "2.0.0" }
   );
 
-  try {
-    const eventId = `evt_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
-    let parsedPayload = null;
-    try {
-      parsedPayload = JSON.parse(formattedPayload);
-    } catch (_) {
-      parsedPayload = formattedPayload;
-    }
-
-    await db.collection("wa_conversations").doc(digits).collection("agent_events").doc(eventId).set({
+  const persistencePromise = Promise.all([
+    eventRef.set({
       id: eventId,
       waId: digits,
       type: event && event.type ? event.type : "unknown",
@@ -404,19 +415,32 @@ async function sendAgentEvent(to, event) {
       payload: parsedPayload,
       rawPayload: formattedPayload,
       event: cloneJson(agentEventPayload),
-      graphStatus: result && result.status ? result.status : 0,
-      graphBody: cloneJson(typeof result.body === "string" ? (() => { try { return JSON.parse(result.body); } catch (_) { return result.body; } })() : result.body),
+      graphStatus: 0,
+      deliveryState: "sending",
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       ts: Date.now(),
-    });
-    await db.collection("wa_conversations").doc(digits).set({
+    }),
+    convoRef.set({
       waId: digits,
       lastAgentEventType: event && event.type ? event.type : "",
       lastAgentEventAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true }),
+  ]).catch((err) => {
+    console.error("agent_event Firestore write error:", err);
+  });
+
+  const [result] = await Promise.all([deliveryPromise, persistencePromise]);
+
+  try {
+    await eventRef.set({
+      graphStatus: result && result.status ? result.status : 0,
+      graphBody: cloneJson(typeof result.body === "string" ? (() => { try { return JSON.parse(result.body); } catch (_) { return result.body; } })() : result.body),
+      deliveryState: result && result.status >= 200 && result.status < 300 ? "accepted" : "failed",
+      deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
   } catch (err) {
-    console.error("agent_event Firestore write error:", err);
+    console.error("agent_event delivery update error:", err);
   }
 
   return result;
@@ -435,7 +459,7 @@ function extractScanSid(text) {
   return match ? match[1] : "";
 }
 
-const completeConnectionScan = onRequest(async (req, res) => {
+const completeConnectionScan = onRequest(WARM_HTTP, async (req, res) => {
   cors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -452,6 +476,7 @@ const completeConnectionScan = onRequest(async (req, res) => {
 
   const scan = {
     sid,
+    lang: String(body.lang || "").toLowerCase().slice(0, 5),
     ip: displayIp,
     rawIp: ip || "",
     city: info?.city || body.city || "",
@@ -469,40 +494,37 @@ const completeConnectionScan = onRequest(async (req, res) => {
   const recommendation = recommendFromScan(scan);
   scan.recommendation = recommendation;
 
-  try {
-    await db.collection("connection_scans").doc(sid).set(scan, { merge: true });
-    if (waId) {
-      await db.collection("wa_conversations").doc(waId).set({
+  const persistScan = Promise.all([
+    db.collection("connection_scans").doc(sid).set(scan, { merge: true }),
+    waId
+      ? db.collection("wa_conversations").doc(waId).set({
         waId,
         lastSid: sid,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-    }
-  } catch (err) {
+      }, { merge: true })
+      : Promise.resolve(),
+  ]).catch((err) => {
     console.error("Scan Firestore write error:", err);
-  }
+  });
 
-  if (waId) {
-    await sendAgentEvent(
+  const agentEvent = waId
+    ? sendAgentEvent(
       waId,
       buildScanCompletedEvent(
         scan,
         recommendation,
-        `Connection scan finished for ${scan.city || scan.country || "this user"}. ISP ${scan.isp || "unknown"}, country ${scan.country || "unknown"}. Recommend ${recommendation.primary} first.`
+        `Connection scan completed. Respond immediately without waiting for another message. Diagnose the connection using ISP ${scan.isp || "unknown"}, location ${scan.city || scan.country || "unknown"}, exposed IP ${scan.ip || "unknown"}, and device ${scan.device || "unknown"}. Ask one short question to identify the user's main concern before prescribing the best VPN.`
       )
-    );
-    const offerUrl = appendQuery(
-      recommendation.shortLinks?.primary || "https://ascendantlabs.co/r/vpn",
-      "sid",
-      sid
-    );
-    await sendOfferCtaCard(waId, recommendation, offerUrl, sid);
-  }
+    )
+    : Promise.resolve({ skipped: true });
+
+  const [agentResult] = await Promise.all([agentEvent, persistScan]);
 
   const returnUrls = buildWhatsAppReturnUrl();
   res.status(200).json({
     success: true,
     sid,
+    agentEventDelivered: !!(agentResult && agentResult.status >= 200 && agentResult.status < 300),
     telemetry: {
       ip: scan.ip,
       city: scan.city,
@@ -516,7 +538,7 @@ const completeConnectionScan = onRequest(async (req, res) => {
   });
 });
 
-const getConnectionScan = onRequest(async (req, res) => {
+const getConnectionScan = onRequest(WARM_HTTP, async (req, res) => {
   cors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -569,12 +591,6 @@ async function handleScanReturn(from, sid) {
       `User returned from connection scan ${sid}. ISP ${scan.isp || "unknown"} in ${scan.country || "unknown"}.`
     )
   );
-  const offerUrl = appendQuery(
-    recommendation.shortLinks?.primary || "https://ascendantlabs.co/r/vpn",
-    "sid",
-    sid
-  );
-  await sendOfferCtaCard(from, recommendation, offerUrl, sid);
 }
 
 function digitsOnly(value) {
@@ -645,6 +661,9 @@ async function persistInboundMessage(message, extras = {}) {
     adContext: extractAdContext(message),
   });
   await handleScanReturn(from, sid);
+  if (!sid) {
+    await maybeSendScanCta(from, text);
+  }
 }
 
 async function persistEchoMessage(echo, extras = {}) {
@@ -711,7 +730,7 @@ async function processWhatsAppChange(change) {
   }
 }
 
-const whatsappWebhook = onRequest(async (req, res) => {
+const whatsappWebhook = onRequest(WARM_HTTP, async (req, res) => {
   if (req.method === "GET") {
     const mode = getQueryValue(req, "hub.mode");
     const token = getQueryValue(req, "hub.verify_token");

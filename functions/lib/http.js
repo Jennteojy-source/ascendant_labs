@@ -32,6 +32,8 @@ function cors(res) {
   res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
 }
 
+const WARM_HTTP = { minInstances: 1, timeoutSeconds: 60, memory: "256MiB" };
+
 function graphPostJson(hostname, path, token, payload, extraHeaders = {}) {
   const postData = JSON.stringify(payload);
   const options = {
@@ -69,4 +71,5 @@ module.exports = {
   getQueryValue,
   cors,
   graphPostJson,
+  WARM_HTTP,
 };

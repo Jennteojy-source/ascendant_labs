@@ -172,26 +172,17 @@ html[dir="rtl"] .analyzing-content {
     max-width: 440px;
 }
 
+.scan-v2 .return-hero {
+    margin-bottom: 0;
+}
+
 .scan-v2 #return-link {
-    margin-top: 18px;
+    margin-top: 24px;
     display: flex;
     justify-content: center;
     align-items: center;
     text-decoration: none;
     font-weight: 700;
     letter-spacing: 0.01em;
-}
-
-.scan-v2 .return-hint {
-    margin-top: 12px;
-    text-align: center;
-    font-size: 13px;
-    line-height: 1.5;
-    opacity: 0.65;
-}
-
-.scan-v2 .return-hint.return-hint-visible {
-    opacity: 0.9;
-    font-weight: 500;
 }
 

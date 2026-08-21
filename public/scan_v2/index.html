@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/nordvpn/quiz/quiz.css?v=4.0">
     <link rel="stylesheet" href="/nordvpn/scan/scan.css?v=1.5">
-    <link rel="stylesheet" href="/scan_v2/scan_v2.css?v=1.2">
+    <link rel="stylesheet" href="/scan_v2/scan_v2.css?v=1.3">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▲</text></svg>">
 </head>
 <body class="scan-v2-body">
@@ -68,19 +68,16 @@
             </div>
         </section>
 
-        <section id="screen-done" class="quiz-card screen-hidden">
-            <div class="result-hero">
+        <section id="screen-done" class="quiz-card screen-hidden" aria-live="polite">
+            <div class="result-hero return-hero">
                 <div class="result-badge risk-critical">
                     <span class="badge-dot"></span>
                     <span id="badge-text">SCAN COMPLETE</span>
                 </div>
-                <h2 class="result-headline" id="done-title">Scan saved</h2>
-                <p id="done-summary" class="hero-subtitle">Your advisor already has this connection snapshot.</p>
             </div>
-            <a id="return-link" class="btn-primary start-btn" href="https://wa.me/6580340915">Return to chat</a>
-            <p id="return-hint" class="return-hint return-hint-visible">Tap to go back to WhatsApp. No need to send a message.</p>
+            <a id="return-link" class="btn-primary start-btn" href="https://wa.me/6580340915">Back to WhatsApp</a>
         </section>
     </main>
-    <script src="/scan_v2/scan_v2.js?v=2.0"></script>
+    <script src="/scan_v2/scan_v2.js?v=2.1"></script>
 </body>
 </html>

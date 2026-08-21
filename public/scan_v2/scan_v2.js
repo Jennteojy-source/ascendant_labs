@@ -19,11 +19,7 @@
             locationDetected: (loc) => `Located: ${loc}`,
             providerDetected: (isp) => `Your provider: ${isp}`,
             scanComplete: "SCAN COMPLETE",
-            scanSaved: "Scan saved",
-            summaryPrefix: "Exposed on this connection: ",
-            summaryFallback: "Scan saved. Your advisor already has it.",
-            returnBtn: "Return to chat",
-            returnHint: "Tap to go back to WhatsApp. No need to send a message.",
+            returnBtn: "Back to WhatsApp",
         },
         es: {
             code: "es",
@@ -42,11 +38,7 @@
             locationDetected: (loc) => `Ubicación: ${loc}`,
             providerDetected: (isp) => `Tu proveedor: ${isp}`,
             scanComplete: "ESCANEO COMPLETADO",
-            scanSaved: "Escaneo guardado",
-            summaryPrefix: "Expuesto en esta conexión: ",
-            summaryFallback: "Escaneo guardado. Tu asesor ya tiene el reporte.",
-            returnBtn: "Volver al chat",
-            returnHint: "Toca para regresar a WhatsApp. No necesitas enviar ningún mensaje.",
+            returnBtn: "Volver a WhatsApp",
         },
         pt: {
             code: "pt",
@@ -65,11 +57,7 @@
             locationDetected: (loc) => `Localização: ${loc}`,
             providerDetected: (isp) => `Seu provedor: ${isp}`,
             scanComplete: "ANÁLISE CONCLUÍDA",
-            scanSaved: "Análise salva",
-            summaryPrefix: "Exposto nesta conexão: ",
-            summaryFallback: "Análise concluída. Seu consultor já recebeu o relatório.",
-            returnBtn: "Voltar para o chat",
-            returnHint: "Toque para voltar ao WhatsApp. Não é necessário enviar mensagem.",
+            returnBtn: "Voltar ao WhatsApp",
         },
         ar: {
             code: "ar",
@@ -88,11 +76,7 @@
             locationDetected: (loc) => `الموقع: ${loc}`,
             providerDetected: (isp) => `مزود الخدمة: ${isp}`,
             scanComplete: "اكتمل الفحص",
-            scanSaved: "تم حفظ الفحص",
-            summaryPrefix: "المعلومات المكشوفة في هذا الاتصال: ",
-            summaryFallback: "تم حفظ الفحص. مستشارك لديه التقرير بالفعل.",
-            returnBtn: "العودة إلى المحادثة",
-            returnHint: "اضغط للعودة إلى واتساب. لا حاجة لإرسال أي رسالة.",
+            returnBtn: "العودة إلى واتساب",
         },
         id: {
             code: "id",
@@ -111,11 +95,7 @@
             locationDetected: (loc) => `Lokasi: ${loc}`,
             providerDetected: (isp) => `Penyedia internet: ${isp}`,
             scanComplete: "PEMINDAIAN SELESAI",
-            scanSaved: "Pemindaian disimpan",
-            summaryPrefix: "Terekspos pada koneksi ini: ",
-            summaryFallback: "Pemindaian disimpan. Penasihat Anda sudah menerimanya.",
-            returnBtn: "Kembali ke chat",
-            returnHint: "Ketuk untuk kembali ke WhatsApp. Tidak perlu mengirim pesan.",
+            returnBtn: "Kembali ke WhatsApp",
         },
     };
 
@@ -128,11 +108,8 @@
     const titleEl = document.getElementById("analyzing-title");
     const screenAnalyzing = document.getElementById("screen-analyzing");
     const screenDone = document.getElementById("screen-done");
-    const doneTitle = document.getElementById("done-title");
     const badgeText = document.getElementById("badge-text");
     const returnLink = document.getElementById("return-link");
-    const returnHint = document.getElementById("return-hint");
-    const doneSummary = document.getElementById("done-summary");
 
     const langPickerWrapper = document.getElementById("lang-picker-wrapper");
     const langBtn = document.getElementById("lang-btn");
@@ -144,7 +121,6 @@
     let currentLang = "en";
     let activePhases = [...I18N.en.phases];
     let latestTelemetry = null;
-    let latestReturnUrls = null;
 
     function detectInitialLanguage() {
         const queryLang = (params.get("lang") || params.get("l") || "").toLowerCase().slice(0, 2);
@@ -176,9 +152,7 @@
         if (langCurrent) langCurrent.textContent = dict.name;
         if (titleEl) titleEl.textContent = dict.scanningTitle;
         if (badgeText) badgeText.textContent = dict.scanComplete;
-        if (doneTitle) doneTitle.textContent = dict.scanSaved;
         if (returnLink) returnLink.textContent = dict.returnBtn;
-        if (returnHint) returnHint.textContent = dict.returnHint;
 
         if (langDropdown) {
             langDropdown.querySelectorAll(".lang-option").forEach((opt) => {
@@ -193,13 +167,6 @@
                 activePhases[2] = dict.locationDetected([latestTelemetry.city, latestTelemetry.country].filter(Boolean).join(", "));
             }
             if (latestTelemetry.isp) activePhases[3] = dict.providerDetected(latestTelemetry.isp);
-
-            const bits = [latestTelemetry.isp, latestTelemetry.city, latestTelemetry.country].filter(Boolean);
-            if (doneSummary) {
-                doneSummary.textContent = bits.length
-                    ? `${dict.summaryPrefix}${bits.join(" · ")}`
-                    : dict.summaryFallback;
-            }
         }
 
         if (persist) {
@@ -254,14 +221,12 @@
     }
 
     function setReturnLink(returnUrls) {
-        latestReturnUrls = returnUrls;
         const web = (returnUrls && returnUrls.waMe) || FALLBACK_WA;
+        const deepLink = returnUrls && returnUrls.deepLink;
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
         if (returnLink) {
-            returnLink.href = web;
+            returnLink.href = isMobile && deepLink ? deepLink : web;
             returnLink.textContent = I18N[currentLang].returnBtn;
-        }
-        if (returnHint) {
-            returnHint.textContent = I18N[currentLang].returnHint;
         }
     }
 
@@ -270,6 +235,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             keepalive: true,
+            cache: "no-store",
             body: JSON.stringify({
                 sid,
                 waId,
@@ -283,10 +249,10 @@
     }
 
     function startAnimation() {
-        const RAMP_MS = 4800;
+        const RAMP_MS = 800;
         const HOLD_PCT = 92;
-        const SETTLE_MS = 600;
-        const MAX_WAIT_MS = 8000;
+        const SETTLE_MS = 150;
+        const MAX_WAIT_MS = 3000;
         const started = Date.now();
         let releaseRequested = false;
         let releasedAt = 0;
@@ -371,14 +337,6 @@
         animation.release();
         await animation.done;
 
-        const dict = I18N[currentLang];
-        const tel = latestTelemetry || {};
-        const bits = [tel.isp, tel.city, tel.country].filter(Boolean);
-        if (doneSummary) {
-            doneSummary.textContent = bits.length
-                ? `${dict.summaryPrefix}${bits.join(" · ")}`
-                : dict.summaryFallback;
-        }
         setReturnLink(payload && payload.returnUrls);
         switchScreen(screenDone);
     }
