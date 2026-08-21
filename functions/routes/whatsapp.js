@@ -338,19 +338,27 @@ function buildScanCompletedEvent(scan, recommendation, description) {
     "sid",
     sid
   ), "wa", waId);
+  const approximateLocation = [scan.district, scan.city, scan.region, scan.country]
+    .map((part) => String(part || "").trim())
+    .filter((part, index, parts) => part && parts.indexOf(part) === index)
+    .join(", ");
   const payloadObj = {
     sid,
     lang: scan.lang || "",
     ip: scan.ip,
     city: scan.city,
+    district: scan.district || "",
+    region: scan.region || "",
     country: scan.country,
+    approximate_location: approximateLocation,
+    location_precision: "approximate",
     isp: scan.isp,
     device: scan.device,
     primary: recommendation.primary,
     alternative: recommendation.alternative,
     angle: recommendation.angle,
     reply_now: true,
-    response_goal: "Diagnose this connection now. Use the exact ISP, location, IP, and device details, explain the practical exposure, then ask one short question to identify the user's main concern. Do not wait for another user message.",
+    response_goal: "Diagnose this connection now. Name ISP, exposed IP, device, and the most specific place (district first). City/district are not exact — say around that area. Then in beginner language: (1) what is leaking, (2) what a VPN does in one sentence, (3) recommend the scan's primary VPN and send its product CTA in this same turn. Do not ask privacy-vs-streaming unless the customer already used those words. Do not wait for another user message.",
     primary_link: primaryLink,
     alternative_link: alternativeLink,
     scan_cta_url: waId ? `https://ascendantlabs.co/scan_v2?wa=${waId}` : "https://ascendantlabs.co/scan_v2",
@@ -513,7 +521,7 @@ const completeConnectionScan = onRequest(WARM_HTTP, async (req, res) => {
       buildScanCompletedEvent(
         scan,
         recommendation,
-        `Connection scan completed. Respond immediately without waiting for another message. Diagnose the connection using ISP ${scan.isp || "unknown"}, location ${scan.city || scan.country || "unknown"}, exposed IP ${scan.ip || "unknown"}, and device ${scan.device || "unknown"}. Ask one short question to identify the user's main concern before prescribing the best VPN.`
+        `Connection scan completed. Respond immediately. Diagnose using ISP ${scan.isp || "unknown"}, location around ${[scan.district, scan.city, scan.region, scan.country].filter(Boolean).join(", ") || "unknown"} (not exact — say around), exposed IP ${scan.ip || "unknown"}, device ${scan.device || "unknown"}. Explain the leak, explain what a VPN is in one beginner sentence, then recommend ${offerLabel(recommendation.primary)} and send its product CTA now. Do not ask privacy vs streaming unless they already said those words.`
       )
     )
     : Promise.resolve({ skipped: true });
@@ -648,6 +656,7 @@ async function persistInboundMessage(message, extras = {}) {
   const text = extractInboundText(message);
   const sid = extractScanSid(text);
   const ts = Number(message.timestamp) ? Number(message.timestamp) * 1000 : Date.now();
+  const adContext = extractAdContext(message);
   await storeWaMessage(from, {
     id: message.id,
     direction: "inbound",
@@ -658,7 +667,7 @@ async function persistInboundMessage(message, extras = {}) {
     source: extras.source || "messages",
     ts,
     raw: message,
-    adContext: extractAdContext(message),
+    adContext,
   });
   await handleScanReturn(from, sid);
   if (!sid) {

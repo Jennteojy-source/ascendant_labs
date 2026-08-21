@@ -1,16 +1,16 @@
-# 🎯 Meta Ads Master Guide & Prompt Blueprint (ShieldNet Privacy)
-## Campaign Goal: Direct Traffic to One-Tap Connection Scan (NordVPN Affiliate Funnel)
+# 🌐 Meta Ads Master Guide: Website Scan Funnel
+## Campaign Goal: Direct Traffic to One-Tap Web Connection Scan (NordVPN Affiliate Funnel)
 
-- **Target Landing Page**: `https://ascendantlabs.co/nordvpn/scan`
-- **Facebook Page**: ShieldNet Privacy
+- **Target Landing Page**: `https://ascendantlabs.co/nordvpn/scan` (or `https://ascendantlabs.co/scan_v2`)
+- **Facebook Page**: ShieldNet Privacy / Ascendant Labs
 - **Instagram Profile**: @shieldnet.privacy
-- **Affiliate Offer CTA**: `https://go.nordvpn.net/aff_c?offer_id=15&aff_id=152405&url_id=902`
+- **Affiliate Offer CTA**: Tracked affiliate links / `https://ascendantlabs.co/r/vpn`
 
 ---
 
 ## 🏆 Core Creative Style: Warm Editorial Risk & Connection Scan
 
-The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** is the **Warm Editorial Risk Gauge & Status Card** aesthetic:
+The best-performing visual format for website direct traffic is the **Warm Editorial Risk Gauge & Status Card** aesthetic:
 - **Color Palette**: Warm terracotta, amber, peach, and soft cream Scandinavian tones.
 - **Typography**: Bold, high-contrast serif headlines at the top.
 - **Visual Centerpiece**: Semicircular risk gauge meters ("High Risk" / "82% Risk" / "85% Risk") + clean plain-English status checklists displaying live connection exposure.
@@ -20,7 +20,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #1: "What Can Your Internet Provider See?" (Scan Variant 1)
 
-- **Asset Reference**: `ads/creatives/scan/variant-1.jpg`
+- **Asset Reference**: [variant-1.jpg](file:///Users/kirkzhang/Documents/Antigravity/ascendant_labs/ads/creatives/scan/variant-1.jpg)
 - **Visual Focus**: Editorial scene with warm amber backdrop, bold serif headline, and a floating card with a semicircular **HIGH RISK** gauge meter and live connection status indicators.
 - **On-Image Text**:
   - Top Headline: `WHAT CAN YOUR INTERNET PROVIDER SEE?`
@@ -50,7 +50,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #2: "Is Your Wi-Fi Really Private?" (Scan Variant 2)
 
-- **Asset Reference**: `ads/creatives/scan/variant-2.jpg`
+- **Asset Reference**: [variant-2.jpg](file:///Users/kirkzhang/Documents/Antigravity/ascendant_labs/ads/creatives/scan/variant-2.jpg)
 - **Visual Focus**: Warm amber-toned editorial setup featuring a mobile device running a connection test with an **82% Risk Meter** and network logging indicators.
 - **On-Image Text**:
   - Top Headline: `IS YOUR WI-FI REALLY PRIVATE?`
@@ -81,7 +81,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #3: "Is Incognito Really Private?" (Scan Variant 3)
 
-- **Asset Reference**: `ads/creatives/scan/variant-3-incognito.jpg`
+- **Asset Reference**: [variant-3-incognito.jpg](file:///Users/kirkzhang/Documents/Antigravity/ascendant_labs/ads/creatives/scan/variant-3-incognito.jpg)
 - **Visual Focus**: Ultra-clean floating card on warm cream backdrop, semicircular orange-red **HIGH RISK** gauge meter, with red indicator dots highlighting the Incognito myth.
 - **On-Image Text**:
   - Top Headline: `IS INCOGNITO REALLY PRIVATE?`
@@ -112,7 +112,7 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 
 ### 🎨 Creative #4: "What Does Your Wi-Fi Reveal?" (Scan Variant 4)
 
-- **Asset Reference**: `ads/creatives/scan/variant-4-wifi-reveal.jpg`
+- **Asset Reference**: [variant-4-wifi-reveal.jpg](file:///Users/kirkzhang/Documents/Antigravity/ascendant_labs/ads/creatives/scan/variant-4-wifi-reveal.jpg)
 - **Visual Focus**: Crisp minimalist floating diagnostic card with **85% RISK** speedometer dial and real-time exposure badges.
 - **On-Image Text**:
   - Top Headline: `WHAT DOES YOUR WI-FI REVEAL?`
@@ -132,30 +132,6 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 - **CTA Button**: Learn More / Test Now
 - **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
 
-**Option 4B (Network Security Check)**
-- **Primary Text**: Is your internet connection leaking your real location and IP address? Find out in 5 seconds with our free diagnostic tool.
-- **Headline**: Check Your Live Connection Risk 🛡️
-- **Description**: Free diagnostic by ShieldNet Privacy
-- **CTA Button**: Learn More
-- **Website URL**: `https://ascendantlabs.co/nordvpn/scan`
-
----
-
-## 💡 Meta Ads Direct-Response Best Practices for Scan Funnel
-
-### 1. Logo Placement Rule: Keep Graphics Clean
-- **Do NOT embed your brand logo inside the ad graphic**. Meta automatically renders the page name (`ShieldNet Privacy • Sponsored`) at the top of the post.
-- Clean, unbranded editorial UI graphics perform up to **2.4x better on CTR** because users perceive them as genuine diagnostic tools rather than corporate banner ads.
-
-### 2. Copy Hierarchy
-- **Hook (Line 1 of Primary Text)**: Provoke immediate curiosity with a question or surprising reality check (`Did you know your ISP logs every connection?` / `Incognito doesn't hide your IP`).
-- **Body**: 1–2 short sentences explaining what the scan does in plain English (No technical jargon like "telemetry" or "packets").
-- **Call-to-Action (End of Text)**: Clear instruction with an emoji pointing down (`Scan your connection free 👇`).
-
-### 3. Headline & Description Synergy
-- **Headline**: 4–6 words with an emoji (e.g. `See What Your Internet Provider Can See 🛡️` or `Incognito Doesn't Hide Your IP ⚠️`).
-- **Description**: Highlight "Free", "1-Tap", and "Instant results" to minimize friction.
-
 ---
 
 ## 📐 Optimal Creative Dimensions & Aspect Ratios
@@ -165,14 +141,3 @@ The best-performing visual format for **https://ascendantlabs.co/nordvpn/scan** 
 | **Mobile Feed (IG & FB)** | **4:5 Vertical** | **1080 × 1350 px** | ⭐ **Top Performer** (Takes 20% more mobile screen real estate). |
 | **Universal / Desktop Feed** | **1:1 Square** | **1080 × 1080 px** | Default feed square, perfect for multi-placement delivery. |
 | **Stories & Reels** | **9:16 Vertical** | **1080 × 1920 px** | Fullscreen immersive portrait format for Instagram & FB Stories. |
-
----
-
-## 🚀 Quick Reference Launch Matrix (`https://ascendantlabs.co/nordvpn/scan`)
-
-| Ad Creative | Image File | Headline | Primary CTA | Destination URL |
-| :--- | :--- | :--- | :--- | :--- |
-| **Scan Variant 1** | `ads/creatives/scan/variant-1.jpg` | *See What Your Internet Provider Can See 🛡️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
-| **Scan Variant 2** | `ads/creatives/scan/variant-2.jpg` | *Is Your Connection Really Private? ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
-| **Scan Variant 3 (Incognito)** | `ads/creatives/scan/variant-3-incognito.jpg` | *Incognito Doesn't Hide Your IP ⚠️* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |
-| **Scan Variant 4 (Wi-Fi)** | `ads/creatives/scan/variant-4-wifi-reveal.jpg` | *What Does Your Wi-Fi Reveal? 🌐* | `Learn More` | `https://ascendantlabs.co/nordvpn/scan` |

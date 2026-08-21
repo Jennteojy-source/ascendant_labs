@@ -147,7 +147,9 @@ function buildTuneUrl(offer, clickId, extras = {}) {
   }
   if (extras.source) params.set("aff_sub2", String(extras.source).slice(0, 64));
   if (extras.slug) params.set("aff_sub3", String(extras.slug).slice(0, 64));
-  if (extras.sid) params.set("aff_sub4", String(extras.sid).slice(0, 80));
+  // aff_sub already carries the click id, and the scan id is used as the click
+  // id when the tap came from a scan, so only send aff_sub4 when it adds value.
+  if (extras.sid && extras.sid !== clickId) params.set("aff_sub4", String(extras.sid).slice(0, 80));
   return `${offer.baseUrl}?${params.toString()}`;
 }
 
@@ -184,12 +186,17 @@ function buildPartnerUrl(slug, clickId, extras = {}) {
   return buildTuneUrl(partner, clickId, { ...extras, slug: extras.slug || partner.shortPath });
 }
 
-function shortLinkFor(slug, clickId) {
+/**
+ * Short links carry at most one identifier per lookup: `sid` for the scan and
+ * `wa` for the conversation. The redirect falls back to `sid` as the click id,
+ * so an extra `c` parameter would only repeat the same value.
+ */
+function shortLinkFor(slug, sid) {
   const found = findPartner(slug);
   if (!found) return null;
   const path = found[1].shortPath;
   const base = `https://ascendantlabs.co/r/${path}`;
-  return clickId ? `${base}?c=${encodeURIComponent(clickId)}` : base;
+  return sid ? `${base}?sid=${encodeURIComponent(sid)}` : base;
 }
 
 function recommendFromScan(telemetry = {}) {
@@ -225,11 +232,11 @@ function recommendFromScan(telemetry = {}) {
     password: country.includes("eu") || privacyFirst.some((name) => country.includes(name)) ? "proton_pass" : "nordpass",
     angle,
     shortLinks: {
-      primary: shortLinkFor(primary, telemetry.sid || telemetry.clickId),
-      alternative: shortLinkFor(alternative, telemetry.sid || telemetry.clickId),
+      primary: shortLinkFor(primary, telemetry.sid),
+      alternative: shortLinkFor(alternative, telemetry.sid),
       password: shortLinkFor(
         privacyFirst.some((name) => country.includes(name)) ? "proton_pass" : "nordpass",
-        telemetry.sid || telemetry.clickId
+        telemetry.sid
       ),
     },
   };

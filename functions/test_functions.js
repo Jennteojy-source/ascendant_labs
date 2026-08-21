@@ -311,8 +311,8 @@ async function runTests() {
       alternative: "proton_vpn",
       angle: "StarHub can observe your traffic.",
       shortLinks: {
-        primary: "https://ascendantlabs.co/r/vpn?c=scn_test_123",
-        alternative: "https://ascendantlabs.co/r/proton-vpn?c=scn_test_123",
+        primary: "https://ascendantlabs.co/r/vpn?sid=scn_test_123",
+        alternative: "https://ascendantlabs.co/r/proton-vpn?sid=scn_test_123",
       },
     };
 
@@ -335,6 +335,13 @@ async function runTests() {
     const offerUrl = new URL(parsed.offer_cta_url);
     if (offerUrl.searchParams.get("wa") !== "6598533674") {
       throw new Error(`Expected product URL to include wa attribution key, got '${parsed.offer_cta_url}'`);
+    }
+    const offerValues = [...offerUrl.searchParams.values()];
+    if (new Set(offerValues).size !== offerValues.length) {
+      throw new Error(`Product URL repeats an identifier across keys: '${parsed.offer_cta_url}'`);
+    }
+    if (parsed.location_precision !== "approximate" || !parsed.approximate_location.includes("Singapore")) {
+      throw new Error(`Expected an approximate location in the payload, got '${parsed.approximate_location}'`);
     }
 
     console.log("✅ Test 7 Passed: buildScanCompletedEvent produces schema-compliant stringified payload.");
