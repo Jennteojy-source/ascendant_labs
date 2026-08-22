@@ -1,0 +1,1709 @@
+{
+  "summary": {
+    "totalSpend": 27.48,
+    "totalImpressions": 1361,
+    "totalClicks": 30,
+    "totalLinkClicks": 21,
+    "totalMetaConvs": 3,
+    "totalFirestoreConvs": 3,
+    "totalScans": 1,
+    "totalCtaSent": 0,
+    "totalPurchases": 0,
+    "overallCtr": "2.20",
+    "overallCpc": "0.92",
+    "overallCostPerChat": "9.16",
+    "overallCostPerScan": "27.48",
+    "overallCostPerCta": "0.00"
+  },
+  "objectionTaxonomy": {
+    "GHOSTED_MID_DISCOVERY": 1,
+    "IN_PROGRESS": 1,
+    "ABANDONED_AT_GREETING": 1
+  },
+  "variants": [
+    {
+      "adId": "120250184135140517",
+      "adName": "ctwa MBA ad v1",
+      "status": "ACTIVE",
+      "spend": 27.48,
+      "impressions": 1361,
+      "clicks": 30,
+      "linkClicks": 21,
+      "ctr": 2.204262,
+      "cpc": 0.916,
+      "metaConvsStarted": 3,
+      "costPerConvStarted": 9.16,
+      "configuredStarter": "Tap Send below and I’ll drop a 1-tap check so you can see what your connection exposes.",
+      "configuredIcebreakers": [
+        "Where are you located?",
+        "Can you check the price of a product?",
+        "Can I make a purchase?"
+      ],
+      "startersBreakdown": {
+        "Where are you located?": 1,
+        "Naqk": 1,
+        "[audio]": 1
+      },
+      "firestoreChats": 3,
+      "scansTriggered": 1,
+      "ctaCardsSent": 0,
+      "purchases": 0,
+      "avgTurns": 3,
+      "funnelRates": {
+        "clickToChatRate": 14.3,
+        "chatToScanRate": 33.3,
+        "scanToCtaRate": 0,
+        "chatToCtaRate": 0
+      },
+      "objections": {
+        "GHOSTED_MID_DISCOVERY": 1,
+        "IN_PROGRESS": 1,
+        "ABANDONED_AT_GREETING": 1
+      },
+      "creative": {
+        "creativeId": "2135374687331636",
+        "creativeName": "Is Your Browsing Protected? 🛡️ 2026-08-21-f57372209edfb05beb1a77f188811247",
+        "headline": "Is Your Browsing Protected? 🛡️",
+        "body": "",
+        "callToAction": "WHATSAPP_MESSAGE",
+        "image": "524e35861c28634bce24bbb2935d33eb",
+        "conversationStarter": "Tap Send below and I’ll drop a 1-tap check so you can see what your connection exposes.",
+        "icebreakers": [
+          "Where are you located?",
+          "Can you check the price of a product?",
+          "Can I make a purchase?"
+        ]
+      },
+      "journeys": [
+        {
+          "waId": "***8614",
+          "dropOffStage": "GHOSTED_DURING_SPIN_DISCOVERY",
+          "starter": "Where are you located?",
+          "starterType": "CUSTOM_USER_MESSAGE",
+          "totalSteps": 4,
+          "scanCompleted": true,
+          "scanData": {
+            "isp": "FX VoIP Network",
+            "city": "Auckland",
+            "country": "New Zealand",
+            "ip": "***7.63",
+            "score": null
+          },
+          "reachedOfferCard": false,
+          "steps": [
+            {
+              "stepIndex": 1,
+              "type": "CONVERSATION_STARTER",
+              "sender": "user",
+              "text": "Where are you located?",
+              "starterType": "CUSTOM_USER_MESSAGE",
+              "adReferral": null,
+              "time": "2026-08-21T22:33:51.000Z"
+            },
+            {
+              "stepIndex": 2,
+              "type": "SCAN_CTA_DISPATCHED",
+              "sender": "agent",
+              "title": "Scan my connection",
+              "url": "https://ascendantlabs.co/scan_v2",
+              "time": "2026-08-21T22:33:54.634Z"
+            },
+            {
+              "stepIndex": 3,
+              "type": "SCAN_CTA_DISPATCHED",
+              "sender": "agent",
+              "title": "Scan my connection",
+              "url": "https://ascendantlabs.co/scan_v2",
+              "time": "2026-08-21T22:33:54.670Z"
+            },
+            {
+              "stepIndex": 4,
+              "type": "SCAN_DIAGNOSIS_COMPLETED",
+              "isp": "FX VoIP Network",
+              "city": "Auckland",
+              "country": "New Zealand",
+              "ip": "***7.63",
+              "score": null
+            }
+          ]
+        },
+        {
+          "waId": "***7907",
+          "dropOffStage": "IN_PROGRESS",
+          "starter": "Naqk",
+          "starterType": "CUSTOM_USER_MESSAGE",
+          "totalSteps": 4,
+          "scanCompleted": false,
+          "scanData": null,
+          "reachedOfferCard": false,
+          "steps": [
+            {
+              "stepIndex": 1,
+              "type": "CONVERSATION_STARTER",
+              "sender": "user",
+              "text": "Naqk",
+              "starterType": "CUSTOM_USER_MESSAGE",
+              "adReferral": null,
+              "time": "2026-08-21T13:58:04.000Z"
+            },
+            {
+              "stepIndex": 2,
+              "type": "SCAN_CTA_DISPATCHED",
+              "sender": "agent",
+              "title": "Scan my connection",
+              "url": "https://ascendantlabs.co/scan_v2",
+              "time": "2026-08-21T13:58:08.473Z"
+            },
+            {
+              "stepIndex": 3,
+              "type": "USER_MESSAGE",
+              "sender": "user",
+              "text": ".zsk",
+              "time": "2026-08-21T13:58:17.000Z"
+            },
+            {
+              "stepIndex": 4,
+              "type": "USER_MESSAGE",
+              "sender": "user",
+              "text": "1",
+              "time": "2026-08-21T15:17:12.000Z"
+            }
+          ]
+        },
+        {
+          "waId": "***0698",
+          "dropOffStage": "ABANDONED_AT_SCAN_GATE",
+          "starter": "[audio]",
+          "starterType": "CUSTOM_USER_MESSAGE",
+          "totalSteps": 2,
+          "scanCompleted": false,
+          "scanData": null,
+          "reachedOfferCard": false,
+          "steps": [
+            {
+              "stepIndex": 1,
+              "type": "CONVERSATION_STARTER",
+              "sender": "user",
+              "text": "[audio]",
+              "starterType": "CUSTOM_USER_MESSAGE",
+              "adReferral": null,
+              "time": "2026-08-21T10:14:47.000Z"
+            },
+            {
+              "stepIndex": 2,
+              "type": "SCAN_CTA_DISPATCHED",
+              "sender": "agent",
+              "title": "Scan my connection",
+              "url": "https://ascendantlabs.co/scan_v2",
+              "time": "2026-08-21T10:14:53.090Z"
+            }
+          ]
+        }
+      ],
+      "sampleConversations": [
+        {
+          "waId": "64224638614",
+          "adId": "120250184135140517",
+          "ctwaClid": "AfisR4qiMgIW_xhVzT5IGnRmQSCTPVkeqZbh2hPjo2y0uMnL8A6t-Y9bveV5UtjGJbRJyl23ie2f1CkZadG68qDgnYEwp17aTphHm9h41rN754leJ5R4nZNYrxN1e_CV6SmSHKqlGvc",
+          "adHeadline": "Is Your Browsing Protected? 🛡️",
+          "adBody": "Did you know that every website you open, search you make, and video you stream is logged by your internet provider and visible to network operators? 🔍\n\nIs your browsing really protected? Chat with our WhatsApp AI advisor for a 5-sec audit to discover what's currently exposed on your network.",
+          "adWelcomeMessage": "Tap Send below and I’ll drop a 1-tap check so you can see what your connection exposes.",
+          "isFromAd": true,
+          "createdAt": "2026-08-21T22:33:52.872Z",
+          "updatedAt": "2026-08-21T22:34:27.067Z",
+          "messageCount": 3,
+          "initialUserMsg": "Where are you located?",
+          "conversationStarter": "Where are you located?",
+          "starterType": "CUSTOM_USER_MESSAGE",
+          "journey": {
+            "conversationStarter": "Where are you located?",
+            "starterType": "CUSTOM_USER_MESSAGE",
+            "totalSteps": 4,
+            "reachedScanCard": true,
+            "scanCompleted": true,
+            "reachedOfferCard": false,
+            "dropOffStage": "GHOSTED_DURING_SPIN_DISCOVERY",
+            "steps": [
+              {
+                "stepIndex": 1,
+                "type": "CONVERSATION_STARTER",
+                "sender": "user",
+                "text": "Where are you located?",
+                "starterType": "CUSTOM_USER_MESSAGE",
+                "adReferral": null,
+                "time": "2026-08-21T22:33:51.000Z"
+              },
+              {
+                "stepIndex": 2,
+                "type": "SCAN_CTA_DISPATCHED",
+                "sender": "agent",
+                "title": "Scan my connection",
+                "url": "https://ascendantlabs.co/scan_v2",
+                "time": "2026-08-21T22:33:54.634Z"
+              },
+              {
+                "stepIndex": 3,
+                "type": "SCAN_CTA_DISPATCHED",
+                "sender": "agent",
+                "title": "Scan my connection",
+                "url": "https://ascendantlabs.co/scan_v2",
+                "time": "2026-08-21T22:33:54.670Z"
+              },
+              {
+                "stepIndex": 4,
+                "type": "SCAN_DIAGNOSIS_COMPLETED",
+                "isp": "FX VoIP Network",
+                "city": "Auckland",
+                "country": "New Zealand",
+                "ip": "***7.63",
+                "score": null
+              }
+            ]
+          },
+          "scanTriggered": true,
+          "scanData": {
+            "isp": "FX VoIP Network",
+            "city": "Auckland",
+            "country": "New Zealand",
+            "ip": "***7.63",
+            "score": null
+          },
+          "offerCtaSent": false,
+          "offerProduct": "",
+          "lastSender": "agent",
+          "lastMessageText": "Scan my connection",
+          "messages": [
+            {
+              "id": "wamid.HBgLNjQyMjQ2Mzg2MTQVAgASGBQzQTNERkQxNjNGRDlGM0Q1RTk5NAA=",
+              "sender": "user",
+              "direction": "inbound",
+              "type": "text",
+              "text": "Where are you located?",
+              "ts": 1787351631000
+            },
+            {
+              "id": "cta_1787351634634",
+              "sender": "agent",
+              "direction": "outbound",
+              "type": "cta_url",
+              "text": "Scan my connection",
+              "ts": 1787351634634
+            },
+            {
+              "id": "cta_1787351634670",
+              "sender": "agent",
+              "direction": "outbound",
+              "type": "cta_url",
+              "text": "Scan my connection",
+              "ts": 1787351634670
+            }
+          ],
+          "classification": {
+            "category": "GHOSTED_MID_DISCOVERY",
+            "reason": "User stopped responding during SPIN discovery dialogue"
+          }
+        },
+        {
+          "waId": "12633557907",
+          "adId": "120250184135140517",
+          "ctwaClid": "AfjnImyRJOFm2-HvYl9Pu4VzYvIYOg8weiQthx35z1LOcche-pChlZwkoCPvL4x6yxPMhiY-eI-226_9dsNZLHI_whTh_80FADi73YtahJmaBpyiA8W4APSJ-x-mM6Le7ZAL88xbwg",
+          "adHeadline": "Is Your Browsing Protected? 🛡️",
+          "adBody": "Did you know that every website you open, search you make, and video you stream is logged by your internet provider and visible to network operators? 🔍\n\nIs your browsing really protected? Chat with our WhatsApp AI advisor for a 5-sec audit to discover what's currently exposed on your network.",
+          "adWelcomeMessage": "Tap Send below and I’ll drop a 1-tap check so you can see what your connection exposes.",
+          "isFromAd": true,
+          "createdAt": "2026-08-21T13:58:06.113Z",
+          "updatedAt": "2026-08-21T15:17:14.042Z",
+          "messageCount": 4,
+          "initialUserMsg": "Naqk",
+          "conversationStarter": "Naqk",
+          "starterType": "CUSTOM_USER_MESSAGE",
+          "journey": {
+            "conversationStarter": "Naqk",
+            "starterType": "CUSTOM_USER_MESSAGE",
+            "totalSteps": 4,
+            "reachedScanCard": true,
+            "scanCompleted": false,
+            "reachedOfferCard": false,
+            "dropOffStage": "IN_PROGRESS",
+            "steps": [
+              {
+                "stepIndex": 1,
+                "type": "CONVERSATION_STARTER",
+                "sender": "user",
+                "text": "Naqk",
+                "starterType": "CUSTOM_USER_MESSAGE",
+                "adReferral": null,
+                "time": "2026-08-21T13:58:04.000Z"
+              },
+              {
+                "stepIndex": 2,
+                "type": "SCAN_CTA_DISPATCHED",
+                "sender": "agent",
+                "title": "Scan my connection",
+                "url": "https://ascendantlabs.co/scan_v2",
+                "time": "2026-08-21T13:58:08.473Z"
+              },
+              {
+                "stepIndex": 3,
+                "type": "USER_MESSAGE",
+                "sender": "user",
+                "text": ".zsk",
+                "time": "2026-08-21T13:58:17.000Z"
+              },
+              {
+                "stepIndex": 4,
+                "type": "USER_MESSAGE",
+                "sender": "user",
+                "text": "1",
+                "time": "2026-08-21T15:17:12.000Z"
+              }
+            ]
+          },
+          "scanTriggered": false,
+          "scanData": null,
+          "offerCtaSent": false,
+          "offerProduct": "",
+          "lastSender": "user",
+          "lastMessageText": "1",
+          "messages": [
+            {
+              "id": "wamid.HBgLMTI2MzM1NTc5MDcVAgASGCBBQzhCQjM0OTU1RjdGMzVGOEQ2RENGNDUzMkVGNzYxMQA=",
+              "sender": "user",
+              "direction": "inbound",
+              "type": "text",
+              "text": "Naqk",
+              "ts": 1787320684000
+            },
+            {
+              "id": "cta_1787320688473",
+              "sender": "agent",
+              "direction": "outbound",
+              "type": "cta_url",
+              "text": "Scan my connection",
+              "ts": 1787320688473
+            },
+            {
+              "id": "wamid.HBgLMTI2MzM1NTc5MDcVAgASGCBBQzdDMUZFMUY5NTU1MDExQzczQ0Y5QjM2QjEzRjE0NQA=",
+              "sender": "user",
+              "direction": "inbound",
+              "type": "text",
+              "text": ".zsk",
+              "ts": 1787320697000
+            },
+            {
+              "id": "wamid.HBgLMTI2MzM1NTc5MDcVAgASGCBBQzdFRDA4NzU0QTNBMkQ5NEVCOUNBRjE1MTBCMDIwQgA=",
+              "sender": "user",
+              "direction": "inbound",
+              "type": "text",
+              "text": "1",
+              "ts": 1787325432000
+            }
+          ],
+          "classification": {
+            "category": "IN_PROGRESS",
+            "reason": "Active or unclassified conversation flow"
+          }
+        },
+        {
+          "waId": "966598690698",
+          "adId": "120250184135140517",
+          "ctwaClid": "AfjUCOrueXH9TqzzF9pxJ39Ki6u8Xb3YyeNQAiD7o7qZWcwjsbGysX9PXCvsOR5f7OJHYdASsznmZohjlDT3tiAgezm7gOIDECQBOZIgdrRnra0XtYlvwc2i2KZzVk-YRq36596biQ",
+          "adHeadline": "Is Your Browsing Protected? 🛡️",
+          "adBody": "Did you know that every website you open, search you make, and video you stream is logged by your internet provider and visible to network operators? 🔍\n\nIs your browsing really protected? Chat with our WhatsApp AI advisor for a 5-sec audit to discover what's currently exposed on your network.",
+          "adWelcomeMessage": "Tap Send below and I’ll drop a 1-tap check so you can see what your connection exposes.",
+          "isFromAd": true,
+          "createdAt": "2026-08-21T10:14:50.682Z",
+          "updatedAt": "2026-08-21T10:14:53.279Z",
+          "messageCount": 2,
+          "initialUserMsg": "[audio]",
+          "conversationStarter": "[audio]",
+          "starterType": "CUSTOM_USER_MESSAGE",
+          "journey": {
+            "conversationStarter": "[audio]",
+            "starterType": "CUSTOM_USER_MESSAGE",
+            "totalSteps": 2,
+            "reachedScanCard": true,
+            "scanCompleted": false,
+            "reachedOfferCard": false,
+            "dropOffStage": "ABANDONED_AT_SCAN_GATE",
+            "steps": [
+              {
+                "stepIndex": 1,
+                "type": "CONVERSATION_STARTER",
+                "sender": "user",
+                "text": "[audio]",
+                "starterType": "CUSTOM_USER_MESSAGE",
+                "adReferral": null,
+                "time": "2026-08-21T10:14:47.000Z"
+              },
+              {
+                "stepIndex": 2,
+                "type": "SCAN_CTA_DISPATCHED",
+                "sender": "agent",
+                "title": "Scan my connection",
+                "url": "https://ascendantlabs.co/scan_v2",
+                "time": "2026-08-21T10:14:53.090Z"
+              }
+            ]
+          },
+          "scanTriggered": false,
+          "scanData": null,
+          "offerCtaSent": false,
+          "offerProduct": "",
+          "lastSender": "agent",
+          "lastMessageText": "Scan my connection",
+          "messages": [
+            {
+              "id": "wamid.HBgMOTY2NTk4NjkwNjk4FQIAEhggQUNBNDlCMTdGODk5NUJCMTI4QTEzQUZCREQ4Q0U3NDEA",
+              "sender": "user",
+              "direction": "inbound",
+              "type": "audio",
+              "text": "[audio]",
+              "ts": 1787307287000
+            },
+            {
+              "id": "cta_1787307293089",
+              "sender": "agent",
+              "direction": "outbound",
+              "type": "cta_url",
+              "text": "Scan my connection",
+              "ts": 1787307293090
+            }
+          ],
+          "classification": {
+            "category": "ABANDONED_AT_GREETING",
+            "reason": "User sent opener but dropped after first agent response"
+          }
+        }
+      ]
+    }
+  ],
+  "unmatchedCount": 3,
+  "unmatchedSample": [
+    {
+      "waId": "12012141963",
+      "adId": "",
+      "ctwaClid": "",
+      "adHeadline": "",
+      "adBody": "",
+      "adWelcomeMessage": "",
+      "isFromAd": false,
+      "createdAt": "2026-08-21T11:25:40.894Z",
+      "updatedAt": "2026-08-21T11:25:40.894Z",
+      "messageCount": 2,
+      "initialUserMsg": "[unsupported]",
+      "conversationStarter": "[unsupported]",
+      "starterType": "CUSTOM_USER_MESSAGE",
+      "journey": {
+        "conversationStarter": "[unsupported]",
+        "starterType": "CUSTOM_USER_MESSAGE",
+        "totalSteps": 2,
+        "reachedScanCard": true,
+        "scanCompleted": false,
+        "reachedOfferCard": false,
+        "dropOffStage": "ABANDONED_AT_SCAN_GATE",
+        "steps": [
+          {
+            "stepIndex": 1,
+            "type": "CONVERSATION_STARTER",
+            "sender": "user",
+            "text": "[unsupported]",
+            "starterType": "CUSTOM_USER_MESSAGE",
+            "adReferral": null,
+            "time": "2026-08-21T11:25:35.000Z"
+          },
+          {
+            "stepIndex": 2,
+            "type": "SCAN_CTA_DISPATCHED",
+            "sender": "agent",
+            "title": "Scan my connection",
+            "url": "https://ascendantlabs.co/scan_v2",
+            "time": "2026-08-21T11:25:40.740Z"
+          }
+        ]
+      },
+      "scanTriggered": false,
+      "scanData": null,
+      "offerCtaSent": false,
+      "offerProduct": "",
+      "lastSender": "agent",
+      "lastMessageText": "Scan my connection",
+      "messages": [
+        {
+          "id": "wamid.HBgLMTIwMTIxNDE5NjMVAgASGBQzQTQ5NzUwNzJFRTEzQkZDODk0NwA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "unsupported",
+          "text": "[unsupported]",
+          "ts": 1787311535000
+        },
+        {
+          "id": "cta_1787311540740",
+          "sender": "agent",
+          "direction": "outbound",
+          "type": "cta_url",
+          "text": "Scan my connection",
+          "ts": 1787311540740
+        }
+      ],
+      "classification": {
+        "category": "ABANDONED_AT_GREETING",
+        "reason": "User sent opener but dropped after first agent response"
+      }
+    },
+    {
+      "waId": "6598533674",
+      "adId": "",
+      "ctwaClid": "",
+      "adHeadline": "",
+      "adBody": "",
+      "adWelcomeMessage": "",
+      "isFromAd": false,
+      "createdAt": "2026-08-21T10:22:44.694Z",
+      "updatedAt": "2026-08-21T10:22:44.694Z",
+      "messageCount": 44,
+      "initialUserMsg": "hey",
+      "conversationStarter": "hey",
+      "starterType": "CUSTOM_USER_MESSAGE",
+      "journey": {
+        "conversationStarter": "hey",
+        "starterType": "CUSTOM_USER_MESSAGE",
+        "totalSteps": 45,
+        "reachedScanCard": false,
+        "scanCompleted": true,
+        "reachedOfferCard": false,
+        "dropOffStage": "IN_PROGRESS",
+        "steps": [
+          {
+            "stepIndex": 1,
+            "type": "CONVERSATION_STARTER",
+            "sender": "user",
+            "text": "hey",
+            "starterType": "CUSTOM_USER_MESSAGE",
+            "adReferral": null,
+            "time": "2026-08-20T02:40:30.000Z"
+          },
+          {
+            "stepIndex": 2,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes",
+            "time": "2026-08-20T02:40:54.000Z"
+          },
+          {
+            "stepIndex": 3,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "what is my name",
+            "time": "2026-08-20T02:43:46.000Z"
+          },
+          {
+            "stepIndex": 4,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "i did the scan",
+            "time": "2026-08-20T02:44:03.000Z"
+          },
+          {
+            "stepIndex": 5,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-20T03:09:02.000Z"
+          },
+          {
+            "stepIndex": 6,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Send me the scan again",
+            "time": "2026-08-20T03:09:20.000Z"
+          },
+          {
+            "stepIndex": 7,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-20T03:11:07.000Z"
+          },
+          {
+            "stepIndex": 8,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-20T03:11:26.000Z"
+          },
+          {
+            "stepIndex": 9,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Did you get the result?",
+            "time": "2026-08-20T03:12:06.000Z"
+          },
+          {
+            "stepIndex": 10,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "I don’t see the link",
+            "time": "2026-08-20T03:28:50.000Z"
+          },
+          {
+            "stepIndex": 11,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Any product to fix this",
+            "time": "2026-08-20T08:55:09.000Z"
+          },
+          {
+            "stepIndex": 12,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "I already scanned",
+            "time": "2026-08-20T08:55:27.000Z"
+          },
+          {
+            "stepIndex": 13,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Let’s skip the scan and tell me about vpn",
+            "time": "2026-08-20T08:55:51.000Z"
+          },
+          {
+            "stepIndex": 14,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Is it safe to install",
+            "time": "2026-08-20T08:56:27.000Z"
+          },
+          {
+            "stepIndex": 15,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Show me proton",
+            "time": "2026-08-20T08:56:46.000Z"
+          },
+          {
+            "stepIndex": 16,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "What is monthly cost",
+            "time": "2026-08-20T08:57:21.000Z"
+          },
+          {
+            "stepIndex": 17,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Tell me a price what is final checkout",
+            "time": "2026-08-20T08:57:41.000Z"
+          },
+          {
+            "stepIndex": 18,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "It’s too complicated to setup",
+            "time": "2026-08-20T08:58:07.000Z"
+          },
+          {
+            "stepIndex": 19,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Is it safe? Should everyone gets vpn",
+            "time": "2026-08-20T08:58:49.000Z"
+          },
+          {
+            "stepIndex": 20,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Who doesn’t need vpn",
+            "time": "2026-08-20T08:59:18.000Z"
+          },
+          {
+            "stepIndex": 21,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-20T14:28:18.000Z"
+          },
+          {
+            "stepIndex": 22,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-20T14:28:38.000Z"
+          },
+          {
+            "stepIndex": 23,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-20T15:24:57.000Z"
+          },
+          {
+            "stepIndex": 24,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-20T15:26:26.000Z"
+          },
+          {
+            "stepIndex": 25,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Yes",
+            "time": "2026-08-20T15:27:46.000Z"
+          },
+          {
+            "stepIndex": 26,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "What is a vpn",
+            "time": "2026-08-20T15:28:10.000Z"
+          },
+          {
+            "stepIndex": 27,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Yes",
+            "time": "2026-08-20T15:28:40.000Z"
+          },
+          {
+            "stepIndex": 28,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hi are still there",
+            "time": "2026-08-21T05:34:25.000Z"
+          },
+          {
+            "stepIndex": 29,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Different options",
+            "time": "2026-08-21T05:34:43.000Z"
+          },
+          {
+            "stepIndex": 30,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-21T06:34:31.000Z"
+          },
+          {
+            "stepIndex": 31,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-21T06:34:48.000Z"
+          },
+          {
+            "stepIndex": 32,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Yes",
+            "time": "2026-08-21T06:35:06.000Z"
+          },
+          {
+            "stepIndex": 33,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Better privacy",
+            "time": "2026-08-21T06:36:17.000Z"
+          },
+          {
+            "stepIndex": 34,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-21T07:15:19.000Z"
+          },
+          {
+            "stepIndex": 35,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "hey",
+            "time": "2026-08-21T07:15:36.000Z"
+          },
+          {
+            "stepIndex": 36,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes",
+            "time": "2026-08-21T07:16:18.000Z"
+          },
+          {
+            "stepIndex": 37,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-21T07:23:14.000Z"
+          },
+          {
+            "stepIndex": 38,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "hey",
+            "time": "2026-08-21T07:28:08.000Z"
+          },
+          {
+            "stepIndex": 39,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes",
+            "time": "2026-08-21T07:28:33.000Z"
+          },
+          {
+            "stepIndex": 40,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "is it expensive?",
+            "time": "2026-08-21T07:31:06.000Z"
+          },
+          {
+            "stepIndex": 41,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "any alternatives vpn?",
+            "time": "2026-08-21T07:31:28.000Z"
+          },
+          {
+            "stepIndex": 42,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "it looks complicated. can you help me to set it up",
+            "time": "2026-08-21T07:31:55.000Z"
+          },
+          {
+            "stepIndex": 43,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "is it safe? is this a scam?",
+            "time": "2026-08-21T07:34:10.000Z"
+          },
+          {
+            "stepIndex": 44,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "[audio]",
+            "time": "2026-08-21T10:22:41.000Z"
+          },
+          {
+            "stepIndex": 45,
+            "type": "SCAN_DIAGNOSIS_COMPLETED",
+            "isp": "StarHub Cable Vision Ltd",
+            "city": "Singapore",
+            "country": "Singapore",
+            "ip": "***7.96",
+            "score": null
+          }
+        ]
+      },
+      "scanTriggered": true,
+      "scanData": {
+        "isp": "StarHub Cable Vision Ltd",
+        "city": "Singapore",
+        "country": "Singapore",
+        "ip": "***7.96",
+        "score": null
+      },
+      "offerCtaSent": false,
+      "offerProduct": "Proton VPN",
+      "lastSender": "user",
+      "lastMessageText": "[audio]",
+      "messages": [
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCNkI4QTc2NDQwQTEwRTk1Mjg0AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "hey",
+          "ts": 1787193630000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCREQzQUY3ODYzMDRFODcxN0E3AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes",
+          "ts": 1787193654000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCNDA1NTY4MjQ3MURBNTExRjZGAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "what is my name",
+          "ts": 1787193826000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCQkZGNUU1NTEwMzJDMjQ4QjgxAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "i did the scan",
+          "ts": 1787193843000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBODc4RDUyMDBDODY3OTRBQzczAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787195342000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBMDc0RDZFRTYwMEUxQUI3RjYyAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Send me the scan again",
+          "ts": 1787195360000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRjE2NkQ1MUEyMjk2RkI4QTU5AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787195467000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBODFBRTY2NUIzMDczRjUwMzdFAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787195486000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBQkNCNDdEMzMyRTgwNDU4MkUxAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Did you get the result?",
+          "ts": 1787195526000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNkM0NDBDQTEwQTU5QTE2OTNEAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "I don’t see the link",
+          "ts": 1787196530000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRkY2MUM4RENBNDMwRjc0MTMyAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Any product to fix this",
+          "ts": 1787216109000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBOTkzRUJCN0IxM0QyRjUxQTA2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "I already scanned",
+          "ts": 1787216127000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBMEY3NDAxRjA5QUJDRjIzRDcyAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Let’s skip the scan and tell me about vpn",
+          "ts": 1787216151000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRTk2MDQzNTkyODc5MTM5Q0Y4AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Is it safe to install",
+          "ts": 1787216187000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBQTQzMTE5NjA0MkVCQjA3Mjk5AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Show me proton",
+          "ts": 1787216206000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNDg2N0I2REMyRUIyMTg0N0E0AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "What is monthly cost",
+          "ts": 1787216241000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBOTNGMDAzNjM3NTEwMDk4QzYxAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Tell me a price what is final checkout",
+          "ts": 1787216261000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBQUZBQjhBMTAwQjc1MjM0RjYxAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "It’s too complicated to setup",
+          "ts": 1787216287000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNDk0NDJFQzUzNEREODJEREZCAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Is it safe? Should everyone gets vpn",
+          "ts": 1787216329000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRTIwMkVGMTAzRkU5NDdGRDM4AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Who doesn’t need vpn",
+          "ts": 1787216358000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRUE1ODEzOTA0RDI2MDBGRjlGAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787236098000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRDQ1QjE2REZGRkQzNDJEMTIxAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787236118000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNDFCNUY1RDI2OUFBQzAzMEU3AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787239497000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRDcyMzZCNjU2MTEzRDdGRTI4AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787239586000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBOEFFOTI3M0NBQTYxNDkyOTZGAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Yes",
+          "ts": 1787239666000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBMkY2MkE0NzFBNUYxM0QxQThGAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "What is a vpn",
+          "ts": 1787239690000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBRUI0MDlBQzgyREMxRkFGNEREAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Yes",
+          "ts": 1787239720000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBQzExNzNGMkYwNzlDMUVDMEMwAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hi are still there",
+          "ts": 1787290465000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBREQ0ODVCN0Y3RkUzODAwNTczAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Different options",
+          "ts": 1787290483000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNUQ4NkI4OTg2M0Y5NTMyOTI5AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787294071000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNzA5MDM4NkE1MUI5OTVFMUI2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787294088000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBODE2ODY1QUFDRTE0MUE2NEVEAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Yes",
+          "ts": 1787294106000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBNDdDREI4RkNDOTI2RjU0RTA5AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Better privacy",
+          "ts": 1787294177000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCODhBMUZDMTgwMzhDN0RDNTA2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787296519000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCMDBDOEJBQ0VGODcwNEI5NDQ3AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "hey",
+          "ts": 1787296536000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCOTkwMEI4NzVFM0Q3NjU0RDVFAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes",
+          "ts": 1787296578000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCNjdGRDMwOUNGNDJCODlCQTlEAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787296994000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCMDlEMjU0MjA1QUE4RjIxODc1AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "hey",
+          "ts": 1787297288000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCRDQwQjJEQzg1OUEyNDgzNkZFAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes",
+          "ts": 1787297313000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCOUVBMEJGMzRGNzNFODYwNzc3AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "is it expensive?",
+          "ts": 1787297466000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCODdCOTUyQUVGMkNGRDI4MTcwAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "any alternatives vpn?",
+          "ts": 1787297488000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCN0RDNDQ2OEFFOTU4QkQ4MzUzAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "it looks complicated. can you help me to set it up",
+          "ts": 1787297515000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNCNzZDODgyQTI5MDJFRkZGRjU1AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "is it safe? is this a scam?",
+          "ts": 1787297650000
+        },
+        {
+          "id": "wamid.HBgKNjU5ODUzMzY3NBUCABIYFDNBOTQzRDZGNDdBNTNENzMzM0IwAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "audio",
+          "text": "[audio]",
+          "ts": 1787307761000
+        }
+      ],
+      "classification": {
+        "category": "PRICE_OBJECTION",
+        "reason": "User inquired about pricing or sought free alternatives"
+      }
+    },
+    {
+      "waId": "14365556980",
+      "adId": "",
+      "ctwaClid": "",
+      "adHeadline": "",
+      "adBody": "",
+      "adWelcomeMessage": "",
+      "isFromAd": false,
+      "createdAt": "2026-08-21T05:00:45.393Z",
+      "updatedAt": "2026-08-21T05:00:45.393Z",
+      "messageCount": 25,
+      "initialUserMsg": "hey",
+      "conversationStarter": "hey",
+      "starterType": "CUSTOM_USER_MESSAGE",
+      "journey": {
+        "conversationStarter": "hey",
+        "starterType": "CUSTOM_USER_MESSAGE",
+        "totalSteps": 26,
+        "reachedScanCard": true,
+        "scanCompleted": true,
+        "reachedOfferCard": true,
+        "dropOffStage": "POST_OFFER_EVALUATION",
+        "steps": [
+          {
+            "stepIndex": 1,
+            "type": "CONVERSATION_STARTER",
+            "sender": "user",
+            "text": "hey",
+            "starterType": "CUSTOM_USER_MESSAGE",
+            "adReferral": null,
+            "time": "2026-08-19T15:26:45.200Z"
+          },
+          {
+            "stepIndex": 2,
+            "type": "SCAN_CTA_DISPATCHED",
+            "sender": "agent",
+            "title": "Scan my connection",
+            "url": "https://ascendantlabs.co/scan_v2",
+            "time": "2026-08-19T15:26:48.888Z"
+          },
+          {
+            "stepIndex": 3,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "hey",
+            "time": "2026-08-19T17:24:35.911Z"
+          },
+          {
+            "stepIndex": 4,
+            "type": "OFFER_CTA_DISPATCHED",
+            "sender": "agent",
+            "title": "Open NordVPN",
+            "product": "NordVPN",
+            "url": "",
+            "time": "2026-08-21T01:43:30.955Z"
+          },
+          {
+            "stepIndex": 5,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Are you done",
+            "time": "2026-08-21T01:44:05.000Z"
+          },
+          {
+            "stepIndex": 6,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-21T01:44:26.000Z"
+          },
+          {
+            "stepIndex": 7,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-21T01:44:39.000Z"
+          },
+          {
+            "stepIndex": 8,
+            "type": "OFFER_CTA_DISPATCHED",
+            "sender": "agent",
+            "title": "Open NordVPN",
+            "product": "NordVPN",
+            "url": "",
+            "time": "2026-08-21T01:45:01.112Z"
+          },
+          {
+            "stepIndex": 9,
+            "type": "OFFER_CTA_DISPATCHED",
+            "sender": "agent",
+            "title": "Open NordVPN",
+            "product": "NordVPN",
+            "url": "",
+            "time": "2026-08-21T01:45:01.307Z"
+          },
+          {
+            "stepIndex": 10,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-21T01:45:49.000Z"
+          },
+          {
+            "stepIndex": 11,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "Hey",
+            "time": "2026-08-21T01:46:26.000Z"
+          },
+          {
+            "stepIndex": 12,
+            "type": "OFFER_CTA_DISPATCHED",
+            "sender": "agent",
+            "title": "Open NordVPN",
+            "product": "NordVPN",
+            "url": "",
+            "time": "2026-08-21T01:46:41.486Z"
+          },
+          {
+            "stepIndex": 13,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "/reset-ai",
+            "time": "2026-08-21T04:52:10.000Z"
+          },
+          {
+            "stepIndex": 14,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "hey!",
+            "time": "2026-08-21T04:52:23.000Z"
+          },
+          {
+            "stepIndex": 15,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "i dont know what is a vpn",
+            "time": "2026-08-21T04:53:09.000Z"
+          },
+          {
+            "stepIndex": 16,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes it will be",
+            "time": "2026-08-21T04:53:27.000Z"
+          },
+          {
+            "stepIndex": 17,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes",
+            "time": "2026-08-21T04:53:45.000Z"
+          },
+          {
+            "stepIndex": 18,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "alternative vpn?",
+            "time": "2026-08-21T04:54:59.000Z"
+          },
+          {
+            "stepIndex": 19,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes",
+            "time": "2026-08-21T04:55:11.000Z"
+          },
+          {
+            "stepIndex": 20,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "which one is better? how is the difference",
+            "time": "2026-08-21T04:56:05.000Z"
+          },
+          {
+            "stepIndex": 21,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "i want to stream netflix to watch shows",
+            "time": "2026-08-21T04:56:29.000Z"
+          },
+          {
+            "stepIndex": 22,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "is it hard to setup?",
+            "time": "2026-08-21T04:57:03.000Z"
+          },
+          {
+            "stepIndex": 23,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "do i really need vpn?",
+            "time": "2026-08-21T04:57:16.000Z"
+          },
+          {
+            "stepIndex": 24,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "is it expensive?",
+            "time": "2026-08-21T04:57:53.000Z"
+          },
+          {
+            "stepIndex": 25,
+            "type": "USER_MESSAGE",
+            "sender": "user",
+            "text": "yes",
+            "time": "2026-08-21T04:58:09.000Z"
+          },
+          {
+            "stepIndex": 26,
+            "type": "SCAN_DIAGNOSIS_COMPLETED",
+            "isp": "StarHub Cable Vision Ltd",
+            "city": "Singapore",
+            "country": "Singapore",
+            "ip": "***7.96",
+            "score": null
+          }
+        ]
+      },
+      "scanTriggered": true,
+      "scanData": {
+        "isp": "StarHub Cable Vision Ltd",
+        "city": "Singapore",
+        "country": "Singapore",
+        "ip": "***7.96",
+        "score": null
+      },
+      "offerCtaSent": true,
+      "offerProduct": "NordVPN",
+      "lastSender": "user",
+      "lastMessageText": "yes",
+      "messages": [
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwMUVCQ0E1MUNFMkFBNjdFMzFEAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "hey",
+          "ts": 1787153205200
+        },
+        {
+          "id": "cta_1787153208888",
+          "sender": "agent",
+          "direction": "outbound",
+          "type": "cta_url",
+          "text": "Scan my connection",
+          "ts": 1787153208888
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBQzQjk3RjlBNjgxQTQyNURBODc0RQA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "hey",
+          "ts": 1787160275911
+        },
+        {
+          "id": "offer_cta_1787276610954",
+          "sender": "agent",
+          "direction": "outbound",
+          "type": "cta_url",
+          "text": "Open NordVPN",
+          "ts": 1787276610955
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBQzQTRBNUREOTk3MzA5N0RCMkQ2MAA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Are you done",
+          "ts": 1787276645000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBQzQThBRkNBMEMxRkQ5MjU2RUE5MgA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787276666000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBQzQUEyQ0REREU5RDRDM0EwMzE0MgA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787276679000
+        },
+        {
+          "id": "offer_cta_1787276701112",
+          "sender": "agent",
+          "direction": "outbound",
+          "type": "cta_url",
+          "text": "Open NordVPN",
+          "ts": 1787276701112
+        },
+        {
+          "id": "offer_cta_1787276701307",
+          "sender": "agent",
+          "direction": "outbound",
+          "type": "cta_url",
+          "text": "Open NordVPN",
+          "ts": 1787276701307
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBQzQUE0NDUyRDE1QjA3ODQwMzU1RgA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787276749000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBQzQUFDMTlBRDAzRkVCMjNDRkQyOQA=",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "Hey",
+          "ts": 1787276786000
+        },
+        {
+          "id": "offer_cta_1787276801486",
+          "sender": "agent",
+          "direction": "outbound",
+          "type": "cta_url",
+          "text": "Open NordVPN",
+          "ts": 1787276801486
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwQUY2MTE0QUM5NkE4QUJCRTUwAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "/reset-ai",
+          "ts": 1787287930000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwQkEyRjEzODdBRTlCMUZDRThFAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "hey!",
+          "ts": 1787287943000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwNTlGOUMxNjYwNTA3NTBCOEUzAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "i dont know what is a vpn",
+          "ts": 1787287989000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwNUIwRkJFRkNCMjZGOUY4REU0AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes it will be",
+          "ts": 1787288007000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwNzlFQjJCQzMxNDY3NjRFM0E2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes",
+          "ts": 1787288025000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwOEUwNDNGNzM2RDIxMzc3NUJCAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "alternative vpn?",
+          "ts": 1787288099000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwMTY4Q0E2RTBERjI1OEZDQzI2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes",
+          "ts": 1787288111000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwRjY5NURCMjk3MTY4RjZBQ0I2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "which one is better? how is the difference",
+          "ts": 1787288165000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwQjlBM0FFM0NGNkNBMTlFQTJDAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "i want to stream netflix to watch shows",
+          "ts": 1787288189000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwRkJBQzVGNEQ1OTdDQjcyM0JGAA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "is it hard to setup?",
+          "ts": 1787288223000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwNjdEQzE5NDU4RDc4OTAwRUU2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "do i really need vpn?",
+          "ts": 1787288236000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwNjlDQTc0QTk5RkJFRUIyRTI2AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "is it expensive?",
+          "ts": 1787288273000
+        },
+        {
+          "id": "wamid.HBgLMTQzNjU1NTY5ODAVAgASGBYzRUIwMEFBOTY3RUQzRUIwNTc5RDA5AA==",
+          "sender": "user",
+          "direction": "inbound",
+          "type": "text",
+          "text": "yes",
+          "ts": 1787288289000
+        }
+      ],
+      "classification": {
+        "category": "CONVERTED_HIGH_INTENT",
+        "reason": "User engaged with CTA and indicated completion"
+      }
+    }
+  ]
+}

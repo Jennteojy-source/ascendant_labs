@@ -274,8 +274,14 @@ function releaseThreadControl(to) {
   );
 }
 
+const inFlightScanCtas = new Map();
+
 async function maybeSendScanCta(waId, inboundText) {
   if (!waId) return;
+  const now = Date.now();
+  if (inFlightScanCtas.has(waId) && (now - inFlightScanCtas.get(waId)) < 60000) {
+    return;
+  }
   const alreadyScanned = /\bSCAN_COMPLETE\b/i.test(inboundText || "");
   if (alreadyScanned) return;
 
@@ -283,6 +289,14 @@ async function maybeSendScanCta(waId, inboundText) {
   const snap = await convoRef.get();
   const data = snap.exists ? snap.data() || {} : {};
   if (data.scanCtaSentAt || data.lastSid) return;
+
+  // Lock immediately to prevent race conditions across parallel webhook calls
+  inFlightScanCtas.set(waId, now);
+  if (inFlightScanCtas.size > 500) {
+    for (const [id, time] of inFlightScanCtas.entries()) {
+      if (now - time > 60000) inFlightScanCtas.delete(id);
+    }
+  }
 
   const result = await sendScanCtaCard(waId);
   const sent = result && result.status >= 200 && result.status < 300;
@@ -649,10 +663,25 @@ function collectEchoMessages(value) {
   return [...fromValue, ...fromStandby.echoes];
 }
 
+const processedMessageIds = new Map();
+
 async function persistInboundMessage(message, extras = {}) {
   const from = digitsOnly(message.from || message.wa_id);
   const businessNumber = extras.businessNumber || "";
   if (!from || (businessNumber && from === businessNumber)) return;
+  const msgId = message.id || (message.mid ? String(message.mid) : null);
+  const now = Date.now();
+  if (msgId) {
+    if (processedMessageIds.has(msgId) && (now - processedMessageIds.get(msgId)) < 300000) {
+      return;
+    }
+    processedMessageIds.set(msgId, now);
+    if (processedMessageIds.size > 2000) {
+      for (const [id, time] of processedMessageIds.entries()) {
+        if (now - time > 300000) processedMessageIds.delete(id);
+      }
+    }
+  }
   const text = extractInboundText(message);
   const sid = extractScanSid(text);
   const ts = Number(message.timestamp) ? Number(message.timestamp) * 1000 : Date.now();
@@ -670,9 +699,6 @@ async function persistInboundMessage(message, extras = {}) {
     adContext,
   });
   await handleScanReturn(from, sid);
-  if (!sid) {
-    await maybeSendScanCta(from, text);
-  }
 }
 
 async function persistEchoMessage(echo, extras = {}) {

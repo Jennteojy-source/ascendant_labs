@@ -16,15 +16,8 @@ ads/
 │   └── website_funnel/
 │       └── scan_funnel_web.md          # Website Direct Traffic Scan Funnel Guide
 ├── creatives/
-│   ├── ctwa/                           # ⭐ Clean CTWA Ad Creatives (No on-image CTA buttons)
-│   │   ├── variant-1-ai-risk-gauge.jpg
-│   │   ├── variant-2-ai-chat-mockup.jpg
-│   │   ├── variant-3-ai-incognito-myth.jpg
-│   │   ├── variant-4-ai-streaming-speed.jpg
-│   │   ├── variant-5-ai-vpn-protection-audit.jpg
-│   │   ├── variant-6-ai-need-vpn-diagnostic.jpg
-│   │   ├── variant-7-ai-browsing-protection.jpg
-│   │   └── variant-8-ai-vpn-matcher.jpg
+│   ├── ctwa/                           # ⭐ Winning CTWA Ad Creative (No on-image CTA)
+│   │   └── variant-7-ai-browsing-protection.jpg
 │   ├── scan/                           # Website Editorial UI scan creatives (variant-1 to variant-4)
 │   ├── warm/                           # Lifestyle & editorial warm privacy graphics
 │   ├── express_vpn/                    # ExpressVPN creative assets
@@ -42,7 +35,8 @@ ads/
 
 ### 1. Click-to-WhatsApp (CTWA) Funnel (`ads/prompts/ctwa_funnel/`)
 - **Traffic Destination**: Native WhatsApp Chat with **Meta Business AI (MBA)**.
-- **Creative Rule**: Clean editorial UI / risk diagnostics with **NO on-image CTA buttons** (Meta natively renders the `Send WhatsApp Message` bar).
+- **Winning Creative**: [`variant-7-ai-browsing-protection.jpg`](file:///Users/kirkzhang/Documents/Antigravity/ascendant_labs/ads/creatives/ctwa/variant-7-ai-browsing-protection.jpg) — Real handheld smartphone showing WhatsApp AI risk diagnosis with clean headline: *"IS YOUR BROWSING REALLY PROTECTED?"*.
+- **Creative Rule**: Clean editorial UI / realistic handheld screen with **NO on-image CTA buttons** (Meta natively renders the `Send WhatsApp Message` bar underneath).
 - **Targeting**: High-ARPU & High-Willingness-to-Pay countries (UK, Germany, Spain, Italy, Netherlands, Singapore, Australia, UAE, Saudi Arabia, US/Canada). Low-ARPU countries (India, Pakistan, etc.) are excluded.
 - **Funnel Mechanics**: User taps native `Send WhatsApp Message` with pre-filled icebreaker -> MBA agent conducts SPIN discovery -> Optional 1-tap connection scan -> Agent sends interactive native product card (`SEND_CTA_URL`) with tracked affiliate link.
 - **Master Guide**: [ctwa_mba_master_playbook.md](file:///Users/kirkzhang/Documents/Antigravity/ascendant_labs/ads/prompts/ctwa_funnel/ctwa_mba_master_playbook.md)
@@ -69,6 +63,28 @@ node functions/scripts/eval_mba.js
 # Or test a single scenario:
 node functions/scripts/eval_mba.js --scenario=vpn-beginner
 ```
+
+### Run Daily Ad x WhatsApp AI Closed-Loop Harness:
+```bash
+# Evaluate yesterday's ads vs WhatsApp agent conversations:
+npm run harness
+# Or run with custom timeframes / filters:
+node ads/daily_harness.js --days=1
+node ads/daily_harness.js --date-preset=last_7d --campaign="Nord"
+node ads/daily_harness.js --dry-run
+```
+*Reports are saved automatically to `ads/reports/daily_eval_YYYY_MM_DD.md`.*
+
+### Analyze Meta Ads Performance & Conversion Metrics:
+```bash
+node ads/meta_marketing_api.js --date-preset last_7d
+```
+# Or run with custom timeframes / filters:
+node ads/daily_harness.js --days=1
+node ads/daily_harness.js --date-preset=last_7d --campaign="Nord"
+node ads/daily_harness.js --dry-run
+```
+*Reports are saved automatically to `ads/reports/daily_eval_YYYY_MM_DD.md`.*
 
 ### Analyze Meta Ads Performance & Conversion Metrics:
 ```bash

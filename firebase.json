@@ -77,9 +77,20 @@
       {
         "source": "/api/nordvpn-webhook",
         "function": "nordVpnWebhook"
+      },
+      {
+        "source": "/api/esim-catalog-sync",
+        "function": "syncEsimCatalogHttp"
       }
     ]
   },
+  "firestore": [
+    {
+      "database": "esim",
+      "rules": "firestore.esim.rules",
+      "indexes": "firestore.esim.indexes.json"
+    }
+  ],
   "functions": {
     "source": "functions",
     "runtime": "nodejs20"

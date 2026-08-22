@@ -1,0 +1,56 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "packages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "locationCode", "order": "ASCENDING" },
+        { "fieldPath": "durationDays", "order": "ASCENDING" },
+        { "fieldPath": "volumeGb", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "packages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "locationCode", "order": "ASCENDING" },
+        { "fieldPath": "sellUsd", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "packages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "locationCodes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "durationDays", "order": "ASCENDING" },
+        { "fieldPath": "volumeGb", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "packages",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "partition", "order": "ASCENDING" },
+        { "fieldPath": "locationCode", "order": "ASCENDING" },
+        { "fieldPath": "durationDays", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "packages",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "expireAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "packages",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
+}

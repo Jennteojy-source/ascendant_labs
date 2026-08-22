@@ -6,6 +6,7 @@ const { sendMetaCapiEvent } = require("./lib/capi");
 const quiz = require("./routes/quiz");
 const affiliate = require("./routes/affiliate");
 const whatsapp = require("./routes/whatsapp");
+const esimCatalog = require("./routes/esim_catalog");
 
 exports.getIpTelemetry = quiz.getIpTelemetry;
 exports.trackQuizEvent = quiz.trackQuizEvent;
@@ -15,6 +16,8 @@ exports.affiliateRedirect = affiliate.affiliateRedirect;
 exports.completeConnectionScan = whatsapp.completeConnectionScan;
 exports.getConnectionScan = whatsapp.getConnectionScan;
 exports.whatsappWebhook = whatsapp.whatsappWebhook;
+exports.syncEsimCatalog = esimCatalog.syncEsimCatalog;
+exports.syncEsimCatalogHttp = esimCatalog.syncEsimCatalogHttp;
 
 exports.handleConversionCreated = quiz.handleConversionCreated;
 exports.sendMetaCapiEvent = sendMetaCapiEvent;

@@ -30,7 +30,7 @@ function loadEnv() {
 loadEnv();
 
 const USER_TOKEN = process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
-const DEFAULT_ACCOUNT_ID = 'act_1287963342576057';
+const DEFAULT_ACCOUNT_ID = 'act_2342918112870520';
 const DATASET_ID = process.env.DATASET_ID || '868721989329074';
 
 if (!USER_TOKEN) {

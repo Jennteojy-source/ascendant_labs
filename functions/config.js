@@ -42,6 +42,13 @@ function optionalEnv(name, fallback = "") {
 
 const config = {
   networkId: optionalEnv("NETWORK_ID", "nordvpn"),
+  esimAccess: {
+    accessCode: optionalEnv("ACCESS_CODE"),
+    apiBase: optionalEnv("ESIM_ACCESS_API_BASE", "https://api.esimaccess.com/api/v1/open"),
+    catalogTtlDays: Number(optionalEnv("ESIM_CATALOG_TTL_DAYS", "7")) || 7,
+    sellMarkup: Number(optionalEnv("ESIM_SELL_MARKUP", "2")) || 2,
+    databaseId: optionalEnv("ESIM_FIRESTORE_DATABASE", "esim"),
+  },
   capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("DATASET_ID"),
   whatsappDatasetId: optionalEnv("WHATSAPP_DATASET_ID", "1306778361353446"),

@@ -38,6 +38,7 @@ const mockFieldValue = {
 
 const adminMock = {
   initializeApp: () => {},
+  app: () => ({}),
   firestore: () => ({
     collection: mockCollection,
   }),
@@ -50,6 +51,20 @@ require.cache[require.resolve("firebase-admin")] = {
   loaded: true,
   exports: adminMock,
 };
+
+try {
+  require.cache[require.resolve("firebase-admin/firestore")] = {
+    id: "firebase-admin/firestore",
+    filename: "firebase-admin/firestore",
+    loaded: true,
+    exports: {
+      getFirestore: () => ({
+        collection: mockCollection,
+        settings: () => {},
+      }),
+    },
+  };
+} catch (_) {}
 
 const functions = require("./index.js");
 
