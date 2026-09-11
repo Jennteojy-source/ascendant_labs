@@ -1,0 +1,144 @@
+#!/usr/bin/env node
+/**
+ * Facebook Ads Library ClickBank Affiliate Finder
+ * Ascendant Labs
+ * 
+ * Queries the Meta Ad Library API for ads promoting ClickBank affiliate hoplinks,
+ * filters out official ClickBank brand ads, and outputs Ad IDs, affiliate hoplinks,
+ * and review URLs.
+ * 
+ * Usage:
+ *   node ads/find_clickbank_ads.js
+ *   node ads/find_clickbank_ads.js --limit 50 --countries US,GB,CA,AU
+ *   node ads/find_clickbank_ads.js --active-only
+ */
+
+const fs = require('fs');
+const https = require('https');
+const path = require('path');
+
+function loadEnv() {
+  const envPath = path.resolve(__dirname, '../functions/.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        process.env[match[1].trim()] = match[2].trim();
+      }
+    });
+  }
+}
+
+loadEnv();
+
+const token = process.env.USER_TOKEN || process.env.ACCESS_CODE;
+if (!token) {
+  console.error("Error: USER_TOKEN or ACCESS_CODE not found in functions/.env");
+  process.exit(1);
+}
+
+const args = process.argv.slice(2);
+let limit = 50;
+let countries = ['US', 'CA', 'GB', 'AU'];
+let activeOnly = args.includes('--active-only');
+let searchTerm = 'hop.clickbank.net';
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--limit' && args[i + 1]) {
+    limit = parseInt(args[++i], 10);
+  } else if (args[i] === '--countries' && args[i + 1]) {
+    countries = args[++i].split(',').map(s => s.trim());
+  } else if (args[i] === '--search' && args[i + 1]) {
+    searchTerm = args[++i];
+  }
+}
+
+function fetchAds(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+async function run() {
+  console.log(`=======================================================`);
+  console.log(` FACEBOOK ADS LIBRARY CLICKBANK AFFILIATE FINDER`);
+  console.log(` Search Term: ${searchTerm}`);
+  console.log(` Countries:   ${countries.join(', ')}`);
+  console.log(` Active Only: ${activeOnly}`);
+  console.log(`=======================================================\n`);
+
+  const fields = [
+    'id',
+    'page_id',
+    'page_name',
+    'ad_creation_time',
+    'ad_delivery_start_time',
+    'ad_delivery_stop_time',
+    'ad_snapshot_url',
+    'ad_creative_bodies',
+    'ad_creative_link_captions',
+    'ad_creative_link_descriptions',
+    'ad_creative_link_titles',
+    'publisher_platforms'
+  ].join(',');
+
+  const query = new URLSearchParams({
+    access_token: token,
+    ad_reached_countries: JSON.stringify(countries),
+    ad_type: 'ALL',
+    search_terms: searchTerm,
+    limit: limit.toString(),
+    fields: fields
+  });
+
+  const url = `https://graph.facebook.com/v20.0/ads_archive?${query.toString()}`;
+  const response = await fetchAds(url);
+
+  if (response.error) {
+    console.error("Graph API Error:", response.error);
+    process.exit(1);
+  }
+
+  const rawAds = response.data || [];
+  console.log(`Fetched ${rawAds.length} raw ads.\n`);
+
+  // Filter out official ClickBank brand ads
+  const affiliateAds = rawAds.filter(ad => {
+    const p = (ad.page_name || '').toLowerCase();
+    const isClickBankBrand = p.includes('clickbank') || p.includes('click bank');
+    const isInactive = activeOnly && !!ad.ad_delivery_stop_time;
+    return !isClickBankBrand && !isInactive;
+  });
+
+  console.log(`Found ${affiliateAds.length} affiliate ads promoting ClickBank hoplinks:\n`);
+
+  affiliateAds.forEach((ad, index) => {
+    const title = (ad.ad_creative_link_titles && ad.ad_creative_link_titles[0]) || 'Untitled';
+    const caption = (ad.ad_creative_link_captions && ad.ad_creative_link_captions[0]) || '';
+    const body = (ad.ad_creative_bodies && ad.ad_creative_bodies[0]) || '';
+    const date = ad.ad_delivery_start_time || ad.ad_creation_time;
+    const isActive = !ad.ad_delivery_stop_time;
+
+    console.log(`[${index + 1}] Ad ID: ${ad.id} (${isActive ? 'ACTIVE' : 'INACTIVE'})`);
+    console.log(`    Advertiser Page: ${ad.page_name}`);
+    console.log(`    Delivery Start:  ${date}`);
+    console.log(`    Headline/Title:  ${title}`);
+    console.log(`    Hoplink/Caption: ${caption}`);
+    console.log(`    Ad Copy:         ${body.replace(/\n+/g, ' ').substring(0, 120)}...`);
+    console.log(`    Review in Meta:  https://www.facebook.com/ads/library/?id=${ad.id}`);
+    console.log(`    Ad Snapshot:     ${ad.ad_snapshot_url}\n`);
+  });
+}
+
+run().catch(console.error);

@@ -50,7 +50,7 @@ function postCapiPayload(datasetId, token, payload, options = {}) {
   });
 }
 
-function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://ascendantlabs.co/nordvpn/quiz") {
+function sendMetaCapiEvent(eventName, eventId, userData, customData = null, eventSourceUrl = "https://ascendantlabs.co") {
   const event = {
     event_name: eventName,
     event_time: Math.floor(Date.now() / 1000),

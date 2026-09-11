@@ -1,0 +1,1485 @@
+{
+  "target_url": "https://derila-ergo.com",
+  "final_destination": "https://derilashop.com/",
+  "brand": "derila",
+  "network": "Direct Merchant / Independent",
+  "timestamp": "2026-09-11T07:41:44.056Z",
+  "funnel_intelligence": {
+    "target_url": "https://derila-ergo.com",
+    "final_destination": "https://derilashop.com/",
+    "hops_count": 2,
+    "redirect_chain": [
+      {
+        "hop": 1,
+        "url": "https://derila-ergo.com",
+        "statusCode": 301,
+        "latency_ms": 79
+      },
+      {
+        "hop": 2,
+        "url": "https://derilashop.com/",
+        "statusCode": 200,
+        "latency_ms": 678
+      }
+    ],
+    "affiliate_signatures": {},
+    "page_intelligence": {
+      "page_title": "\n      Derila Pillows | Premium Pillows for Better Sleep | Derila\n",
+      "tracking_pixels": {
+        "meta_pixel_ids": [],
+        "google_tag_manager": [],
+        "google_analytics": [
+          "G-QJPZY79KWN"
+        ],
+        "google_ads_conversion": [
+          "AW-16950315505"
+        ],
+        "microsoft_clarity": [],
+        "tiktok_pixels": []
+      },
+      "video_infrastructure": {
+        "detected_players": [
+          "Standard HTML5 / Native Player"
+        ],
+        "buy_button_delay_seconds": 10,
+        "formatted_delay": "10s (~0 min 10s)",
+        "delay_mechanism": "JavaScript setTimeout() delay trigger"
+      },
+      "checkout_gateways": [
+        {
+          "gateway": "Shopify Checkout",
+          "url": "https://shop.app/checkouts/internal/preloads.js?locale=en-US&default_configuration_id=3582656855&shop_id=89791299927"
+        }
+      ],
+      "tech_stack": [
+        "Cloudflare Edge Network & CDN",
+        "Shopify Platform"
+      ]
+    },
+    "infrastructure_subdomains": [
+      "br.derilashop.com",
+      "co.kr.derilashop.com",
+      "cz.derilashop.com",
+      "de.derilashop.com",
+      "derilashop.com",
+      "dk.derilashop.com",
+      "es.derilashop.com",
+      "fi.derilashop.com",
+      "fr.derilashop.com",
+      "gr.derilashop.com",
+      "hr.derilashop.com",
+      "hu.derilashop.com",
+      "il.derilashop.com",
+      "it.derilashop.com",
+      "jp.derilashop.com",
+      "nl.derilashop.com",
+      "no.derilashop.com",
+      "pl.derilashop.com",
+      "pt.derilashop.com",
+      "ro.derilashop.com",
+      "rs.derilashop.com",
+      "se.derilashop.com",
+      "si.derilashop.com",
+      "sk.derilashop.com",
+      "tr.derilashop.com"
+    ]
+  },
+  "meta_ads_intelligence": {
+    "total_candidates": 29,
+    "total_matches": 29,
+    "active_ads_count": 7,
+    "top_publishers": {
+      "Pilllow Derila Ergo": 3,
+      "Derila": 9,
+      "Connor Nicole Houser": 1,
+      "Denise Marsh": 2,
+      "Toolvora": 1,
+      "Deal Of The Day": 3,
+      "Mama Kenya": 1,
+      "Joyreels-4-jin4": 4,
+      "MG Tende": 1,
+      "Lurevela": 4
+    },
+    "ads": [
+      {
+        "id": "1075129878213321",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 7
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 360,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.62%",
+          "estimated_cpc": "$0.99",
+          "estimated_clicks": "~12 - 23",
+          "estimated_global_impressions": "~468 - 864",
+          "estimated_spend": "$12 - $22",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Wake Up Free From Neck Pain and Achy Shoulders",
+        "caption": "derila-ergo.com",
+        "body_snippet": "If you sleep on your side and wake up with a sore, aching shoulder — your pillow is the problem. Most pillows were designed for back sleeper",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1075129878213321",
+        "effectiveness_score": 68,
+        "grade": "B (Solid Performer)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1007713345616506",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 7
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 11,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.62%",
+          "estimated_cpc": "$0.99",
+          "estimated_clicks": "~0 - 1",
+          "estimated_global_impressions": "~14 - 26",
+          "estimated_spend": "$0 - $1",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Wake Up Free From Neck Pain and Achy Shoulders",
+        "caption": "derila-ergo.com",
+        "body_snippet": "If you sleep on your side and wake up with a sore, aching shoulder — your pillow is the problem. Most pillows were designed for back sleeper",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1007713345616506",
+        "effectiveness_score": 63,
+        "grade": "B (Solid Performer)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1345982600733057",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 7
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 48,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.62%",
+          "estimated_cpc": "$0.99",
+          "estimated_clicks": "~2 - 3",
+          "estimated_global_impressions": "~62 - 115",
+          "estimated_spend": "$2 - $3",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Wake Up Free From Neck Pain and Achy Shoulders",
+        "caption": "derila-ergo.com",
+        "body_snippet": "If you sleep on your side and wake up with a sore, aching shoulder — your pillow is the problem. Most pillows were designed for back sleeper",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1345982600733057",
+        "effectiveness_score": 63,
+        "grade": "B (Solid Performer)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1309187474471500",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 7
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 33,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.62%",
+          "estimated_cpc": "$0.99",
+          "estimated_clicks": "~1 - 2",
+          "estimated_global_impressions": "~43 - 79",
+          "estimated_spend": "$1 - $2",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Wake Up Free From Neck Pain and Achy Shoulders",
+        "caption": "derila-ergo.com",
+        "body_snippet": "If you sleep on your side and wake up with a sore, aching shoulder — your pillow is the problem. Most pillows were designed for back sleeper",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1309187474471500",
+        "effectiveness_score": 63,
+        "grade": "B (Solid Performer)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2127701791516747",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 7
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 19,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.62%",
+          "estimated_cpc": "$0.99",
+          "estimated_clicks": "~1 - 1",
+          "estimated_global_impressions": "~25 - 46",
+          "estimated_spend": "$1 - $1",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Wake Up Free From Neck Pain and Achy Shoulders",
+        "caption": "derila-ergo.com",
+        "body_snippet": "If you sleep on your side and wake up with a sore, aching shoulder — your pillow is the problem. Most pillows were designed for back sleeper",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2127701791516747",
+        "effectiveness_score": 63,
+        "grade": "B (Solid Performer)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2404443156715019",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-07",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 2900,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~67 - 124",
+          "estimated_global_impressions": "~3,770 - 6,960",
+          "estimated_spend": "$98 - $181",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Code OFF10: Get an Additional 10% Off!",
+        "caption": "derila-ergo.com",
+        "body_snippet": "What can someone do to fix sleep issues? Research has shown that sleep issues can be caused by sleeping posture. During sleep our muscles an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2404443156715019",
+        "effectiveness_score": 51,
+        "grade": "C (Break-Even Test)",
+        "triggers": [
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2799620077079206",
+        "page_name": "Denise Marsh",
+        "page_id": "1225783407289357",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-09",
+          "stop": "Present (Still Running)",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.45%",
+          "estimated_cpc": "$1.06",
+          "estimated_clicks": "~37 - 147",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "My husband stopped breathing 41 times in one hour. I wish I’d noticed sooner.",
+        "caption": "trysilentium.com",
+        "body_snippet": "“My husband almost died because of ‘snoring’ and I regret not realizing sooner that it wasn’t just an annoying noise.” It all started comple",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2799620077079206",
+        "effectiveness_score": 50,
+        "grade": "C (Break-Even Test)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1754802555831319",
+        "page_name": "Denise Marsh",
+        "page_id": "1225783407289357",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-09-09",
+          "stop": "Present (Still Running)",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.45%",
+          "estimated_cpc": "$1.06",
+          "estimated_clicks": "~37 - 147",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "My husband collapsed at 3:27 a.m. I thought he was just snoring",
+        "caption": "trysilentium.com",
+        "body_snippet": "“My husband almost died because of ‘snoring’ and I regret not realizing sooner that it wasn’t just an annoying noise.” It all started comple",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1754802555831319",
+        "effectiveness_score": 50,
+        "grade": "C (Break-Even Test)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2101559930435237",
+        "page_name": "Pilllow Derila Ergo",
+        "page_id": "102358462639640",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-06",
+          "stop": "2026-09-10",
+          "duration_days": 4
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "messenger"
+          ],
+          "languages": [
+            "da"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.24%",
+          "estimated_cpc": "$1.16",
+          "estimated_clicks": "~224 - 784",
+          "estimated_global_impressions": "~10,000 - 35,000",
+          "estimated_spend": "$260 - $910",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Risk -free for 60 nights",
+        "caption": "derila-ergo.com",
+        "body_snippet": "For a limited time, save up to 75%",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2101559930435237",
+        "effectiveness_score": 48,
+        "grade": "C (Break-Even Test)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "942854245525695",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-07",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 204,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~5 - 9",
+          "estimated_global_impressions": "~265 - 490",
+          "estimated_spend": "$7 - $13",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Code OFF10: Get an Additional 10% Off!",
+        "caption": "derila-ergo.com",
+        "body_snippet": "What can someone do to fix sleep issues? Research has shown that sleep issues can be caused by sleeping posture. During sleep our muscles an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=942854245525695",
+        "effectiveness_score": 44,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1643427677409971",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-07",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 473,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~11 - 20",
+          "estimated_global_impressions": "~615 - 1,135",
+          "estimated_spend": "$16 - $30",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Code OFF10: Get an Additional 10% Off!",
+        "caption": "derila-ergo.com",
+        "body_snippet": "What can someone do to fix sleep issues? Research has shown that sleep issues can be caused by sleeping posture. During sleep our muscles an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1643427677409971",
+        "effectiveness_score": 44,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2155883678301802",
+        "page_name": "Derila",
+        "page_id": "105621478805427",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-06",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 864,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~20 - 37",
+          "estimated_global_impressions": "~1,123 - 2,074",
+          "estimated_spend": "$29 - $54",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Code OFF10: Get an Additional 10% Off!",
+        "caption": "derila-ergo.com",
+        "body_snippet": "What can someone do to fix sleep issues? Research has shown that sleep issues can be caused by sleeping posture. During sleep our muscles an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2155883678301802",
+        "effectiveness_score": 44,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1421597803416802",
+        "page_name": "Lurevela",
+        "page_id": "1337366549451929",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-03",
+          "stop": "2026-09-07",
+          "duration_days": 4
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.95%",
+          "estimated_cpc": "$1.33",
+          "estimated_clicks": "~195 - 683",
+          "estimated_global_impressions": "~10,000 - 35,000",
+          "estimated_spend": "$260 - $910",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Free UK Shipping",
+        "caption": "lurevela.com",
+        "body_snippet": "🎉 FINAL SUMMER SALE – FINAL PIECES! 🎉 ✅ Buy 1, Get 1 FREE ✅ Buy 2 – Pay for 1 ✅ Buy 4 – Pay for 2 ✅ Buy 6 – Pay for 3 ✅ FREE Delivery in t",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1421597803416802",
+        "effectiveness_score": 42,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1759072558468659",
+        "page_name": "Lurevela",
+        "page_id": "1337366549451929",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-03",
+          "stop": "2026-09-07",
+          "duration_days": 4
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.95%",
+          "estimated_cpc": "$1.33",
+          "estimated_clicks": "~195 - 683",
+          "estimated_global_impressions": "~10,000 - 35,000",
+          "estimated_spend": "$260 - $910",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Free UK Shipping",
+        "caption": "lurevela.com",
+        "body_snippet": "🎉 FINAL SUMMER SALE – FINAL PIECES! 🎉 ✅ Buy 1, Get 1 FREE ✅ Buy 2 – Pay for 1 ✅ Buy 4 – Pay for 2 ✅ Buy 6 – Pay for 3 ✅ FREE Delivery in t",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1759072558468659",
+        "effectiveness_score": 42,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1820864048991852",
+        "page_name": "Lurevela",
+        "page_id": "1337366549451929",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-03",
+          "stop": "2026-09-07",
+          "duration_days": 4
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.95%",
+          "estimated_cpc": "$1.33",
+          "estimated_clicks": "~195 - 683",
+          "estimated_global_impressions": "~10,000 - 35,000",
+          "estimated_spend": "$260 - $910",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "Free UK Shipping",
+        "caption": "lurevela.com",
+        "body_snippet": "🎉 FINAL SUMMER SALE – FINAL PIECES! 🎉 ✅ Buy 1, Get 1 FREE ✅ Buy 2 – Pay for 1 ✅ Buy 4 – Pay for 2 ✅ Buy 6 – Pay for 3 ✅ FREE Delivery in t",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1820864048991852",
+        "effectiveness_score": 42,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2098476297356820",
+        "page_name": "Mama Kenya",
+        "page_id": "168188780014807",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-01-10",
+          "stop": "2026-01-11",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 170,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~4 - 7",
+          "estimated_global_impressions": "~221 - 408",
+          "estimated_spend": "$6 - $11",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Eliminate Sleep Apnea & Wake Up Refreshed Overnight",
+        "caption": "shopvado.com",
+        "body_snippet": "\"Michael Perez. (New York) The AirFlow Jaw Strap will improve your sleep overnight, or your money back guaranteed! ✅ Increased energy & impr",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2098476297356820",
+        "effectiveness_score": 35,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1643647944041461",
+        "page_name": "Deal Of The Day",
+        "page_id": "273085935899299",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-01",
+          "stop": "2026-09-04",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~27 - 107",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "It was the pillow all along",
+        "caption": "derilashop.com",
+        "body_snippet": "At 58 I assumed waking up with a stiff neck was just part of getting older. Every morning started the same. Sit up slowly. Wince. Rub the ri",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1643647944041461",
+        "effectiveness_score": 34,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage"
+        ]
+      },
+      {
+        "id": "980053504590420",
+        "page_name": "MG Tende",
+        "page_id": "272938763173044",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-02-26",
+          "stop": "2026-02-28",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 2,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~0 - 0",
+          "estimated_global_impressions": "~3 - 5",
+          "estimated_spend": "$0 - $0",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Say Goodbye to Foot Pain in Your Golden Years",
+        "caption": "dealxoss.com",
+        "body_snippet": "\"“At 67, I’ve tried dozens of shoes — but these are the only ones that truly ease my foot and knee pain. I can walk longer, stand taller, an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=980053504590420",
+        "effectiveness_score": 34,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2159760398750667",
+        "page_name": "Lurevela",
+        "page_id": "1337366549451929",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-03",
+          "stop": "2026-09-05",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.78%",
+          "estimated_cpc": "$1.46",
+          "estimated_clicks": "~27 - 107",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Free UK Shipping",
+        "caption": "lurevela.com",
+        "body_snippet": "🎉 FINAL SUMMER SALE – FINAL PIECES! 🎉 ✅ Buy 1, Get 1 FREE ✅ Buy 2 – Pay for 1 ✅ Buy 4 – Pay for 2 ✅ Buy 6 – Pay for 3 ✅ FREE Delivery in t",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2159760398750667",
+        "effectiveness_score": 34,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1635577388164616",
+        "page_name": "Deal Of The Day",
+        "page_id": "273085935899299",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-04",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.93%",
+          "estimated_cpc": "$1.35",
+          "estimated_clicks": "~29 - 116",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "See what your pillow does",
+        "caption": "derilashop.com",
+        "body_snippet": "This is your neck on an ordinary pillow: head sunk, spine bent sideways, airway tipped shut. Eight hours like that. Every night. Same neck o",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1635577388164616",
+        "effectiveness_score": 33,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "28276962558655312",
+        "page_name": "Pilllow Derila Ergo",
+        "page_id": "102358462639640",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-07",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.50%",
+          "estimated_cpc": "$1.73",
+          "estimated_clicks": "~23 - 90",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Derila Ergo Neck Support Pillow | Derila",
+        "caption": "derilashop.com",
+        "body_snippet": "For a limited time, save up to 75%",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=28276962558655312",
+        "effectiveness_score": 28,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage"
+        ]
+      },
+      {
+        "id": "2245667736277922",
+        "page_name": "Toolvora",
+        "page_id": "151255988077258",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-08",
+          "stop": "2026-09-08",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.64%",
+          "estimated_cpc": "$1.59",
+          "estimated_clicks": "~25 - 98",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Say Goodbye To Sleepless Nights✨",
+        "caption": "85d3ahrast1heo8-uhl6p9t7z3.hop.clickbank.net",
+        "body_snippet": "Did you know that bad pillows can cause back, neck & shoulders pain? It is because most pillows don’t provide adequate spine support. Users ",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2245667736277922",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Performance & Results"
+        ]
+      },
+      {
+        "id": "967772503031576",
+        "page_name": "Deal Of The Day",
+        "page_id": "273085935899299",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-04",
+          "stop": "2026-09-04",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.64%",
+          "estimated_cpc": "$1.59",
+          "estimated_clicks": "~25 - 98",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "It was the pillow all along",
+        "caption": "derilashop.com",
+        "body_snippet": "At 58 I assumed waking up with a stiff neck was just part of getting older. Every morning started the same. Sit up slowly. Wince. Rub the ri",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=967772503031576",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Financial Arbitrage"
+        ]
+      },
+      {
+        "id": "1582386256953557",
+        "page_name": "Connor Nicole Houser",
+        "page_id": "1050968588100703",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-10",
+          "stop": "2026-09-10",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "threads"
+          ],
+          "languages": [
+            "de"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 84,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~1 - 3",
+          "estimated_global_impressions": "~109 - 202",
+          "estimated_spend": "$3 - $5",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Testen Sie es 30 Tage lang! Zufriedenheit garantiert!",
+        "caption": "ec.smartlivingnote.online",
+        "body_snippet": "Ich hätte nie geglaubt, dass ich Davide eines Tages wieder ohne seine CPAP-Maske schlafen sehen würde. Vor sechs Jahren sagte ihm ein Pneumo",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1582386256953557",
+        "effectiveness_score": 21,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results"
+        ]
+      },
+      {
+        "id": "2245339246252493",
+        "page_name": "Pilllow Derila Ergo",
+        "page_id": "102358462639640",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-09-03",
+          "stop": "2026-09-04",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~20 - 81",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Derila Ergo Neck Support Pillow | Derila",
+        "caption": "derilashop.com",
+        "body_snippet": "For a limited time, save up to 75%",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2245339246252493",
+        "effectiveness_score": 21,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage"
+        ]
+      },
+      {
+        "id": "825873770062350",
+        "page_name": "Joyreels-4-jin4",
+        "page_id": "699930669874195",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-21",
+          "stop": "2025-11-21",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 1,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.30%",
+          "estimated_cpc": "$2.00",
+          "estimated_clicks": "~0 - 0",
+          "estimated_global_impressions": "~1 - 2",
+          "estimated_spend": "$0 - $0",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "The Divorced Navy Queen Awakens",
+        "caption": "page.joyreels.com",
+        "body_snippet": "Former Navy Seals five-star general “Night Raven” Quinn Bridger fulfills her late parents’ wish for her to have a normal life by retiring an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=825873770062350",
+        "effectiveness_score": 20,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "1200639028612833",
+        "page_name": "Joyreels-4-jin4",
+        "page_id": "699930669874195",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-21",
+          "stop": "2025-11-21",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 65,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.30%",
+          "estimated_cpc": "$2.00",
+          "estimated_clicks": "~1 - 2",
+          "estimated_global_impressions": "~85 - 156",
+          "estimated_spend": "$2 - $4",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "The Divorced Navy Queen Awakens",
+        "caption": "page.joyreels.com",
+        "body_snippet": "Former Navy Seals five-star general “Night Raven” Quinn Bridger fulfills her late parents’ wish for her to have a normal life by retiring an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1200639028612833",
+        "effectiveness_score": 20,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "1549654102701921",
+        "page_name": "Joyreels-4-jin4",
+        "page_id": "699930669874195",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-20",
+          "stop": "2025-11-21",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 22,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.30%",
+          "estimated_cpc": "$2.00",
+          "estimated_clicks": "~0 - 1",
+          "estimated_global_impressions": "~29 - 53",
+          "estimated_spend": "$1 - $1",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "The Divorced Navy Queen Awakens",
+        "caption": "page.joyreels.com",
+        "body_snippet": "Former Navy Seals five-star general “Night Raven” Quinn Bridger fulfills her late parents’ wish for her to have a normal life by retiring an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1549654102701921",
+        "effectiveness_score": 20,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "1615157019863561",
+        "page_name": "Joyreels-4-jin4",
+        "page_id": "699930669874195",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-21",
+          "stop": "2025-11-21",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 9,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.30%",
+          "estimated_cpc": "$2.00",
+          "estimated_clicks": "~0 - 0",
+          "estimated_global_impressions": "~12 - 22",
+          "estimated_spend": "$0 - $1",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "The Divorced Navy Queen Awakens",
+        "caption": "page.joyreels.com",
+        "body_snippet": "Former Navy Seals five-star general “Night Raven” Quinn Bridger fulfills her late parents’ wish for her to have a normal life by retiring an",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1615157019863561",
+        "effectiveness_score": 20,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      }
+    ]
+  }
+}

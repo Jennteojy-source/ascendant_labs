@@ -1,0 +1,1137 @@
+{
+  "target_url": "https://prodentim101.com/text.php?hopId=f725f618-186d-427e-9bd6-d72af7cf06c6&hop=zzzzz",
+  "final_destination": "https://prodentim101.com/text.php?hopId=f725f618-186d-427e-9bd6-d72af7cf06c6&hop=zzzzz",
+  "brand": "prodentim101",
+  "network": "Direct Merchant / Independent",
+  "timestamp": "2026-09-11T08:16:29.354Z",
+  "funnel_intelligence": {
+    "target_url": "https://prodentim101.com/text.php?hopId=f725f618-186d-427e-9bd6-d72af7cf06c6&hop=zzzzz",
+    "final_destination": "https://prodentim101.com/text.php?hopId=f725f618-186d-427e-9bd6-d72af7cf06c6&hop=zzzzz",
+    "hops_count": 1,
+    "redirect_chain": [
+      {
+        "hop": 1,
+        "url": "https://prodentim101.com/text.php?hopId=f725f618-186d-427e-9bd6-d72af7cf06c6&hop=zzzzz",
+        "statusCode": 200,
+        "latency_ms": 162
+      }
+    ],
+    "affiliate_signatures": {
+      "hopid": "f725f618-186d-427e-9bd6-d72af7cf06c6",
+      "hop": "zzzzz"
+    },
+    "page_intelligence": {
+      "page_title": "ProDentim - Text Presentation",
+      "tracking_pixels": {
+        "meta_pixel_ids": [],
+        "google_tag_manager": [
+          "GTM-MVDK935",
+          "GTM-PWJM66K",
+          "GTM-NGKSS4FM",
+          "GTM-P27KW4SV"
+        ],
+        "google_analytics": [],
+        "google_ads_conversion": [],
+        "microsoft_clarity": [],
+        "tiktok_pixels": []
+      },
+      "video_infrastructure": {
+        "detected_players": [
+          "Standard HTML5 / Native Player"
+        ],
+        "buy_button_delay_seconds": null,
+        "formatted_delay": "None (Immediate Buy Button / Direct Order)",
+        "delay_mechanism": "Direct Buy Button"
+      },
+      "checkout_gateways": [],
+      "tech_stack": [
+        "Cloudflare Edge Network & CDN",
+        "PHP Dynamic Backend"
+      ]
+    },
+    "infrastructure_subdomains": [
+      "orla.prodentim101.com",
+      "static.prodentim101.com"
+    ]
+  },
+  "meta_ads_intelligence": {
+    "total_candidates": 31,
+    "total_matches": 23,
+    "active_ads_count": 2,
+    "top_publishers": {
+      "Ag Pixel Perfect": 4,
+      "Your Best Products Online ": 1,
+      "Larissa Pereira Lima": 4,
+      "Mkt Global9": 2,
+      "alim266975": 2,
+      "Prodentim": 1,
+      "Healthy Acquisitions": 4,
+      "Estética e Beleza": 5
+    },
+    "ads": [
+      {
+        "id": "4334723406842388",
+        "page_name": "Mkt Global9",
+        "page_id": "1188635277656799",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-06-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 99
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.13%",
+          "estimated_cpc": "$1.22",
+          "estimated_clicks": "~3,195 - 10,650",
+          "estimated_global_impressions": "~150,000 - 500,000",
+          "estimated_spend": "$3,900 - $13,000",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "High"
+        },
+        "headline": "ProDentim - Text Presentation",
+        "caption": "https://prodentim101.com/text.php?hopId=51c3ce39-e...",
+        "body_snippet": "",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=4334723406842388",
+        "effectiveness_score": 59,
+        "grade": "C (Break-Even Test)",
+        "triggers": []
+      },
+      {
+        "id": "1520952999474830",
+        "page_name": "Mkt Global9",
+        "page_id": "1188635277656799",
+        "is_active": true,
+        "status": "ACTIVE",
+        "flight_dates": {
+          "start": "2026-06-04",
+          "stop": "Present (Still Running)",
+          "duration_days": 99
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "whatsapp",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.13%",
+          "estimated_cpc": "$1.22",
+          "estimated_clicks": "~3,195 - 10,650",
+          "estimated_global_impressions": "~150,000 - 500,000",
+          "estimated_spend": "$3,900 - $13,000",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "High"
+        },
+        "headline": "ProDentim - Text Presentation",
+        "caption": "https://prodentim101.com/text.php?hopId=51c3ce39-e...",
+        "body_snippet": "",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1520952999474830",
+        "effectiveness_score": 59,
+        "grade": "C (Break-Even Test)",
+        "triggers": []
+      },
+      {
+        "id": "1179033410863028",
+        "page_name": "Healthy Acquisitions",
+        "page_id": "731682330035848",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-12",
+          "stop": "2025-11-14",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 23,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.07%",
+          "estimated_cpc": "$1.26",
+          "estimated_clicks": "~1 - 1",
+          "estimated_global_impressions": "~30 - 55",
+          "estimated_spend": "$1 - $1",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Suffering from sinusitis, stuffy nose, allergies, digestive issues, headache, dry mouth, or drooling?This oral probiotic is for you!",
+        "caption": "https://myprodentim101.com/video_vidalnew.php?hopI...",
+        "body_snippet": "Sinusitis, allergies, headache, digestive issues are often due to poor mouth flora. Discover Prodentim, the natural oral probiotic backed by",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1179033410863028",
+        "effectiveness_score": 40,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "2090132855183406",
+        "page_name": "Larissa Pereira Lima",
+        "page_id": "158440587356707",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-06-02",
+          "stop": "2026-06-03",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 66,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.22%",
+          "estimated_cpc": "$1.17",
+          "estimated_clicks": "~2 - 4",
+          "estimated_global_impressions": "~86 - 158",
+          "estimated_spend": "$2 - $4",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "All Natural Solution For Recurring Gum & Teeth Issues",
+        "caption": "prodentim101.com",
+        "body_snippet": "SL: Simple “Soft Mineral” Trick Helps Strengthen Loose Teeth & Stop Bleeding Gums Researchers just revealed a simple “soft mineral” method, ",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2090132855183406",
+        "effectiveness_score": 39,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain",
+          "Friction Elimination",
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1332914858248335",
+        "page_name": "Your Best Products Online ",
+        "page_id": "1180383711822001",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-06-24",
+          "stop": "2026-06-24",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "2.07%",
+          "estimated_cpc": "$1.26",
+          "estimated_clicks": "~31 - 124",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Order Now",
+        "caption": "prodentim101.com",
+        "body_snippet": "Your smile deserves daily support from the inside out. ProDentim brings advanced oral probiotics designed to help support healthy teeth, gum",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1332914858248335",
+        "effectiveness_score": 36,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Friction Elimination",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1684812806155878",
+        "page_name": "alim266975",
+        "page_id": "942742018915543",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-05-18",
+          "stop": "2026-05-22",
+          "duration_days": 4
+        },
+        "where_active": {
+          "platforms": [
+            "instagram"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.62%",
+          "estimated_cpc": "$1.60",
+          "estimated_clicks": "~162 - 567",
+          "estimated_global_impressions": "~10,000 - 35,000",
+          "estimated_spend": "$260 - $910",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "",
+        "caption": "prodentim101.com",
+        "body_snippet": "🦷✨ Say hello to a healthier, brighter smile with ProDentim! Support your oral health naturally with a powerful blend of probiotics and nutr",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1684812806155878",
+        "effectiveness_score": 35,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "986413670399547",
+        "page_name": "alim266975",
+        "page_id": "942742018915543",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-05-13",
+          "stop": "2026-05-17",
+          "duration_days": 4
+        },
+        "where_active": {
+          "platforms": [
+            "instagram"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.62%",
+          "estimated_cpc": "$1.60",
+          "estimated_clicks": "~162 - 567",
+          "estimated_global_impressions": "~10,000 - 35,000",
+          "estimated_spend": "$260 - $910",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Moderate"
+        },
+        "headline": "",
+        "caption": "prodentim101.com",
+        "body_snippet": "🦷✨ Say hello to a healthier, brighter smile with ProDentim! Support your oral health naturally with a powerful blend of probiotics and nutr",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=986413670399547",
+        "effectiveness_score": 35,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "3147113612166441",
+        "page_name": "Prodentim",
+        "page_id": "923901300812594",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-01-28",
+          "stop": "2026-01-30",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 175,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.45%",
+          "estimated_cpc": "$1.79",
+          "estimated_clicks": "~3 - 6",
+          "estimated_global_impressions": "~228 - 420",
+          "estimated_spend": "$6 - $11",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "A New Way to Care for Your Smile",
+        "caption": "prodentim101.com",
+        "body_snippet": "Many people take care of their teeth every day… But still struggle with bad breath and gum issues. What if oral health started from the insi",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=3147113612166441",
+        "effectiveness_score": 32,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "881180644478357",
+        "page_name": "Healthy Acquisitions",
+        "page_id": "731682330035848",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-12",
+          "stop": "2025-11-14",
+          "duration_days": 2
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 1,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.50%",
+          "estimated_cpc": "$1.73",
+          "estimated_clicks": "~0 - 0",
+          "estimated_global_impressions": "~1 - 2",
+          "estimated_spend": "$0 - $0",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Get this natural remedy to heal your gums and teeth",
+        "caption": "https://prodentim101.com/text.php?hopId=e400ae45-e...",
+        "body_snippet": "I used to dread waking up in the mornings. The first thing I would do was brush my teeth, but every time I did, I would see blood in the sin",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=881180644478357",
+        "effectiveness_score": 28,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain"
+        ]
+      },
+      {
+        "id": "855306407550098",
+        "page_name": "Ag Pixel Perfect",
+        "page_id": "339010092629112",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-08-25",
+          "stop": "2026-08-26",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.64%",
+          "estimated_cpc": "$1.59",
+          "estimated_clicks": "~25 - 98",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "2 BOTTLES · 60 Day Supply ·$158",
+        "caption": "prodentim101.com",
+        "body_snippet": "Get ProDentim® directly from the official seller. Includes 2 free bonuses & free shipping.",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=855306407550098",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "1465141184930809",
+        "page_name": "Larissa Pereira Lima",
+        "page_id": "158440587356707",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-06-03",
+          "stop": "2026-06-06",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 36,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.45%",
+          "estimated_cpc": "$1.79",
+          "estimated_clicks": "~1 - 1",
+          "estimated_global_impressions": "~47 - 86",
+          "estimated_spend": "$1 - $2",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Daily Support for a Radiant Smile",
+        "caption": "prodentim101.com",
+        "body_snippet": "our oral health is key to overall well-being. ProDentim provides advanced probiotic support to help maintain strong teeth and healthy gums, ",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1465141184930809",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "2059578445443223",
+        "page_name": "Larissa Pereira Lima",
+        "page_id": "158440587356707",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-06-03",
+          "stop": "2026-06-06",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 49,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.45%",
+          "estimated_cpc": "$1.79",
+          "estimated_clicks": "~1 - 2",
+          "estimated_global_impressions": "~64 - 118",
+          "estimated_spend": "$2 - $3",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "The Future of Oral Wellness is Here",
+        "caption": "prodentim101.com",
+        "body_snippet": "Explore the innovative approach to dental care with ProDentim. Our clinically researched formula is crafted to nurture your oral flora, cont",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2059578445443223",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "2265500927536683",
+        "page_name": "Larissa Pereira Lima",
+        "page_id": "158440587356707",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-06-03",
+          "stop": "2026-06-06",
+          "duration_days": 3
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 25,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.45%",
+          "estimated_cpc": "$1.79",
+          "estimated_clicks": "~0 - 1",
+          "estimated_global_impressions": "~33 - 60",
+          "estimated_spend": "$1 - $2",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Unlock Your Mouth's Natural Balance",
+        "caption": "prodentim101.com",
+        "body_snippet": "Discover how supporting your oral microbiome can lead to a healthier, fresher smile. ProDentim offers a unique blend designed to promote a t",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2265500927536683",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      },
+      {
+        "id": "707696765707365",
+        "page_name": "Healthy Acquisitions",
+        "page_id": "731682330035848",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-12",
+          "stop": "2025-11-13",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.64%",
+          "estimated_cpc": "$1.59",
+          "estimated_clicks": "~25 - 98",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Suffering from sensitive teeth, gum recession, or bad breath? These everyday items you use may surprise you. Watch the video and click on ORDER NOW.",
+        "caption": "https://myprodentim101.com/video_vidalnew.php?hopI...",
+        "body_snippet": "The shocking truth about the things we use everyday that destroy good bacteria in our mouth, giving us sensitive teeth, gum recession and bl",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=707696765707365",
+        "effectiveness_score": 27,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results",
+          "Versus / Comparison"
+        ]
+      },
+      {
+        "id": "767357096298245",
+        "page_name": "Estética e Beleza",
+        "page_id": "208844305653972",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-10-01",
+          "stop": "2025-10-02",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 31,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~1 - 1",
+          "estimated_global_impressions": "~40 - 74",
+          "estimated_spend": "$1 - $2",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "ProDentim - Text Presentation",
+        "caption": "prodentim101.com",
+        "body_snippet": "Stop brushing like it’s 1999. I’m not here to pitch you toothpaste. I’m here to upgrade your mouth to first-class. ProDentim isn’t your aver",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=767357096298245",
+        "effectiveness_score": 26,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain"
+        ]
+      },
+      {
+        "id": "785435847628170",
+        "page_name": "Estética e Beleza",
+        "page_id": "208844305653972",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-10-01",
+          "stop": "2025-10-01",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~20 - 81",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "ProDentim - Video Presentation",
+        "caption": "prodentim101.com",
+        "body_snippet": "Stop brushing like it’s 1999. I’m not here to pitch you toothpaste. I’m here to upgrade your mouth to first-class. ProDentim isn’t your aver",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=785435847628170",
+        "effectiveness_score": 26,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain"
+        ]
+      },
+      {
+        "id": "4256344331304529",
+        "page_name": "Estética e Beleza",
+        "page_id": "208844305653972",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-10-01",
+          "stop": "2025-10-01",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 81,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~1 - 3",
+          "estimated_global_impressions": "~105 - 194",
+          "estimated_spend": "$3 - $5",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "ProDentim - Video Presentation",
+        "caption": "prodentim101.com",
+        "body_snippet": "Stop brushing like it’s 1999. I’m not here to pitch you toothpaste. I’m here to upgrade your mouth to first-class. ProDentim isn’t your aver",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=4256344331304529",
+        "effectiveness_score": 26,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain"
+        ]
+      },
+      {
+        "id": "1140943147970591",
+        "page_name": "Estética e Beleza",
+        "page_id": "208844305653972",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-09-30",
+          "stop": "2025-10-01",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 88,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~2 - 3",
+          "estimated_global_impressions": "~114 - 211",
+          "estimated_spend": "$3 - $5",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "ProDentim - Text Presentation",
+        "caption": "prodentim101.com",
+        "body_snippet": "Stop brushing like it’s 1999. I’m not here to pitch you toothpaste. I’m here to upgrade your mouth to first-class. ProDentim isn’t your aver",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1140943147970591",
+        "effectiveness_score": 26,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain"
+        ]
+      },
+      {
+        "id": "1714350259157622",
+        "page_name": "Estética e Beleza",
+        "page_id": "208844305653972",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-09-30",
+          "stop": "2025-10-01",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": 59,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~1 - 2",
+          "estimated_global_impressions": "~77 - 142",
+          "estimated_spend": "$2 - $4",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "ProDentim - Text Presentation",
+        "caption": "prodentim101.com",
+        "body_snippet": "Stop brushing like it’s 1999. I’m not here to pitch you toothpaste. I’m here to upgrade your mouth to first-class. ProDentim isn’t your aver",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1714350259157622",
+        "effectiveness_score": 26,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Urgency & Problem Pain"
+        ]
+      },
+      {
+        "id": "1478443927439794",
+        "page_name": "Ag Pixel Perfect",
+        "page_id": "339010092629112",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-08-25",
+          "stop": "2026-08-25",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~20 - 81",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "2 BOTTLES · 60 Day Supply ·$158",
+        "caption": "prodentim101.com",
+        "body_snippet": "ProDentim® Official Website - Save Big On ProDentim Today",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1478443927439794",
+        "effectiveness_score": 21,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage"
+        ]
+      },
+      {
+        "id": "2041795019827924",
+        "page_name": "Ag Pixel Perfect",
+        "page_id": "339010092629112",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-08-25",
+          "stop": "2026-08-26",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~20 - 81",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "2 BOTTLES · 60 Day Supply ·$158",
+        "caption": "prodentim101.com",
+        "body_snippet": "ProDentim® Official Website - Save Big On ProDentim Today",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2041795019827924",
+        "effectiveness_score": 21,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Financial Arbitrage"
+        ]
+      },
+      {
+        "id": "1906710190261280",
+        "page_name": "Healthy Acquisitions",
+        "page_id": "731682330035848",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2025-11-12",
+          "stop": "2025-11-13",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "audience_network",
+            "messenger",
+            "threads"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.35%",
+          "estimated_cpc": "$1.93",
+          "estimated_clicks": "~20 - 81",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "Suffering from teeth sensitivity, bleeding gums or bad breath? Let's rebuild our teeth and gums the natural way with Prodentim. Get this oral probiotic specially formulated just for you.",
+        "caption": "https://prodentim101.com/text.php?hopId=e400ae45-e...",
+        "body_snippet": "Suffering from sensitive teeth and gums or bad breath? Discover Prodentim, the natural oral probiotic backed by studies and proven to work. ",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=1906710190261280",
+        "effectiveness_score": 21,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": [
+          "Performance & Results"
+        ]
+      },
+      {
+        "id": "2854697904928742",
+        "page_name": "Ag Pixel Perfect",
+        "page_id": "339010092629112",
+        "is_active": false,
+        "status": "INACTIVE",
+        "flight_dates": {
+          "start": "2026-08-25",
+          "stop": "2026-08-25",
+          "duration_days": 1
+        },
+        "where_active": {
+          "platforms": [
+            "facebook",
+            "instagram",
+            "messenger"
+          ],
+          "languages": [
+            "en"
+          ]
+        },
+        "verified_meta_data": {
+          "real_eu_reach": null,
+          "real_impressions_range": null,
+          "data_source": "Meta Ad Library Graph API (Verified Transparency Data)"
+        },
+        "estimated_metrics": {
+          "estimated_ctr": "1.30%",
+          "estimated_cpc": "$2.00",
+          "estimated_clicks": "~20 - 78",
+          "estimated_global_impressions": "~1,500 - 6,000",
+          "estimated_spend": "$39 - $156",
+          "estimation_model": "Continuous Flight Longevity & NLP Copy Heuristics ($26.00 CPM Baseline)",
+          "confidence": "Low"
+        },
+        "headline": "2 BOTTLES · 60 Day Supply ·$158",
+        "caption": "prodentim101.com",
+        "body_snippet": "",
+        "ad_library_url": "https://www.facebook.com/ads/library/?id=2854697904928742",
+        "effectiveness_score": 20,
+        "grade": "D/F (Killed Test Dud)",
+        "triggers": []
+      }
+    ]
+  }
+}

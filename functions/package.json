@@ -7,10 +7,7 @@
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
-    "test": "node test_functions.js",
-    "eval-mba": "node scripts/eval_mba.js",
-    "sync-mba": "node scripts/sync_mba.js"
+    "deploy": "firebase deploy --only functions"
   },
   "engines": {
     "node": "20"

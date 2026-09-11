@@ -52,7 +52,7 @@
     const currentParams = new URLSearchParams(window.location.search);
     if (!currentParams.toString()) return;
 
-    const affiliateLinks = document.querySelectorAll('a[href^="/r/"], a[href^="/nordvpn/"]');
+    const affiliateLinks = document.querySelectorAll('a[href^="/r/"]');
     affiliateLinks.forEach((link) => {
       try {
         const href = link.getAttribute('href');

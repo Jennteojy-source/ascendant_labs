@@ -32,7 +32,7 @@ function cors(res) {
   res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
 }
 
-const WARM_HTTP = { minInstances: 1, timeoutSeconds: 60, memory: "256MiB" };
+const WARM_HTTP = { minInstances: 0, timeoutSeconds: 60, memory: "256MiB" };
 
 function graphPostJson(hostname, path, token, payload, extraHeaders = {}) {
   const postData = JSON.stringify(payload);
