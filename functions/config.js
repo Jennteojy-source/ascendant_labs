@@ -48,7 +48,7 @@ const config = {
       label: "AirHelp Flight Delay Compensation",
       shortPath: "airhelp",
       aliases: ["airhelp", "flight", "flights", "flight-delay", "compensation"],
-      targetUrl: optionalEnv("AIRHELP_AFFILIATE_URL", "https://funnel.airhelp.com/claims/new?lang=en"),
+      targetUrl: optionalEnv("AIRHELP_AFFILIATE_URL", "https://airhelp.tp.st/8J9aB9eM"),
     },
     vpn: {
       label: "NordVPN",
@@ -105,6 +105,7 @@ function buildPartnerUrl(slug, clickId, extras = {}) {
   try {
     const parsed = new URL(partner.targetUrl);
     if (clickId) {
+      parsed.searchParams.set("sub_id", clickId);
       parsed.searchParams.set("tid", clickId);
       parsed.searchParams.set("aff_sub", clickId);
     }
