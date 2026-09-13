@@ -153,6 +153,8 @@ a {
     font-size: 1.25rem;
     font-weight: 800;
     letter-spacing: -0.02em;
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
 .logo-icon-wrap {
@@ -167,6 +169,8 @@ a {
     display: flex;
     align-items: center;
     gap: 28px;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .nav-link {
@@ -179,10 +183,42 @@ a {
     color: var(--cyan-400);
 }
 
+.header-cta {
+    padding: 8px 14px;
+}
+
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
+}
+
+.lang-select-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+
+.lang-select-wrap select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg-surface-raised);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+    border-radius: 10px;
+    height: 38px;
+    padding: 0 28px 0 10px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 14px) 16px, calc(100% - 9px) 16px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+html[dir="rtl"] body {
+    text-align: right;
 }
 
 /* Theme Toggle Button */
@@ -253,7 +289,7 @@ a {
 
 /* --- Hero Section --- */
 .hero-section {
-    padding: 24px 0 20px;
+    padding: 36px 0 28px;
     text-align: center;
     position: relative;
     z-index: 1;
@@ -276,24 +312,65 @@ a {
 }
 
 .hero-title {
-    font-size: clamp(1.75rem, 4.2vw, 2.85rem);
-    letter-spacing: -0.03em;
+    font-size: clamp(1.7rem, 4.2vw, 2.75rem);
+    letter-spacing: -0.015em;
     margin-bottom: 6px;
-    line-height: 1.22;
+    line-height: 1.25;
+    text-wrap: balance;
+    overflow-wrap: break-word;
 }
 
 .hero-title-highlight {
-    background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    color: #38bdf8;
+}
+
+[data-theme="light"] .hero-title-highlight {
+    color: #0284c7;
+}
+
+.money-payout {
+    display: inline;
+    white-space: nowrap;
+    letter-spacing: 0;
+    word-spacing: 0;
+}
+
+.hero-title-highlight .money-payout {
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 55%, #0284c7 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
+    color: #38bdf8;
 }
 
 .hero-lead {
     font-size: 0.96rem;
     color: var(--text-secondary);
     max-width: 580px;
-    margin: 0 auto 16px;
+    margin: 0 auto 14px;
     line-height: 1.45;
+}
+
+.coverage-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto 20px;
+    max-width: 640px;
+}
+
+.coverage-row span {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
 /* --- Claim Portal Showcase Card --- */
@@ -302,13 +379,13 @@ a {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border-accent);
-    border-radius: 18px;
-    padding: 18px 20px 14px;
+    border-radius: 24px;
+    padding: 22px 22px 18px;
     box-shadow: var(--card-shadow), var(--glow-cyan);
     margin: 0 auto 20px;
-    max-width: 680px;
+    max-width: 640px;
     position: relative;
-    text-align: left;
+    text-align: start;
 }
 
 .portal-card-header {
@@ -416,9 +493,8 @@ a {
     transition: all 0.15s ease;
 }
 
-.route-swap:hover {
-    border-color: var(--cyan-400);
-    color: var(--cyan-400);
+.route-swap svg {
+    display: block;
 }
 
 .airport-suggest {
@@ -491,7 +567,7 @@ a {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 12px;
+    padding: 10px 8px;
     border-radius: 8px;
     font-size: 0.85rem;
     font-weight: 600;
@@ -499,6 +575,9 @@ a {
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     user-select: none;
     border: 1px solid transparent;
+    text-align: center;
+    line-height: 1.25;
+    min-height: 42px;
 }
 
 .disruption-option input[type="radio"]:checked + .disruption-pill {
@@ -536,7 +615,9 @@ a {
 }
 
 .cta-submit-btn {
-    height: 48px;
+    min-height: 48px;
+    height: auto;
+    padding: 12px 16px;
     font-size: 1.02rem;
     font-weight: 700;
     border-radius: 12px;
@@ -549,6 +630,7 @@ a {
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     color: #ffffff;
     cursor: pointer;
+    white-space: normal;
 }
 
 .cta-submit-btn:hover {
@@ -650,12 +732,20 @@ a {
 }
 
 .step-num {
-    font-size: 0.78rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: var(--cyan-400);
-    margin-bottom: 10px;
+    background: var(--badge-bg);
+    border: 1px solid var(--border-accent);
+    margin-bottom: 14px;
+    text-transform: uppercase;
 }
 
 .step-card h3 {
@@ -714,6 +804,17 @@ a {
     color: var(--text-secondary);
 }
 
+.compare-list li {
+    position: relative;
+    padding-inline-start: 1em;
+}
+
+.compare-list li::before {
+    content: "•";
+    position: absolute;
+    inset-inline-start: 0;
+}
+
 /* --- FAQ Accordion --- */
 .faq-wrap {
     max-width: 780px;
@@ -744,7 +845,7 @@ a {
     font-size: 0.98rem;
     font-weight: 700;
     color: var(--text-primary);
-    text-align: left;
+    text-align: start;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -826,6 +927,8 @@ a {
     font-size: 1.15rem;
     font-weight: 800;
     margin-bottom: 8px;
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
 .footer-desc {
@@ -858,6 +961,9 @@ a {
 
 /* --- Responsive Media Queries --- */
 @media (max-width: 900px) {
+    .nav-links {
+        display: none;
+    }
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 16px;
@@ -893,7 +999,14 @@ a {
         height: 36px;
     }
 
-    .nav-links {
+    .lang-select-wrap select {
+        height: 36px;
+        padding: 0 26px 0 8px;
+        font-size: 0.74rem;
+        background-position: calc(100% - 12px) 15px, calc(100% - 7px) 15px;
+    }
+
+    .header-cta {
         display: none;
     }
 
@@ -909,17 +1022,20 @@ a {
     }
 
     .hero-title {
-        font-size: 1.85rem;
-        line-height: 1.18;
+        font-size: 1.72rem;
+        line-height: 1.25;
         margin-bottom: 8px;
-        letter-spacing: -0.035em;
+        letter-spacing: -0.01em;
     }
 
-    .hero-lead {
-        font-size: 0.95rem;
-        line-height: 1.45;
-        margin-bottom: 18px;
-        max-width: 22em;
+    .coverage-row {
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .coverage-row span {
+        padding: 5px 9px;
+        font-size: 0.7rem;
     }
 
     .claim-portal-card {
@@ -997,17 +1113,18 @@ a {
     }
 
     .cta-submit-btn {
-        height: 52px;
+        min-height: 52px;
+        height: auto;
         font-size: 1.02rem;
         border-radius: 14px;
     }
 
     .portal-card-footer {
-        gap: 6px 12px;
+        gap: 8px 12px;
         margin-top: 2px;
         padding-top: 12px;
-        flex-wrap: nowrap;
-        justify-content: space-between;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .footer-badge-pill {
@@ -1061,4 +1178,45 @@ a {
         padding: 16px;
         font-size: 0.94rem;
     }
+}
+
+html[lang="ar"] body {
+    font-family: 'Noto Sans Arabic', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html[dir="rtl"] .hero-section,
+html[dir="rtl"] .section-header,
+html[dir="rtl"] .cta-section,
+html[dir="rtl"] .site-footer {
+    text-align: center;
+}
+
+html[dir="rtl"] .lang-select-wrap select {
+    padding: 0 10px 0 28px;
+    background-position: 12px 16px, 7px 16px;
+}
+
+html[dir="rtl"] .cta-submit-btn svg,
+html[dir="rtl"] .btn svg {
+    transform: scaleX(-1);
+}
+
+html[dir="rtl"] .footer-badge-pill::before {
+    margin-right: 0;
+    margin-left: 5px;
+}
+
+html[lang="de"] .hero-title,
+html[lang="pl"] .hero-title,
+html[lang="nl"] .hero-title {
+    font-size: clamp(1.55rem, 3.8vw, 2.45rem);
+}
+
+.hero-badge-pill,
+.portal-badge,
+.section-tag {
+    text-wrap: balance;
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.35;
 }

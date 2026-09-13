@@ -6,10 +6,19 @@ const { getClientIp, cors, WARM_HTTP } = require("../lib/http");
 const { sendMetaCapiEvent } = require("../lib/capi");
 
 const IATA_RE = /^[A-Z]{3}$/;
+const ALLOWED_LANGS = new Set(["en", "de", "fr", "es", "pt", "pt-br", "it", "nl", "pl", "tr", "ar", "da", "sv", "nb", "ro", "fi", "el", "ru"]);
 
 function normalizeIata(value) {
   const code = String(value || "").trim().toUpperCase();
   return IATA_RE.test(code) ? code : "";
+}
+
+function normalizeLang(value) {
+  const raw = String(value || "en").trim().toLowerCase().replace("_", "-");
+  if (raw === "pt-br" || raw.startsWith("pt-br")) return "pt-BR";
+  const lang = raw.split("-")[0];
+  if (lang === "pt" && /pt-br/i.test(String(value || ""))) return "pt-BR";
+  return ALLOWED_LANGS.has(lang) ? lang : "en";
 }
 
 function cookieValue(req, name) {
@@ -18,7 +27,7 @@ function cookieValue(req, name) {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
-function buildFunnelUrl(originIata, destIata, disruptionType = "delayed", clickId = "") {
+function buildFunnelUrl(originIata, destIata, disruptionType = "delayed", clickId = "", lang = "en") {
   try {
     const targetFunnel = new URL("https://funnel.airhelp.com/claims/new/trip-details");
     if (originIata) targetFunnel.searchParams.set("departureAirportIata", originIata);
@@ -26,7 +35,7 @@ function buildFunnelUrl(originIata, destIata, disruptionType = "delayed", clickI
     if (disruptionType && (disruptionType === "delayed" || disruptionType === "cancelled")) {
       targetFunnel.searchParams.set("disruption_type", disruptionType);
     }
-    targetFunnel.searchParams.set("lang", "en");
+    targetFunnel.searchParams.set("lang", normalizeLang(lang));
 
     const tpUrl = new URL("https://tp.media/r");
     tpUrl.searchParams.set("campaign_id", "120");
@@ -57,6 +66,7 @@ function parseBody(req) {
     fbp: String(body.fbp || cookieValue(req, "_fbp") || "").slice(0, 120),
     fbc: String(body.fbc || cookieValue(req, "_fbc") || "").slice(0, 180),
     source: String(body.source || query.source || "web").slice(0, 40),
+    lang: normalizeLang(body.lang || query.lang || req.get("accept-language")),
     eventSourceUrl: String(body.eventSourceUrl || req.get("referer") || "https://ascendantlabs.co/").slice(0, 500),
   };
 }
@@ -91,7 +101,7 @@ const claimStart = onRequest(WARM_HTTP, async (req, res) => {
   const userAgent = req.get("user-agent") || "";
   const fbclidMatch = String(req.query.fbclid || "");
   const fbc = fields.fbc || (fbclidMatch ? `fb.1.${clickedAt}.${fbclidMatch}` : "");
-  const redirectUrl = buildFunnelUrl(fields.originIata, fields.destIata, fields.disruptionType, clickId);
+  const redirectUrl = buildFunnelUrl(fields.originIata, fields.destIata, fields.disruptionType, clickId, fields.lang);
 
   const record = {
     id: eventId,
@@ -101,7 +111,7 @@ const claimStart = onRequest(WARM_HTTP, async (req, res) => {
     disruptionType: fields.disruptionType,
     originLabel: fields.originLabel,
     destLabel: fields.destLabel,
-    source: fields.source,
+    lang: fields.lang,
     ip,
     userAgent,
     fbp: fields.fbp,

@@ -7,6 +7,147 @@
   'use strict';
 
   var AIRPORTS = window.ASCENDANT_AIRPORTS || [];
+  var I18N = window.ASCENDANT_I18N || { langs: [{ id: 'en', label: 'EN' }], dict: { en: {} }, countryLang: {}, airhelp: { en: 'en' } };
+  var EUR_COUNTRIES = { AT:1, BE:1, BG:1, HR:1, CY:1, CZ:1, DK:1, EE:1, FI:1, FR:1, DE:1, GR:1, HU:1, IE:1, IT:1, LV:1, LT:1, LU:1, MT:1, NL:1, PL:1, PT:1, RO:1, SK:1, SI:1, ES:1, SE:1, GB:1, UK:1, CH:1, NO:1, IS:1, LI:1, AD:1, MC:1 };
+  var currentLang = 'en';
+  var currentCurrency = document.documentElement.getAttribute('data-currency') || 'EUR';
+  var currentPayout = currentCurrency === 'USD' ? '$650' : '€600';
+  var currentCountry = '';
+
+  function supportedLang(code) {
+    var id = String(code || '').toLowerCase().replace('_', '-');
+    if (id === 'pt-br') return 'pt';
+    id = id.split('-')[0];
+    if (id === 'nb' || id === 'nn') id = 'en';
+    return I18N.dict && I18N.dict[id] ? id : '';
+  }
+
+  function airhelpLang() {
+    var map = I18N.airhelp || {};
+    var code = map[currentLang] || 'en';
+    var nav = String(navigator.language || '').toLowerCase();
+    if (currentLang === 'pt' && (currentCountry === 'BR' || nav === 'pt-br' || nav.indexOf('pt-br') === 0)) {
+      return 'pt-BR';
+    }
+    return code;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function t(key) {
+    var dict = (I18N.dict && I18N.dict[currentLang]) || {};
+    var fallback = (I18N.dict && I18N.dict.en) || {};
+    var str = dict[key] || fallback[key] || key;
+    return String(str).replace(/\{payout\}/g, currentPayout);
+  }
+
+  function tHtml(key) {
+    var dict = (I18N.dict && I18N.dict[currentLang]) || {};
+    var fallback = (I18N.dict && I18N.dict.en) || {};
+    var raw = dict[key] || fallback[key] || key;
+    return escapeHtml(raw).replace(
+      /\{payout\}/g,
+      '<span class="money-payout">' + escapeHtml(currentPayout) + '</span>'
+    );
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.setAttribute('data-lang', currentLang);
+    document.title = t('meta.title');
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.innerHTML = tHtml(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+      el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
+    });
+    var select = document.getElementById('lang-select');
+    if (select && select.value !== currentLang) select.value = currentLang;
+  }
+
+  function applyCurrency(ccy) {
+    currentCurrency = ccy === 'USD' ? 'USD' : 'EUR';
+    currentPayout = currentCurrency === 'USD' ? '$650' : '€600';
+    document.documentElement.setAttribute('data-currency', currentCurrency);
+    try { sessionStorage.setItem('al_ccy', currentCurrency); } catch (e) {}
+    applyI18n();
+  }
+
+  function applyLang(lang, manual) {
+    var next = supportedLang(lang) || 'en';
+    currentLang = next;
+    try {
+      sessionStorage.setItem('al_lang', next);
+      if (manual) localStorage.setItem('al_lang_manual', '1');
+    } catch (e) {}
+    applyI18n();
+  }
+
+  function langFromBrowser() {
+    var list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+    for (var i = 0; i < list.length; i++) {
+      var hit = supportedLang(list[i]);
+      if (hit) return hit;
+    }
+    return '';
+  }
+
+  function populateLangSelect() {
+    var select = document.getElementById('lang-select');
+    if (!select || !I18N.langs) return;
+    select.innerHTML = I18N.langs.map(function (item) {
+      return '<option value="' + item.id + '">' + item.label + '</option>';
+    }).join('');
+    select.value = currentLang;
+    select.addEventListener('change', function () {
+      applyLang(select.value, true);
+    });
+  }
+
+  function detectLocale() {
+    var queryLang = supportedLang(new URLSearchParams(window.location.search).get('lang'));
+    var storedLang = '';
+    var manual = false;
+    try {
+      storedLang = sessionStorage.getItem('al_lang') || '';
+      manual = localStorage.getItem('al_lang_manual') === '1';
+    } catch (e) {}
+    applyLang(queryLang || (manual && storedLang) || langFromBrowser() || storedLang || 'en');
+    applyCurrency(currentCurrency);
+    populateLangSelect();
+
+    var controller = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 1800);
+    fetch('https://get.geojs.io/v1/ip/country.json', {
+      signal: controller ? controller.signal : undefined
+    }).then(function (res) { return res.json(); }).then(function (data) {
+      clearTimeout(timer);
+      var cc = String((data && (data.country || data.country_code)) || '').toUpperCase();
+      if (!cc) return;
+      currentCountry = cc;
+      applyCurrency(EUR_COUNTRIES[cc] ? 'EUR' : 'USD');
+      if (!queryLang && !manual) {
+        var ipLang = (I18N.countryLang && I18N.countryLang[cc]) || '';
+        var browserLang = langFromBrowser();
+        if (!browserLang && ipLang) applyLang(ipLang);
+        else if (browserLang === 'en' && ipLang && ipLang !== 'en') applyLang(ipLang);
+      }
+    }).catch(function () {
+      clearTimeout(timer);
+    });
+  }
+
+  detectLocale();
 
   function trackMetaEvent(eventName, params, eventId) {
     if (typeof window.fbq !== 'function') return;
@@ -83,7 +224,7 @@
       var targetFunnel = 'https://funnel.airhelp.com/claims/new/trip-details?departureAirportIata=' + encodeURIComponent(originIata) +
         '&arrivalAirportIata=' + encodeURIComponent(destIata) +
         (disruptionType ? '&disruption_type=' + encodeURIComponent(disruptionType) : '') +
-        '&lang=en';
+        '&lang=' + encodeURIComponent(airhelpLang());
       return 'https://tp.media/r?campaign_id=120&marker=777015&p=9139&trs=573423' +
         (clickId ? '&sub_id=' + encodeURIComponent(clickId) : '') +
         '&u=' + encodeURIComponent(targetFunnel);
@@ -224,7 +365,7 @@
       if (!origin || !dest) {
         if (errorEl) {
           errorEl.hidden = false;
-          errorEl.textContent = 'Select a departure airport and a destination airport to check your claim.';
+          errorEl.textContent = t('form.error.missing');
         }
         originInput.focus();
         return;
@@ -232,7 +373,7 @@
       if (origin.iata === dest.iata) {
         if (errorEl) {
           errorEl.hidden = false;
-          errorEl.textContent = 'Departure and destination need to be different airports.';
+          errorEl.textContent = t('form.error.same');
         }
         return;
       }
@@ -252,6 +393,7 @@
         fbp: getCookie('_fbp'),
         fbc: getFbc(),
         source: source,
+        lang: currentLang,
         eventSourceUrl: window.location.href
       };
 
