@@ -502,10 +502,10 @@ a {
 }
 
 .disruption-option input[type="radio"]:checked + .disruption-pill {
-    background: var(--bg-surface-raised);
-    color: var(--cyan-400);
-    border-color: rgba(34, 211, 238, 0.4);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    background: var(--badge-bg);
+    color: var(--cyan-500);
+    border-color: var(--border-accent);
+    box-shadow: inset 0 0 0 1px var(--border-accent);
 }
 
 .disruption-pill svg {
@@ -898,7 +898,7 @@ a {
     }
 
     .hero-section {
-        padding: 20px 0 28px;
+        padding: 22px 0 32px;
     }
 
     .hero-badge-pill {
@@ -929,18 +929,6 @@ a {
     }
 
     .portal-card-header {
-        margin-bottom: 14px;
-        padding-bottom: 0;
-        border-bottom: none;
-        justify-content: flex-start;
-        gap: 8px;
-    }
-
-    .portal-badge {
-        font-size: 0.72rem;
-    }
-
-    .portal-guarantee {
         display: none;
     }
 
@@ -951,7 +939,7 @@ a {
     .route-fields {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         position: relative;
         align-items: stretch;
         width: 100%;
@@ -977,15 +965,22 @@ a {
     .route-swap {
         position: relative;
         align-self: center;
-        width: 40px;
-        height: 40px;
-        margin: -6px 0;
+        width: 36px;
+        height: 36px;
+        margin: 0;
         border-radius: 50%;
-        font-size: 1rem;
-        background: var(--bg-card);
+        font-size: 0.95rem;
+        background: var(--bg-surface);
+        color: var(--cyan-400);
         border: 1px solid var(--border-medium);
-        box-shadow: var(--card-shadow);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
         z-index: 2;
+    }
+
+    .airport-suggest {
+        z-index: 40;
+        max-height: 220px;
+        overflow-y: auto;
     }
 
     .disruption-selector {
