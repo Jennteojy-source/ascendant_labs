@@ -6,7 +6,6 @@
 (function () {
   'use strict';
 
-  var FUNNEL_BASE = 'https://funnel.airhelp.com/claims/new/trip-details?lang=en&a_aid=Travelpayouts&a_bid=12eefaac&partner_id=Travelpayouts&data5=7a8749c0fe8f448d9fd231180-777015';
   var AIRPORTS = window.ASCENDANT_AIRPORTS || [];
 
   function trackMetaEvent(eventName, params, eventId) {

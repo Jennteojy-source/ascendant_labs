@@ -1,4 +1,4 @@
-const https = require("https");
+
 
 function getClientIp(req) {
   let forwarded = "";
@@ -34,42 +34,9 @@ function cors(res) {
 
 const WARM_HTTP = { minInstances: 0, timeoutSeconds: 60, memory: "256MiB" };
 
-function graphPostJson(hostname, path, token, payload, extraHeaders = {}) {
-  const postData = JSON.stringify(payload);
-  const options = {
-    hostname,
-    path,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(postData),
-      Authorization: `Bearer ${token}`,
-      ...extraHeaders,
-    },
-  };
-
-  return new Promise((resolve) => {
-    const req = https.request(options, (res) => {
-      let body = "";
-      res.on("data", (chunk) => { body += chunk; });
-      res.on("end", () => {
-        console.log(`Graph POST ${path} status ${res.statusCode}: ${body}`);
-        resolve({ status: res.statusCode, body });
-      });
-    });
-    req.on("error", (e) => {
-      console.error(`Graph POST ${path} error: ${e.message}`);
-      resolve({ status: 0, body: e.message });
-    });
-    req.write(postData);
-    req.end();
-  });
-}
-
 module.exports = {
   getClientIp,
   getQueryValue,
   cors,
-  graphPostJson,
   WARM_HTTP,
 };

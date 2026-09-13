@@ -75,58 +75,6 @@ function sendMetaCapiEvent(eventName, eventId, userData, customData = null, even
     label: `Meta CAPI [${eventName}]`,
   });
 }
-
-function buildWhatsAppCapiPayload({
-  eventName = "LeadSubmitted",
-  eventId,
-  eventTime = Date.now(),
-  ctwaClid,
-  wabaId,
-}) {
-  const numericTime = Number(eventTime);
-  const eventTimeSeconds = Number.isFinite(numericTime)
-    ? Math.floor(numericTime > 9999999999 ? numericTime / 1000 : numericTime)
-    : Math.floor(Date.now() / 1000);
-  const event = {
-    event_name: eventName,
-    event_time: eventTimeSeconds,
-    event_id: eventId,
-    action_source: "business_messaging",
-    messaging_channel: "whatsapp",
-    user_data: {
-      whatsapp_business_account_id: String(wabaId || ""),
-      ctwa_clid: String(ctwaClid || ""),
-    },
-  };
-  return { data: [event] };
-}
-
-function sendWhatsAppCapiEvent({
-  eventName = "LeadSubmitted",
-  eventId,
-  eventTime = Date.now(),
-  ctwaClid,
-}) {
-  if (!ctwaClid) {
-    return Promise.resolve({ skipped: true, reason: "missing_ctwa_clid", status: 0, body: null });
-  }
-  const payload = buildWhatsAppCapiPayload({
-    eventName,
-    eventId,
-    eventTime,
-    ctwaClid,
-    wabaId: config.wabaId,
-  });
-  return postCapiPayload(
-    config.whatsappDatasetId,
-    config.whatsappCapiAccessToken,
-    payload,
-    { apiVersion: "v26.0", label: `WhatsApp CAPI [${eventName}]` }
-  );
-}
-
 module.exports = {
-  buildWhatsAppCapiPayload,
   sendMetaCapiEvent,
-  sendWhatsAppCapiEvent,
 };

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>Ascendant Labs | Flight Delay & Cancellation Compensation Claim</title>
-    <meta name="description" content="Flight delayed or cancelled? Claim up to €600 (~$650 USD) statutory cash under European Regulation EU261 & UK261. Free 30-second check with $0 upfront cost.">
+    <meta name="description" content="Flight delayed or cancelled? Claim up to €600 under EU261 and UK261. Free 30-second check, no win no fee.">
     <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#0a0d14" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ascendantlabs.co/">
     <meta property="og:title" content="Claim Up to €600 for Delayed Flights | Ascendant Labs">
-    <meta property="og:description" content="Check your statutory airline compensation under EU261 and UK261. 100% contingency, $0 upfront risk.">
+    <meta property="og:description" content="Check your statutory airline compensation under EU261 and UK261. Free to start, no win no fee.">
     <meta property="og:site_name" content="Ascendant Labs">
     <meta name="facebook-domain-verification" content="zyzp5uzb9hvchecfq1ztjm1ou9tn54" />
 
@@ -57,7 +57,7 @@
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "USD"
+        "priceCurrency": "EUR"
       }
     }
     </script>
@@ -106,15 +106,16 @@
                 
                 <div class="hero-badge-pill">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 12px; height: 12px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    <span>EU261 &amp; UK261 Passenger Rights</span>
+                    <span>EU261 passenger rights</span>
                 </div>
 
                 <h1 class="hero-title">
-                    Delayed or cancelled? <span class="hero-title-highlight">Claim up to €600 (~$650 USD).</span>
+                    Delayed or cancelled?<br>
+                    <span class="hero-title-highlight">Claim up to €600.</span>
                 </h1>
 
                 <p class="hero-lead">
-                    Official statutory airline compensation check. 30 seconds, <strong>$0 upfront risk</strong>.
+                    Free 30-second check. No win, no fee.
                 </p>
 
                 <!-- Compact, High-Conversion Intake Card -->
@@ -124,14 +125,14 @@
                             <span class="pulse-dot"></span>
                             <span>Free Eligibility Screening</span>
                         </div>
-                        <div class="portal-guarantee">🔒 No Win, No Fee • $0 Upfront</div>
+                        <div class="portal-guarantee">No win, no fee</div>
                     </div>
 
                     <form class="claim-route-form" data-source="hero" action="/api/claim-start" method="post" novalidate>
                         <div class="route-fields">
                             <label class="route-field">
                                 <span class="route-label">Departed from</span>
-                                <input id="origin-input" class="route-input" data-role="origin" name="origin" type="text" autocomplete="off" spellcheck="false" placeholder="Departure city or airport (e.g. JFK)" required aria-autocomplete="list">
+                                <input id="origin-input" class="route-input" data-role="origin" name="origin" type="text" autocomplete="off" spellcheck="false" placeholder="City or airport" required aria-autocomplete="list">
                                 <input type="hidden" data-role="origin-iata" name="originIata">
                                 <ul class="airport-suggest" data-role="origin-suggest" hidden></ul>
                             </label>
@@ -140,7 +141,7 @@
                             
                             <label class="route-field">
                                 <span class="route-label">Final destination</span>
-                                <input id="dest-input" class="route-input" data-role="dest" name="destination" type="text" autocomplete="off" spellcheck="false" placeholder="Arrival city or airport (e.g. LHR)" required aria-autocomplete="list">
+                                <input id="dest-input" class="route-input" data-role="dest" name="destination" type="text" autocomplete="off" spellcheck="false" placeholder="City or airport" required aria-autocomplete="list">
                                 <input type="hidden" data-role="dest-iata" name="destIata">
                                 <ul class="airport-suggest" data-role="dest-suggest" hidden></ul>
                             </label>
@@ -152,14 +153,14 @@
                                 <input type="radio" name="disruptionTypeHero" value="delayed" checked data-role="disruption-radio">
                                 <span class="disruption-pill">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                    <span>Delayed 3+ Hours</span>
+                                    <span>Delayed 3+ hrs</span>
                                 </span>
                             </label>
                             <label class="disruption-option">
                                 <input type="radio" name="disruptionTypeHero" value="cancelled" data-role="disruption-radio">
                                 <span class="disruption-pill">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                                    <span>Flight Cancelled</span>
+                                    <span>Cancelled</span>
                                 </span>
                             </label>
                         </div>
@@ -167,13 +168,13 @@
                         <p class="form-error" data-role="form-error" hidden></p>
                         
                         <button type="submit" class="btn btn-primary btn-lg btn-block cta-submit-btn">
-                            <span>Check My Compensation</span>
+                            <span>Check my claim</span>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                         </button>
 
                         <div class="portal-card-footer">
-                            <span class="footer-badge-pill">Direct cash payout</span>
-                            <span class="footer-badge-pill">Past 3 years eligible</span>
+                            <span class="footer-badge-pill">Cash payout</span>
+                            <span class="footer-badge-pill">Last 3 years</span>
                             <span class="footer-badge-pill">2.5M+ helped</span>
                         </div>
                     </form>
@@ -207,7 +208,7 @@
                     <div class="step-card">
                         <div class="step-num">Step 03</div>
                         <h3>3. Cash in your account</h3>
-                        <p>Aviation attorneys enforce the statutory payout. If successful, cash is wired to you. If not, you pay $0.</p>
+                        <p>Aviation attorneys enforce the statutory payout. If successful, cash is wired to you. If not, you pay nothing.</p>
                     </div>
                 </div>
             </div>
@@ -242,7 +243,7 @@
                             <li>• <strong>98% court win rate</strong> backed by specialized aviation lawyers.</li>
                             <li>• Immutable ADS-B radar telemetry disproving false airline weather claims.</li>
                             <li>• Direct cash bank deposits (mandated under EC 261/2004).</li>
-                            <li>• <strong>Strict No Win, No Fee</strong> — $0 upfront risk.</li>
+                            <li>• <strong>Strict No Win, No Fee</strong> — nothing to pay unless you win.</li>
                         </ul>
                     </div>
                 </div>
@@ -294,7 +295,7 @@
                             <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                         <div class="faq-answer">
-                            $0 to check, $0 unless you win. If compensation is successfully collected from the airline, a standard contingency fee is deducted from the payout.
+                            Free to check, nothing unless you win. If compensation is collected from the airline, a standard contingency fee is deducted from the payout.
                         </div>
                     </div>
                 </div>
