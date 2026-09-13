@@ -41,8 +41,8 @@ function optionalEnv(name, fallback = "") {
 }
 
 const config = {
-  capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
-  datasetId: optionalEnv("DATASET_ID"),
+  capiAccessToken: optionalEnv("FLIGHT_CLAIM_ACCESS_TOKEN") || optionalEnv("CAPI_ACCESS_TOKEN"),
+  datasetId: optionalEnv("FLIGHT_CLAIM_DATASET_ID") || optionalEnv("DATASET_ID"),
   partners: {
     airhelp: {
       label: "AirHelp Flight Delay Compensation",

@@ -1,10 +1,21 @@
 /**
  * Ascendant Labs — Air Passenger Rights & Compensation Intelligence Hub
- * Client-Side Interactive Engine & Flight Delay Calculator
+ * Client-Side Interactive Engine, Flight Delay Calculator & Meta Pixel Event Tracking
  */
 
 (function () {
   'use strict';
+
+  // --- Meta Pixel Safe Event Tracker ---
+  function trackMetaEvent(eventName, params = {}) {
+    if (typeof window.fbq === 'function') {
+      try {
+        window.fbq('track', eventName, params);
+      } catch (e) {
+        console.warn('Meta Pixel event error:', e);
+      }
+    }
+  }
 
   // --- Theme Management ---
   const themeToggle = document.getElementById('theme-toggle');
@@ -44,6 +55,7 @@
         mobileMenuOverlay.classList.remove('open');
       });
     });
+
     // Mobile Menu Drawer ESC Key Handling
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && mobileMenuOverlay && mobileMenuOverlay.classList.contains('open')) {
@@ -59,7 +71,7 @@
     const currentParams = new URLSearchParams(window.location.search);
     if (!currentParams.toString()) return;
 
-    const affiliateLinks = document.querySelectorAll('a[href^="/r/"]');
+    const affiliateLinks = document.querySelectorAll('a[href*="/r/"]');
     affiliateLinks.forEach((link) => {
       try {
         const href = link.getAttribute('href');
@@ -78,7 +90,7 @@
 
   propagateTrackingParams();
 
-  // --- FAQ Accordion Logic ---
+  // --- FAQ Accordion Logic with Tracking ---
   const faqItems = document.querySelectorAll('.faq-item');
   faqItems.forEach((item) => {
     const questionBtn = item.querySelector('.faq-question');
@@ -90,6 +102,11 @@
           if (other !== item) other.classList.remove('active');
         });
         item.classList.toggle('active', !isActive);
+
+        if (!isActive) {
+          const questionText = questionBtn.querySelector('span')?.textContent || 'FAQ Click';
+          trackMetaEvent('Contact', { content_name: questionText });
+        }
       });
     }
   });
@@ -121,6 +138,7 @@
 
   let currentRoute = { ...ROUTE_PRESETS['LHR-SIN'] };
   let currentDelayHours = 3.5; // default 3-4 hours
+  let currentPayoutEur = 600;
 
   function calculateCompensation(km, hours) {
     if (hours < 3) {
@@ -142,6 +160,7 @@
 
   function updateCalculatorDisplay() {
     const result = calculateCompensation(currentRoute.km, currentDelayHours);
+    currentPayoutEur = result.eur > 0 ? result.eur : 600;
 
     if (payoutBigNumber) {
       payoutBigNumber.textContent = result.eur > 0 ? `€${result.eur}` : '€0';
@@ -181,7 +200,7 @@
 
     if (claimCtaBtn) {
       const flightNum = (flightNumberInput && flightNumberInput.value.trim()) || 'SQ325';
-      const claimUrl = `https://ascendantlabs.co/r/airhelp?flight_number=${encodeURIComponent(flightNum)}&departure=${encodeURIComponent(currentRoute.dep)}&arrival=${encodeURIComponent(currentRoute.arr)}&delay=${currentDelayHours >= 3 ? '180' : '60'}`;
+      const claimUrl = `/r/airhelp?flight_number=${encodeURIComponent(flightNum)}&departure=${encodeURIComponent(currentRoute.dep)}&arrival=${encodeURIComponent(currentRoute.arr)}&delay=${currentDelayHours >= 3 ? '180' : '60'}`;
       claimCtaBtn.setAttribute('href', claimUrl);
       claimCtaBtn.innerHTML = result.eligible 
         ? `<span>Initiate Statutory Claim for €${result.eur}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`
@@ -200,6 +219,13 @@
         if (departureInput) departureInput.value = currentRoute.dep;
         if (arrivalInput) arrivalInput.value = currentRoute.arr;
         updateCalculatorDisplay();
+
+        // Track Route Selection in Meta Pixel
+        trackMetaEvent('FindLocation', {
+          route_key: key,
+          route_name: currentRoute.name,
+          content_category: 'Flight Route'
+        });
       }
     });
   });
@@ -211,6 +237,12 @@
       btn.classList.add('active');
       currentDelayHours = parseFloat(btn.getAttribute('data-hours') || '3.5');
       updateCalculatorDisplay();
+
+      // Track Delay Tier Selection in Meta Pixel
+      trackMetaEvent('CustomizeProduct', {
+        delay_tier_hours: currentDelayHours,
+        content_name: 'Flight Delay Duration'
+      });
     });
   });
 
@@ -238,6 +270,27 @@
     });
   }
 
+  // --- Track Click on Claim Action Buttons (InitiateCheckout / Lead) ---
+  function attachClaimClickTracking() {
+    const claimButtons = document.querySelectorAll('a[href*="/r/airhelp"], #calc-claim-cta, .mobile-sticky-cta');
+    claimButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const flightNum = (flightNumberInput && flightNumberInput.value.trim()) || 'SQ325';
+        trackMetaEvent('InitiateCheckout', {
+          content_name: 'AirHelp Flight Delay Claim',
+          content_category: 'Flight Compensation',
+          currency: 'EUR',
+          value: currentPayoutEur,
+          flight_number: flightNum,
+          departure: currentRoute.dep,
+          arrival: currentRoute.arr
+        });
+      });
+    });
+  }
+
+  attachClaimClickTracking();
+
   // --- Sticky Mobile Quick-Action Bar Visibility Logic ---
   function handleStickyBarVisibility() {
     if (!mobileStickyBar) return;
@@ -261,8 +314,26 @@
 
   window.addEventListener('scroll', handleStickyBarVisibility, { passive: true });
 
+  // Track ViewContent when calculator scrolls into view
+  let calcViewTracked = false;
+  function trackCalculatorViewOnScroll() {
+    if (calcViewTracked || !flightCalcSection) return;
+    const rect = flightCalcSection.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      calcViewTracked = true;
+      trackMetaEvent('ViewContent', {
+        content_name: 'Flight Delay Calculator',
+        content_category: 'Passenger Compensation Tool'
+      });
+      window.removeEventListener('scroll', trackCalculatorViewOnScroll);
+    }
+  }
+
+  window.addEventListener('scroll', trackCalculatorViewOnScroll, { passive: true });
+
   // Initialize
   updateCalculatorDisplay();
   handleStickyBarVisibility();
+  trackCalculatorViewOnScroll();
 
 })();
