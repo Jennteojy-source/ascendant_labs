@@ -24,7 +24,7 @@
 
   function uuid() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-      return window.crypto.randomUUID();
+      return ('lead_' + window.crypto.randomUUID()).replace(/-/g, '_');
     }
     return 'lead_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
   }
@@ -79,18 +79,17 @@
     return scored.slice(0, 8).map(function (x) { return x.a; });
   }
 
-  function buildFallbackUrl(originIata, destIata, disruptionType) {
+  function buildFallbackUrl(originIata, destIata, disruptionType, clickId) {
     try {
-      var parsed = new URL(FUNNEL_BASE);
-      parsed.searchParams.set('departureAirportIata', originIata);
-      parsed.searchParams.set('arrivalAirportIata', destIata);
-      if (disruptionType) {
-        parsed.searchParams.set('disruption_type', disruptionType);
-      }
-      return parsed.toString();
+      var targetFunnel = 'https://funnel.airhelp.com/claims/new/trip-details?departureAirportIata=' + encodeURIComponent(originIata) +
+        '&arrivalAirportIata=' + encodeURIComponent(destIata) +
+        (disruptionType ? '&disruption_type=' + encodeURIComponent(disruptionType) : '') +
+        '&lang=en';
+      return 'https://tp.media/r?campaign_id=120&marker=777015&p=9139&trs=573423' +
+        (clickId ? '&sub_id=' + encodeURIComponent(clickId) : '') +
+        '&u=' + encodeURIComponent(targetFunnel);
     } catch (_) {
-      var extra = disruptionType ? '&disruption_type=' + encodeURIComponent(disruptionType) : '';
-      return FUNNEL_BASE + '&departureAirportIata=' + encodeURIComponent(originIata) + '&arrivalAirportIata=' + encodeURIComponent(destIata) + extra;
+      return 'https://airhelp.tpx.lu/3XDklWHQ';
     }
   }
 
@@ -271,7 +270,7 @@
         submitBtn.setAttribute('aria-busy', 'true');
       }
 
-      var fallback = buildFallbackUrl(origin.iata, dest.iata, disruptionType);
+      var fallback = buildFallbackUrl(origin.iata, dest.iata, disruptionType, eventId);
       var redirected = false;
       function go(url) {
         if (redirected) return;

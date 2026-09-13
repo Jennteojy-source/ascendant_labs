@@ -19,27 +19,27 @@ function cookieValue(req, name) {
 }
 
 function buildFunnelUrl(originIata, destIata, disruptionType = "delayed", clickId = "") {
-  const base = config.airhelpFunnelUrl || buildPartnerUrl("airhelp") || "";
-  if (!base) return "";
   try {
-    const parsed = new URL(base);
-    if (originIata) parsed.searchParams.set("departureAirportIata", originIata);
-    if (destIata) parsed.searchParams.set("arrivalAirportIata", destIata);
+    const targetFunnel = new URL("https://funnel.airhelp.com/claims/new/trip-details");
+    if (originIata) targetFunnel.searchParams.set("departureAirportIata", originIata);
+    if (destIata) targetFunnel.searchParams.set("arrivalAirportIata", destIata);
     if (disruptionType && (disruptionType === "delayed" || disruptionType === "cancelled")) {
-      parsed.searchParams.set("disruption_type", disruptionType);
+      targetFunnel.searchParams.set("disruption_type", disruptionType);
     }
+    targetFunnel.searchParams.set("lang", "en");
+
+    const tpUrl = new URL("https://tp.media/r");
+    tpUrl.searchParams.set("campaign_id", "120");
+    tpUrl.searchParams.set("marker", "777015");
+    tpUrl.searchParams.set("p", "9139");
+    tpUrl.searchParams.set("trs", "573423");
     if (clickId) {
-      parsed.searchParams.set("data1", clickId);
-      parsed.searchParams.set("sub_id", clickId);
+      tpUrl.searchParams.set("sub_id", clickId);
     }
-    parsed.searchParams.set("lang", parsed.searchParams.get("lang") || "en");
-    return parsed.toString();
+    tpUrl.searchParams.set("u", targetFunnel.toString());
+    return tpUrl.toString();
   } catch (_) {
-    const joiner = base.includes("?") ? "&" : "?";
-    let url = `${base}${joiner}departureAirportIata=${encodeURIComponent(originIata)}&arrivalAirportIata=${encodeURIComponent(destIata)}`;
-    if (disruptionType) url += `&disruption_type=${encodeURIComponent(disruptionType)}`;
-    if (clickId) url += `&data1=${encodeURIComponent(clickId)}&sub_id=${encodeURIComponent(clickId)}`;
-    return url;
+    return "https://airhelp.tpx.lu/3XDklWHQ";
   }
 }
 

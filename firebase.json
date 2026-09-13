@@ -18,8 +18,8 @@
         "function": "claimStart"
       },
       {
-        "source": "/api/travelpayouts-postback",
-        "function": "travelpayoutsPostback"
+        "source": "/api/sync-conversions",
+        "function": "syncConversionsHttp"
       }
     ]
   },

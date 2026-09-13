@@ -41,18 +41,19 @@ function optionalEnv(name, fallback = "") {
 }
 
 const config = {
+  travelPayoutToken: optionalEnv("TRAVEL_PAYOUT"),
   capiAccessToken: optionalEnv("FLIGHT_CLAIM_ACCESS_TOKEN") || optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("FLIGHT_CLAIM_DATASET_ID") || optionalEnv("DATASET_ID"),
   airhelpFunnelUrl: optionalEnv(
     "AIRHELP_FUNNEL_URL",
-    "https://funnel.airhelp.com/claims/new/trip-details?lang=en&a_aid=Travelpayouts&a_bid=12eefaac&partner_id=Travelpayouts&data5=7a8749c0fe8f448d9fd231180-777015"
+    "https://tp.media/r?campaign_id=120&marker=777015&p=9139&trs=573423&u=https%3A%2F%2Ffunnel.airhelp.com%2Fclaims%2Fnew%2Ftrip-details"
   ),
   partners: {
     airhelp: {
       label: "AirHelp Flight Delay Compensation",
       shortPath: "airhelp",
       aliases: ["airhelp", "flight", "flights", "flight-delay", "compensation"],
-      targetUrl: optionalEnv("AIRHELP_AFFILIATE_URL", "https://airhelp.tp.st/8J9aB9eM"),
+      targetUrl: optionalEnv("AIRHELP_AFFILIATE_URL", "https://airhelp.tpx.lu/3XDklWHQ"),
     },
     vpn: {
       label: "NordVPN",

@@ -4,9 +4,10 @@
 const { sendMetaCapiEvent } = require("./lib/capi");
 const affiliate = require("./routes/affiliate");
 const claim = require("./routes/claim");
-const postback = require("./routes/postback");
+const sync = require("./routes/syncConversions");
 
 exports.affiliateRedirect = affiliate.affiliateRedirect;
 exports.claimStart = claim.claimStart;
-exports.travelpayoutsPostback = postback.travelpayoutsPostback;
+exports.syncConversionsCron = sync.syncConversionsCron;
+exports.syncConversionsHttp = sync.syncConversionsHttp;
 exports.sendMetaCapiEvent = sendMetaCapiEvent;
