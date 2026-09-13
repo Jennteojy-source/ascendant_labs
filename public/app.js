@@ -44,6 +44,13 @@
         mobileMenuOverlay.classList.remove('open');
       });
     });
+    // Mobile Menu Drawer ESC Key Handling
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mobileMenuOverlay && mobileMenuOverlay.classList.contains('open')) {
+        mobileMenuOverlay.classList.remove('open');
+        if (mobileNavToggle) mobileNavToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
 
   // --- Outbound Link Parameter Propagation ---
@@ -99,6 +106,9 @@
   const payoutLawVal = document.getElementById('payout-law-val');
   const payoutStatusPill = document.getElementById('payout-status-pill');
   const claimCtaBtn = document.getElementById('calc-claim-cta');
+  const stickyPayoutVal = document.getElementById('sticky-payout-val');
+  const mobileStickyBar = document.getElementById('mobile-sticky-bar');
+  const flightCalcSection = document.getElementById('flight-compensation');
 
   // Route presets metadata (approx great-circle km)
   const ROUTE_PRESETS = {
@@ -109,7 +119,7 @@
     'MAD-MIA': { dep: 'MAD', arr: 'MIA', name: 'Madrid (MAD) → Miami (MIA)', km: 7100, law: 'EU Regulation 261', airline: 'IB / AA' }
   };
 
-  let currentRoute = ROUTE_PRESETS['LHR-SIN'];
+  let currentRoute = { ...ROUTE_PRESETS['LHR-SIN'] };
   let currentDelayHours = 3.5; // default 3-4 hours
 
   function calculateCompensation(km, hours) {
@@ -135,6 +145,10 @@
 
     if (payoutBigNumber) {
       payoutBigNumber.textContent = result.eur > 0 ? `€${result.eur}` : '€0';
+    }
+
+    if (stickyPayoutVal) {
+      stickyPayoutVal.textContent = result.eur > 0 ? `€${result.eur}` : '€600';
     }
 
     if (payoutCurrencySub) {
@@ -182,7 +196,7 @@
       btn.classList.add('active');
       const key = btn.getAttribute('data-route');
       if (ROUTE_PRESETS[key]) {
-        currentRoute = ROUTE_PRESETS[key];
+        currentRoute = { ...ROUTE_PRESETS[key] };
         if (departureInput) departureInput.value = currentRoute.dep;
         if (arrivalInput) arrivalInput.value = currentRoute.arr;
         updateCalculatorDisplay();
@@ -200,12 +214,55 @@
     });
   });
 
-  // Custom Input Listeners
+  // Custom Input Listeners with uppercase formatting
   if (flightNumberInput) {
-    flightNumberInput.addEventListener('input', updateCalculatorDisplay);
+    flightNumberInput.addEventListener('input', () => {
+      flightNumberInput.value = flightNumberInput.value.toUpperCase();
+      updateCalculatorDisplay();
+    });
   }
+
+  if (departureInput) {
+    departureInput.addEventListener('input', () => {
+      departureInput.value = departureInput.value.toUpperCase();
+      currentRoute.dep = departureInput.value;
+      updateCalculatorDisplay();
+    });
+  }
+
+  if (arrivalInput) {
+    arrivalInput.addEventListener('input', () => {
+      arrivalInput.value = arrivalInput.value.toUpperCase();
+      currentRoute.arr = arrivalInput.value;
+      updateCalculatorDisplay();
+    });
+  }
+
+  // --- Sticky Mobile Quick-Action Bar Visibility Logic ---
+  function handleStickyBarVisibility() {
+    if (!mobileStickyBar) return;
+    const scrollY = window.scrollY || window.pageYOffset;
+    const triggerOffset = 350;
+
+    let isCalcInView = false;
+    if (flightCalcSection) {
+      const rect = flightCalcSection.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.75 && rect.bottom >= window.innerHeight * 0.25) {
+        isCalcInView = true;
+      }
+    }
+
+    if (scrollY > triggerOffset && !isCalcInView) {
+      mobileStickyBar.classList.add('visible');
+    } else {
+      mobileStickyBar.classList.remove('visible');
+    }
+  }
+
+  window.addEventListener('scroll', handleStickyBarVisibility, { passive: true });
 
   // Initialize
   updateCalculatorDisplay();
+  handleStickyBarVisibility();
 
 })();

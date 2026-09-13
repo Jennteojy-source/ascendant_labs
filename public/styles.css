@@ -122,6 +122,18 @@ body {
     transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+button, a, input, select {
+    touch-action: manipulation;
+}
+
+.desktop-only {
+    display: block;
+}
+
+.mobile-only {
+    display: none;
+}
+
 /* Background Ambient Elements */
 .ambient-glow-top {
     position: absolute;
@@ -1344,18 +1356,30 @@ a {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--header-bg);
-    backdrop-filter: blur(20px);
+    background: rgba(10, 13, 20, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     z-index: 99;
-    padding: 32px 24px;
-    display: none;
+    padding: 24px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+    display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+    border-bottom: 1px solid var(--border-medium);
+}
+
+[data-theme="light"] .mobile-menu-overlay {
+    background: rgba(255, 255, 255, 0.96);
 }
 
 .mobile-menu-overlay.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 /* --- Responsive Media Queries --- */
@@ -1703,6 +1727,203 @@ a {
     vertical-align: middle;
 }
 
+/* ==========================================================================
+   Statutory Mobile Cards & Sticky Quick Action Bar
+   ========================================================================== */
+
+/* Mobile Statutory Cards */
+.statutory-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.statutory-mobile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-medium);
+    border-radius: 16px;
+    padding: 20px 18px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.statutory-mobile-card.featured {
+    border-color: rgba(6, 182, 212, 0.45);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(10, 13, 20, 0.85) 100%);
+    box-shadow: 0 4px 24px rgba(6, 182, 212, 0.15);
+}
+
+[data-theme="light"] .statutory-mobile-card.featured {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%);
+    box-shadow: 0 4px 20px rgba(6, 182, 212, 0.12);
+}
+
+.statutory-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.statutory-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+
+.statutory-badge.featured-badge {
+    color: var(--cyan-400);
+}
+
+.statutory-card-title {
+    font-size: 1.22rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.25;
+}
+
+.statutory-cash-tag {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--emerald-400);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.statutory-cash-tag.featured-tag {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 182, 212, 0.25) 100%);
+    border-color: rgba(16, 185, 129, 0.5);
+    font-size: 1.18rem;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+}
+
+.statutory-card-sub {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.statutory-card-breakdown {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breakdown-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.breakdown-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.breakdown-val {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.breakdown-val.highlight {
+    color: var(--emerald-400);
+    font-weight: 700;
+}
+
+/* Sticky Mobile Quick-Action Bar */
+.mobile-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 95;
+    background: rgba(10, 13, 20, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-accent);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.5);
+    transform: translateY(120%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: none;
+}
+
+.mobile-sticky-bar.visible {
+    transform: translateY(0);
+}
+
+[data-theme="light"] .mobile-sticky-bar {
+    background: rgba(255, 255, 255, 0.95);
+    border-top-color: rgba(6, 182, 212, 0.25);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-sticky-inner {
+    max-width: 500px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mobile-sticky-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-sticky-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cyan-400);
+}
+
+.mobile-sticky-payout {
+    font-size: 0.92rem;
+    color: var(--text-primary);
+}
+
+.mobile-sticky-payout strong {
+    color: var(--emerald-400);
+    font-weight: 800;
+}
+
+.mobile-sticky-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 0.88rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints & Mobile Optimization
+   ========================================================================== */
+
 @media (max-width: 900px) {
     .flight-calc-grid {
         grid-template-columns: 1fr;
@@ -1713,7 +1934,7 @@ a {
 }
 
 @media (max-width: 768px) {
-
+    /* Header Navigation */
     .nav-links,
     .header-quick-scan {
         display: none;
@@ -1723,39 +1944,321 @@ a {
         display: block;
     }
 
-    .vpn-cards-grid,
-    .tools-grid,
-    .methodology-grid {
-        grid-template-columns: 1fr;
+    .site-header {
+        height: 64px;
+    }
+
+    /* Visibility Utilities */
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+
+    /* Hero Section Mobile Polish */
+    .hero-section {
+        padding: 40px 0 28px;
+    }
+
+    .hero-badge-pill {
+        font-size: 0.76rem;
+        padding: 6px 12px;
+        margin: 0 auto 16px;
+    }
+
+    .hero-title {
+        font-size: clamp(1.85rem, 6.5vw, 2.35rem);
+        line-height: 1.16;
+        letter-spacing: -0.03em;
+        margin-bottom: 16px;
+    }
+
+    .hero-lead {
+        font-size: 0.95rem;
+        line-height: 1.55;
+        margin-bottom: 22px;
+    }
+
+    .hero-cta-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .hero-cta-group .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 13px 20px;
+        font-size: 0.96rem;
+    }
+
+    /* Hero Trust Bar: Clean Stacking Chips */
+    .hero-trust-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .trust-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        justify-content: flex-start;
+    }
+
+    [data-theme="light"] .trust-item {
+        background: rgba(0, 0, 0, 0.02);
+    }
+
+    .trust-item svg {
+        flex-shrink: 0;
+        width: 15px;
+        height: 15px;
+    }
+
+    /* Hero Diagnostic / Live Telemetry Card */
+    .hero-diagnostic-card {
+        padding: 20px 16px;
+        border-radius: 16px;
+    }
+
+    .telemetry-title {
+        font-size: 1.2rem;
+    }
+
+    .telemetry-desc {
+        font-size: 0.86rem;
+        line-height: 1.5;
+        margin-bottom: 14px;
+    }
+
+    .metric-row {
+        padding: 10px 12px;
+        font-size: 0.84rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .metric-val {
+        align-self: flex-end;
+    }
+
+    /* Lab Stats Strip */
+    .lab-stats-strip {
+        padding: 32px 0;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px 10px;
+        border-radius: 12px;
+    }
+
+    .stat-num {
+        font-size: 1.95rem;
+    }
+
+    .stat-label {
+        font-size: 0.78rem;
+    }
+
+    /* Flight Delay Compensation Section */
+    .flight-comp-section {
+        padding: 50px 0;
+    }
+
+    .flight-calc-card {
+        padding: 20px 16px;
+        border-radius: 16px;
+    }
+
+    .route-presets-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .route-preset-btn {
+        font-size: 0.76rem;
+        padding: 6px 11px;
+        border-radius: 8px;
     }
 
     .custom-flight-inputs {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .calc-input-field {
+        font-size: 16px !important; /* Essential: prevents iOS Safari auto zoom */
+        padding: 12px 14px;
+        border-radius: 10px;
     }
 
     .delay-tier-selector {
         grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .delay-tier-btn {
+        padding: 10px 12px;
+        border-radius: 10px;
+    }
+
+    .calc-result-box {
+        padding: 22px 16px;
+        border-radius: 14px;
     }
 
     .payout-big-number {
-        font-size: 2.8rem;
+        font-size: 2.6rem;
+        margin: 6px 0 2px;
     }
 
-    .comparison-table-wrap {
-        overflow-x: auto;
+    .payout-currency-sub {
+        font-size: 0.82rem;
+        margin-bottom: 16px;
     }
 
-    .comparison-table {
-        min-width: 600px;
+    .payout-details-list {
+        padding: 12px 0;
+        gap: 8px;
     }
 
+    .payout-detail-row {
+        font-size: 0.84rem;
+    }
+
+    .calc-cta-btn {
+        width: 100%;
+        padding: 14px 18px;
+        font-size: 0.98rem;
+    }
+
+    /* Airlines Covered (Threats Grid) - 1 Column on Mobile */
+    .threats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .threat-card {
+        padding: 18px 16px;
+        border-radius: 14px;
+    }
+
+    .threat-card h3 {
+        font-size: 1.08rem;
+    }
+
+    .threat-card p {
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+
+    /* Tools & Methodology Grids */
+    .tools-grid,
+    .methodology-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .tool-card,
+    .methodology-card {
+        padding: 20px 16px;
+        border-radius: 14px;
+    }
+
+    /* FAQ Section */
+    .faq-question {
+        padding: 15px 14px;
+        font-size: 0.94rem;
+    }
+
+    .faq-answer {
+        padding: 0 14px 16px;
+        font-size: 0.88rem;
+        line-height: 1.55;
+    }
+
+    /* CTA Banner Section */
+    .cta-banner-card {
+        padding: 32px 18px;
+        border-radius: 16px;
+    }
+
+    .cta-banner-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .cta-banner-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Mobile Sticky Bar Display */
+    .mobile-sticky-bar {
+        display: block;
+    }
+
+    /* Footer Clearance for Sticky Bar */
     .footer-grid {
         grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .site-footer {
+        padding: 48px 0 calc(76px + env(safe-area-inset-bottom, 0px));
     }
 
     .footer-bottom {
         flex-direction: column;
         gap: 12px;
         text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .hero-title {
+        font-size: 1.95rem;
+    }
+
+    .payout-big-number {
+        font-size: 2.35rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 14px 8px;
+    }
+
+    .stat-num {
+        font-size: 1.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.74rem;
     }
 }
