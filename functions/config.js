@@ -43,6 +43,10 @@ function optionalEnv(name, fallback = "") {
 const config = {
   capiAccessToken: optionalEnv("FLIGHT_CLAIM_ACCESS_TOKEN") || optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("FLIGHT_CLAIM_DATASET_ID") || optionalEnv("DATASET_ID"),
+  airhelpFunnelUrl: optionalEnv(
+    "AIRHELP_FUNNEL_URL",
+    "https://funnel.airhelp.com/claims/new/trip-details?lang=en&a_aid=Travelpayouts&a_bid=12eefaac&partner_id=Travelpayouts&data5=7a8749c0fe8f448d9fd231180-777015"
+  ),
   partners: {
     airhelp: {
       label: "AirHelp Flight Delay Compensation",

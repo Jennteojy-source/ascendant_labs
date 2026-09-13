@@ -12,6 +12,14 @@
       {
         "source": "/r/**",
         "function": "affiliateRedirect"
+      },
+      {
+        "source": "/api/claim-start",
+        "function": "claimStart"
+      },
+      {
+        "source": "/api/travelpayouts-postback",
+        "function": "travelpayoutsPostback"
       }
     ]
   },

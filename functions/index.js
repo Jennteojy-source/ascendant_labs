@@ -3,6 +3,10 @@
  */
 const { sendMetaCapiEvent } = require("./lib/capi");
 const affiliate = require("./routes/affiliate");
+const claim = require("./routes/claim");
+const postback = require("./routes/postback");
 
 exports.affiliateRedirect = affiliate.affiliateRedirect;
+exports.claimStart = claim.claimStart;
+exports.travelpayoutsPostback = postback.travelpayoutsPostback;
 exports.sendMetaCapiEvent = sendMetaCapiEvent;
