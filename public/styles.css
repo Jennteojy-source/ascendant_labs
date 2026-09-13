@@ -1401,6 +1401,317 @@ a {
     }
 }
 
+/* ==========================================================================
+   Flight Compensation & Passenger Rights Calculator
+   ========================================================================== */
+.flight-comp-section {
+    position: relative;
+    padding: 90px 0;
+    overflow: hidden;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.03) 0%, rgba(10, 13, 20, 0) 100%);
+}
+
+.flight-calc-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-accent);
+    border-radius: 20px;
+    padding: 36px;
+    box-shadow: var(--card-shadow), var(--glow-cyan);
+    margin-bottom: 48px;
+    transition: all 0.3s ease;
+}
+
+.flight-calc-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 36px;
+    align-items: center;
+}
+
+.calc-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.input-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.route-presets-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.route-preset-btn {
+    background: var(--bg-surface-raised);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 7px 14px;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.route-preset-btn:hover {
+    border-color: var(--cyan-400);
+    color: var(--cyan-400);
+    background: rgba(34, 211, 238, 0.08);
+}
+
+.route-preset-btn.active {
+    background: rgba(34, 211, 238, 0.15);
+    border-color: var(--cyan-400);
+    color: var(--cyan-400);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+}
+
+.custom-flight-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.calc-input-field {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.calc-input-field:focus {
+    outline: none;
+    border-color: var(--cyan-400);
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+}
+
+.delay-tier-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.delay-tier-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.delay-tier-btn:hover {
+    border-color: var(--border-medium);
+    background: var(--bg-surface-raised);
+}
+
+.delay-tier-btn.active {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: var(--emerald-400);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+}
+
+.delay-tier-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.delay-tier-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Result Card */
+.calc-result-box {
+    background: linear-gradient(145deg, rgba(22, 29, 47, 0.9) 0%, rgba(16, 21, 34, 0.95) 100%);
+    border: 1px solid rgba(34, 211, 238, 0.35);
+    border-radius: 16px;
+    padding: 32px 28px;
+    text-align: center;
+    position: relative;
+    box-shadow: var(--glow-cyan);
+}
+
+.calc-result-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan-400), transparent);
+}
+
+.result-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--emerald-400);
+    padding: 5px 14px;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+}
+
+.payout-big-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 30%, var(--cyan-400) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+}
+
+.payout-currency-sub {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.payout-details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.payout-detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+}
+
+.payout-detail-label {
+    color: var(--text-muted);
+}
+
+.payout-detail-val {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.calc-cta-btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1rem;
+    box-shadow: 0 4px 20px rgba(6, 182, 212, 0.35);
+}
+
+.calc-guarantee-note {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 12px;
+}
+
+/* Feature Highlights Grid */
+.flight-pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.flight-pillar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 26px;
+    transition: all 0.3s ease;
+}
+
+.flight-pillar-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.flight-pillar-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cyan-400);
+    margin-bottom: 16px;
+}
+
+.flight-pillar-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.flight-pillar-desc {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.nav-tag-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--cyan-500), var(--teal-500));
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+
+@media (max-width: 900px) {
+    .flight-calc-grid {
+        grid-template-columns: 1fr;
+    }
+    .flight-pillars-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
 
     .nav-links,
@@ -1416,6 +1727,18 @@ a {
     .tools-grid,
     .methodology-grid {
         grid-template-columns: 1fr;
+    }
+
+    .custom-flight-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .delay-tier-selector {
+        grid-template-columns: 1fr;
+    }
+
+    .payout-big-number {
+        font-size: 2.8rem;
     }
 
     .comparison-table-wrap {

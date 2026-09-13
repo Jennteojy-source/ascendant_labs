@@ -147,10 +147,130 @@
         faqItems.forEach((other) => {
           if (other !== item) other.classList.remove('active');
         });
-        // Toggle current item
         item.classList.toggle('active', !isActive);
       });
     }
   });
+
+  // --- Flight Delay Compensation Interactive Calculator ---
+  const flightNumberInput = document.getElementById('calc-flight-number');
+  const departureInput = document.getElementById('calc-departure');
+  const arrivalInput = document.getElementById('calc-arrival');
+  const delayButtons = document.querySelectorAll('.delay-tier-btn');
+  const presetButtons = document.querySelectorAll('.route-preset-btn');
+  const payoutBigNumber = document.getElementById('payout-amount-val');
+  const payoutCurrencySub = document.getElementById('payout-currency-sub');
+  const payoutDistanceVal = document.getElementById('payout-distance-val');
+  const payoutLawVal = document.getElementById('payout-law-val');
+  const payoutStatusPill = document.getElementById('payout-status-pill');
+  const claimCtaBtn = document.getElementById('calc-claim-cta');
+
+  // Route presets metadata (approx great-circle km)
+  const ROUTE_PRESETS = {
+    'LHR-SIN': { dep: 'LHR', arr: 'SIN', name: 'London (LHR) → Singapore (SIN)', km: 10887, law: 'UK 261 / EU 261', airline: 'BA / SQ' },
+    'FRA-JFK': { dep: 'FRA', arr: 'JFK', name: 'Frankfurt (FRA) → New York (JFK)', km: 6200, law: 'EU Regulation 261', airline: 'LH / DL' },
+    'CDG-LAX': { dep: 'CDG', arr: 'LAX', name: 'Paris (CDG) → Los Angeles (LAX)', km: 9100, law: 'EU Regulation 261', airline: 'AF / DL' },
+    'AMS-HND': { dep: 'AMS', arr: 'HND', name: 'Amsterdam (AMS) → Tokyo (HND)', km: 9310, law: 'EU Regulation 261', airline: 'KL / JL' },
+    'MAD-MIA': { dep: 'MAD', arr: 'MIA', name: 'Madrid (MAD) → Miami (MIA)', km: 7100, law: 'EU Regulation 261', airline: 'IB / AA' }
+  };
+
+  let currentRoute = ROUTE_PRESETS['LHR-SIN'];
+  let currentDelayHours = 3.5; // default 3-4 hours
+
+  function calculateCompensation(km, hours) {
+    if (hours < 3) {
+      return { eur: 0, usd: 0, sgd: 0, eligible: false, text: 'Refreshments & Care Only' };
+    }
+    if (km <= 1500) {
+      return { eur: 250, usd: 275, sgd: 360, eligible: true, text: 'Short-Haul (≤ 1,500 km)' };
+    }
+    if (km > 1500 && km <= 3500) {
+      return { eur: 400, usd: 440, sgd: 580, eligible: true, text: 'Medium-Haul (1,500–3,500 km)' };
+    }
+    // Long-haul > 3500 km
+    if (hours >= 3 && hours < 4) {
+      // For delays between 3 and 4 hours on flights >3,500km, airlines may reduce compensation by 50% under Article 7(2)(c)
+      return { eur: 300, usd: 330, sgd: 430, eligible: true, text: 'Long-Haul (> 3,500 km, 3-4h)' };
+    }
+    return { eur: 600, usd: 650, sgd: 850, eligible: true, text: 'Long-Haul (> 3,500 km, Full Payout)' };
+  }
+
+  function updateCalculatorDisplay() {
+    const result = calculateCompensation(currentRoute.km, currentDelayHours);
+
+    if (payoutBigNumber) {
+      payoutBigNumber.textContent = result.eur > 0 ? `€${result.eur}` : '€0';
+    }
+
+    if (payoutCurrencySub) {
+      payoutCurrencySub.textContent = result.eur > 0 
+        ? `~$${result.usd} USD / ~$${result.sgd} SGD per passenger` 
+        : 'Delays under 3h qualify for food & hotel, not statutory cash';
+    }
+
+    if (payoutDistanceVal) {
+      payoutDistanceVal.textContent = `${result.text} (${currentRoute.km.toLocaleString()} km)`;
+    }
+
+    if (payoutLawVal) {
+      payoutLawVal.textContent = currentRoute.law;
+    }
+
+    if (payoutStatusPill) {
+      if (result.eligible) {
+        payoutStatusPill.textContent = 'ELIGIBLE FOR STATUTORY CASH';
+        payoutStatusPill.style.background = 'rgba(16, 185, 129, 0.15)';
+        payoutStatusPill.style.color = 'var(--emerald-400)';
+        payoutStatusPill.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+      } else {
+        payoutStatusPill.textContent = 'ASSISTANCE ONLY (<3 HOURS)';
+        payoutStatusPill.style.background = 'rgba(245, 158, 11, 0.15)';
+        payoutStatusPill.style.color = 'var(--amber-400)';
+        payoutStatusPill.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+      }
+    }
+
+    if (claimCtaBtn) {
+      const flightNum = (flightNumberInput && flightNumberInput.value.trim()) || 'SQ325';
+      const claimUrl = `https://funnel.airhelp.com/claims/new?lang=en&flight_number=${encodeURIComponent(flightNum)}&departure=${encodeURIComponent(currentRoute.dep)}&arrival=${encodeURIComponent(currentRoute.arr)}&delay=${currentDelayHours >= 3 ? '180' : '60'}`;
+      claimCtaBtn.setAttribute('href', claimUrl);
+      claimCtaBtn.innerHTML = result.eligible 
+        ? `<span>Initiate Statutory Claim for €${result.eur}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`
+        : `<span>Check Flight Eligibility</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+    }
+  }
+
+  // Preset Route Button Listeners
+  presetButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      presetButtons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const key = btn.getAttribute('data-route');
+      if (ROUTE_PRESETS[key]) {
+        currentRoute = ROUTE_PRESETS[key];
+        if (departureInput) departureInput.value = currentRoute.dep;
+        if (arrivalInput) arrivalInput.value = currentRoute.arr;
+        updateCalculatorDisplay();
+      }
+    });
+  });
+
+  // Delay Tier Buttons
+  delayButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      delayButtons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentDelayHours = parseFloat(btn.getAttribute('data-hours') || '3.5');
+      updateCalculatorDisplay();
+    });
+  });
+
+  // Custom Input Listeners
+  if (flightNumberInput) {
+    flightNumberInput.addEventListener('input', updateCalculatorDisplay);
+  }
+
+  // Initialize
+  updateCalculatorDisplay();
 
 })();
