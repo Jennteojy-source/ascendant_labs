@@ -1,6 +1,6 @@
 /**
- * Ascendant Labs — Digital Privacy & Cybersecurity Intelligence Hub
- * Client-Side Interactive Engine & Telemetry Handler
+ * Ascendant Labs — Air Passenger Rights & Compensation Intelligence Hub
+ * Client-Side Interactive Engine & Flight Delay Calculator
  */
 
 (function () {
@@ -71,71 +71,6 @@
 
   propagateTrackingParams();
 
-  // --- Live Telemetry Preview in Hero ---
-  const ipEl = document.getElementById('live-ip-val');
-  const ispEl = document.getElementById('live-isp-val');
-  const locEl = document.getElementById('live-loc-val');
-  const statusBadge = document.getElementById('live-status-badge');
-
-  async function fetchLiveTelemetry() {
-    try {
-      // First attempt local Firebase telemetry function
-      const res = await fetch('/api/telemetry', { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.ip) {
-          updateTelemetryDisplay(data);
-          return;
-        }
-      }
-    } catch (_) {
-      // Ignore and fallback
-    }
-
-    // Fallback: public client-side IP lookup if local function is offline
-    try {
-      const fallbackRes = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-      if (fallbackRes.ok) {
-        const data = await fallbackRes.json();
-        updateTelemetryDisplay({
-          ip: data.ip,
-          isp: data.org || data.asn,
-          city: data.city,
-          country: data.country_name,
-        });
-        return;
-      }
-    } catch (_) {
-      // Static fallback display
-    }
-
-    // Default informative state if adblockers block IP services
-    if (ipEl) ipEl.innerHTML = '<span class="exposed">Detected (Unprotected)</span>';
-    if (ispEl) ispEl.textContent = 'Standard ISP Network';
-    if (locEl) locEl.textContent = 'Visible to Web Servers';
-  }
-
-  function updateTelemetryDisplay(data) {
-    if (ipEl && data.ip) {
-      ipEl.textContent = data.ip;
-      ipEl.classList.add('exposed');
-    }
-    if (ispEl) {
-      ispEl.textContent = data.isp || 'Visible ISP / Carrier';
-      ispEl.classList.add('exposed');
-    }
-    if (locEl) {
-      const locText = [data.city, data.country].filter(Boolean).join(', ') || 'Exposed Location';
-      locEl.textContent = locText;
-      locEl.classList.add('exposed');
-    }
-    if (statusBadge) {
-      statusBadge.textContent = '3 EXPOSURE POINTS DETECTED';
-    }
-  }
-
-  fetchLiveTelemetry();
-
   // --- FAQ Accordion Logic ---
   const faqItems = document.querySelectorAll('.faq-item');
   faqItems.forEach((item) => {
@@ -190,7 +125,7 @@
     // Long-haul > 3500 km
     if (hours >= 3 && hours < 4) {
       // For delays between 3 and 4 hours on flights >3,500km, airlines may reduce compensation by 50% under Article 7(2)(c)
-      return { eur: 300, usd: 330, sgd: 430, eligible: true, text: 'Long-Haul (> 3,500 km, 3-4h)' };
+      return { eur: 300, usd: 330, sgd: 430, eligible: true, text: 'Long-Haul (> 3,500 km, 3-4h delay)' };
     }
     return { eur: 600, usd: 650, sgd: 850, eligible: true, text: 'Long-Haul (> 3,500 km, Full Payout)' };
   }
@@ -232,7 +167,7 @@
 
     if (claimCtaBtn) {
       const flightNum = (flightNumberInput && flightNumberInput.value.trim()) || 'SQ325';
-      const claimUrl = `https://funnel.airhelp.com/claims/new?lang=en&flight_number=${encodeURIComponent(flightNum)}&departure=${encodeURIComponent(currentRoute.dep)}&arrival=${encodeURIComponent(currentRoute.arr)}&delay=${currentDelayHours >= 3 ? '180' : '60'}`;
+      const claimUrl = `https://ascendantlabs.co/r/airhelp?flight_number=${encodeURIComponent(flightNum)}&departure=${encodeURIComponent(currentRoute.dep)}&arrival=${encodeURIComponent(currentRoute.arr)}&delay=${currentDelayHours >= 3 ? '180' : '60'}`;
       claimCtaBtn.setAttribute('href', claimUrl);
       claimCtaBtn.innerHTML = result.eligible 
         ? `<span>Initiate Statutory Claim for €${result.eur}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`

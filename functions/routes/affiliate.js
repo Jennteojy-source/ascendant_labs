@@ -124,7 +124,7 @@ const affiliateRedirect = onRequest(WARM_HTTP, async (req, res) => {
   const clickedAt = Date.now();
   const offerClickId = `offer_${clickedAt}_${crypto.randomBytes(5).toString("hex")}`;
 
-  const dest = buildPartnerUrl(slug, clickId, { source, slug });
+  const dest = buildPartnerUrl(slug, clickId, { source, slug, query: req.query });
 
   const logP = logOfferClick(req, {
     clickId,

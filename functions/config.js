@@ -108,6 +108,13 @@ function buildPartnerUrl(slug, clickId, extras = {}) {
       parsed.searchParams.set("tid", clickId);
       parsed.searchParams.set("aff_sub", clickId);
     }
+    if (extras.query && typeof extras.query === "object") {
+      for (const [k, v] of Object.entries(extras.query)) {
+        if (!["c", "click_id", "tid", "aff_sub", "utm_source"].includes(k) && v) {
+          parsed.searchParams.set(k, String(v));
+        }
+      }
+    }
     return parsed.toString();
   } catch (_) {
     const joiner = partner.targetUrl.includes("?") ? "&" : "?";

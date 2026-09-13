@@ -742,14 +742,14 @@ a {
     padding: 28px 24px 20px;
 }
 
-.comparison-table th.brand-nord {
-    border-top: 3px solid var(--nord-blue);
-    background: rgba(64, 123, 255, 0.04);
+.comparison-table th.brand-statutory {
+    border-top: 3px solid var(--cyan-400);
+    background: rgba(34, 211, 238, 0.05);
 }
 
-.comparison-table th.brand-proton {
-    border-top: 3px solid var(--proton-purple);
-    background: rgba(109, 74, 255, 0.04);
+.comparison-table th.brand-duty {
+    border-top: 3px solid var(--emerald-400);
+    background: rgba(16, 185, 129, 0.05);
 }
 
 .brand-header-badge {
