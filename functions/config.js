@@ -44,6 +44,36 @@ const config = {
   capiAccessToken: optionalEnv("CAPI_ACCESS_TOKEN"),
   datasetId: optionalEnv("DATASET_ID"),
   partners: {
+    airhelp: {
+      label: "AirHelp Flight Delay Compensation",
+      shortPath: "airhelp",
+      aliases: ["airhelp", "flight", "flights", "flight-delay", "compensation"],
+      targetUrl: optionalEnv("AIRHELP_AFFILIATE_URL", "https://funnel.airhelp.com/claims/new?lang=en"),
+    },
+    vpn: {
+      label: "NordVPN",
+      shortPath: "vpn",
+      aliases: ["vpn", "nord", "nordvpn"],
+      targetUrl: optionalEnv("NORDVPN_AFFILIATE_URL", "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=141870"),
+    },
+    proton: {
+      label: "Proton VPN",
+      shortPath: "proton-vpn",
+      aliases: ["proton-vpn", "proton", "protonvpn"],
+      targetUrl: optionalEnv("PROTONVPN_AFFILIATE_URL", "https://go.getproton.me/aff_c?offer_id=26&aff_id=141870"),
+    },
+    pass: {
+      label: "NordPass",
+      shortPath: "pass",
+      aliases: ["pass", "nordpass"],
+      targetUrl: optionalEnv("NORDPASS_AFFILIATE_URL", "https://go.nordpass.io/aff_c?offer_id=488&aff_id=141870"),
+    },
+    mail: {
+      label: "Proton Mail",
+      shortPath: "proton-mail",
+      aliases: ["proton-mail", "mail"],
+      targetUrl: optionalEnv("PROTONMAIL_AFFILIATE_URL", "https://go.getproton.me/aff_c?offer_id=7&aff_id=141870"),
+    },
     prodentim: {
       label: "ProDentim",
       shortPath: "prodentim",
