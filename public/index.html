@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <title>Ascendant Labs | Air Passenger Rights & Flight Delay Compensation Intelligence</title>
-    <meta name="description" content="Independent air passenger rights defense and statutory compensation intelligence. Calculate your EU261 & UK261 cash payout up to €600 ($650 USD) for flight delays, cancellations, and overbookings. $0 upfront risk.">
+    <title>Ascendant Labs | Flight Delay & Cancellation Compensation Claim</title>
+    <meta name="description" content="Flight delayed or cancelled? Claim up to €600 (~$650 USD) statutory cash under European Regulation EU261 & UK261. Free 60-second assessment with $0 upfront cost.">
     <meta name="robots" content="index, follow">
-    <meta name="theme-color" content="#06090e" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#0a0d14" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,17 +15,17 @@
     <!-- Open Graph / Meta -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ascendantlabs.co/">
-    <meta property="og:title" content="Ascendant Labs — Air Passenger Rights & Flight Delay Compensation">
-    <meta property="og:description" content="Calculate statutory flight delay cash compensation up to €600 ($650 USD) under EU261 and UK261. Free eligibility assessment with zero upfront cost.">
+    <meta property="og:title" content="Claim Up to €600 for Delayed Flights | Ascendant Labs">
+    <meta property="og:description" content="Calculate and file your statutory airline compensation claim under European Regulation 261/2004 and UK 261. 100% contingency, $0 upfront risk.">
     <meta property="og:site_name" content="Ascendant Labs">
     <meta name="facebook-domain-verification" content="zyzp5uzb9hvchecfq1ztjm1ou9tn54" />
 
-    <!-- Fonts & Preconnects -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Stylesheets -->
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="/styles.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
 
@@ -48,18 +48,21 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Ascendant Labs",
+      "@type": "WebApplication",
+      "name": "Ascendant Labs Flight Compensation Portal",
       "url": "https://ascendantlabs.co",
-      "logo": "https://ascendantlabs.co/assets/logo.svg",
-      "description": "Independent air passenger rights defense, statutory compensation intelligence, and automated EU261/UK261 flight claim eligibility screening.",
-      "sameAs": [
-        "https://www.facebook.com/shieldnet.privacy"
-      ]
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "All",
+      "description": "Statutory passenger rights screening and flight compensation claim portal under EU261 and UK261.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
     }
     </script>
 
-    <!-- Drive Verification & Monetization Script -->
+    <!-- Travelpayouts / Drive Verification Script -->
     <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1" data-cmp-ab="2">
     (function () {
       var script = document.createElement("script");
@@ -72,9 +75,8 @@
 </head>
 <body>
     <div class="ambient-glow-top"></div>
-    <div class="ambient-glow-mid"></div>
 
-    <!-- Navigation Header -->
+    <!-- Clean Header -->
     <header class="site-header">
         <div class="container header-inner">
             <a href="/" class="logo-brand">
@@ -83,14 +85,8 @@
             </a>
 
             <nav class="nav-links">
-                <a href="#flight-compensation" class="nav-link">
-                    <span>Flight Delay Calculator</span>
-                    <span class="nav-tag-badge">Up to €600</span>
-                </a>
-                <a href="#rights-guide" class="nav-link">EU261 & UK261 Law</a>
                 <a href="#how-it-works" class="nav-link">How It Works</a>
-                <a href="#airlines" class="nav-link">Airlines Covered</a>
-                <a href="#methodology" class="nav-link">Audit Methodology</a>
+                <a href="#why-us" class="nav-link">Why Us</a>
                 <a href="#faq" class="nav-link">FAQ</a>
             </nav>
 
@@ -99,882 +95,288 @@
                     <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                     <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
                 </button>
-                <a href="#flight-compensation" class="btn btn-primary btn-sm header-quick-scan">
-                    <span>Claim €600</span>
+                <a href="#claim-portal" class="btn btn-primary btn-sm header-cta-btn">
+                    <span>Claim Cash (€600)</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
-                <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open Navigation Menu" type="button">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
             </div>
         </div>
     </header>
 
-    <!-- Mobile Navigation Drawer -->
-    <div id="mobile-menu-overlay" class="mobile-menu-overlay">
-        <a href="#flight-compensation" class="btn btn-primary btn-lg" style="width: 100%; margin-bottom: 8px;">
-            <span>✈️ Calculate Cash (€600)</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </a>
-        <a href="#rights-guide" class="btn btn-secondary btn-lg" style="width: 100%;">
-            <span>EU261 & UK261 Legal Guide</span>
-        </a>
-        <hr style="border: 0; border-top: 1px solid var(--border-subtle); margin: 10px 0;">
-        <a href="#flight-compensation" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Flight Calculator</a>
-        <a href="#rights-guide" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Statutory Rights Guide</a>
-        <a href="#how-it-works" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">How Claims Are Enforced</a>
-        <a href="#airlines" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Airlines Covered</a>
-        <a href="#methodology" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Audit Methodology</a>
-        <a href="#faq" class="nav-link" style="font-size: 1.1rem; padding: 8px 0;">Frequently Asked Questions</a>
-    </div>
-
     <main>
-        <!-- Hero Section -->
+        <!-- Hero Section with In-Page Claim Portal -->
         <section class="hero-section">
-            <div class="container hero-grid">
-                <div class="hero-content">
-                    <div class="hero-badge-pill">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <span>Aviation Consumer Rights & Statutory Enforcement</span>
+            <div class="container">
+                
+                <!-- Eyebrow Badge -->
+                <div class="hero-badge-pill">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span>Official EU261 &amp; UK261 Statutory Compensation</span>
+                </div>
+
+                <!-- Main Headline -->
+                <h1 class="hero-title">
+                    Delayed Flight? <span class="hero-title-highlight">Claim Up to €600 Cash.</span>
+                </h1>
+
+                <!-- Subhead (USD Only) -->
+                <p class="hero-lead">
+                    Under European &amp; UK law, airlines owe passengers up to <strong>€600 (~$650 USD)</strong> for delays over 3 hours, cancellations, or denied boarding. Complete your free check below with <strong>$0 upfront risk</strong>.
+                </p>
+
+                <!-- THE EMBEDDED IN-PAGE CLAIM PORTAL (NO REDIRECTS) -->
+                <div id="claim-portal" class="claim-portal-card">
+                    <div class="portal-card-header">
+                        <div class="portal-badge">
+                            <span class="pulse-dot"></span>
+                            <span>Official Flight Claim Intake Portal</span>
+                        </div>
+                        <div class="portal-guarantee">🔒 No Win, No Fee • $0 Upfront Cost</div>
                     </div>
 
-                    <h1 class="hero-title">
-                        Disrupted Flight? <span class="hero-title-highlight">Claim Up to €600 Cash.</span>
-                    </h1>
-
-                    <p class="hero-lead">
-                        Under European Regulation <strong>EC 261/2004</strong> and <strong>UK 261</strong>, airlines are legally obligated to pay up to <strong>€600 (~$650 USD / ~$850 SGD)</strong> in direct cash compensation for delays over 3 hours, cancellations, or denied boarding. Check retroactive eligibility from flights taken over the last 3 years at zero upfront cost.
-                    </p>
-
-                    <div class="hero-cta-group">
-                        <a href="#flight-compensation" class="btn btn-primary btn-lg">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                            <span>Check Flight Delay Cash (€600)</span>
-                        </a>
-                        <a href="#rights-guide" class="btn btn-secondary btn-lg">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                            <span>Understand Your Statutory Rights</span>
-                        </a>
+                    <!-- Direct Embedded Funnel Frame (Zero External Redirects) -->
+                    <div class="portal-iframe-frame">
+                        <iframe 
+                            id="airhelp-funnel-iframe"
+                            src="https://funnel.airhelp.com/claims/new/trip-details?lang=en&a_aid=Travelpayouts&a_bid=12eefaac&partner_id=Travelpayouts&data5=7a8749c0fe8f448d9fd231180-777015" 
+                            title="AirHelp Flight Claim Portal"
+                            loading="lazy"
+                            allow="geolocation"
+                        ></iframe>
                     </div>
 
-                    <div class="hero-trust-bar">
-                        <div class="trust-item">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Direct Cash Deposit (No Vouchers)</span>
+                    <div class="portal-card-footer">
+                        <div class="portal-feature-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Up to €600 (~$650 USD) / Passenger</span>
                         </div>
-                        <div class="trust-item">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>100% Contingency ($0 Upfront Risk)</span>
+                        <div class="portal-feature-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Flights Past 3 Years Covered</span>
                         </div>
-                        <div class="trust-item">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>3-Year Retroactive Window</span>
+                        <div class="portal-feature-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>2.5M+ Passengers Defended</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Live Flight Disruption & Payout Monitor -->
-                <div class="hero-diagnostic-card">
-                    <div class="card-header-status">
-                        <div class="live-indicator">
-                            <span class="live-dot"></span>
-                            <span>Aviation Enforcement Feed</span>
-                        </div>
-                        <span class="security-score-badge">ACTIVE DIRECTIVE</span>
+                <!-- Trust Badges -->
+                <div class="hero-trust-bar">
+                    <div class="trust-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Direct Cash Deposit (No Airline Vouchers)</span>
                     </div>
-
-                    <h3 class="telemetry-title">Recent Recoverable Disrupted Flights</h3>
-                    <p class="telemetry-desc">Airlines routinely deny individual passenger emails with boilerplate excuses. Our partnered legal network turns rejections into court-enforced payouts:</p>
-
-                    <div class="telemetry-metrics-list">
-                        <div class="metric-row">
-                            <span class="metric-label">
-                                <span style="color: var(--cyan-400); font-weight: 700;">SQ325</span>
-                                <span>London (LHR) → Singapore (SIN)</span>
-                            </span>
-                            <span class="metric-val" style="color: var(--emerald-400); font-weight: 700;">€600 Enforced</span>
-                        </div>
-
-                        <div class="metric-row">
-                            <span class="metric-label">
-                                <span style="color: var(--cyan-400); font-weight: 700;">LH400</span>
-                                <span>Frankfurt (FRA) → New York (JFK)</span>
-                            </span>
-                            <span class="metric-val" style="color: var(--emerald-400); font-weight: 700;">€600 Enforced</span>
-                        </div>
-
-                        <div class="metric-row">
-                            <span class="metric-label">
-                                <span style="color: var(--cyan-400); font-weight: 700;">AF066</span>
-                                <span>Paris (CDG) → Los Angeles (LAX)</span>
-                            </span>
-                            <span class="metric-val" style="color: var(--emerald-400); font-weight: 700;">€600 Enforced</span>
-                        </div>
-
-                        <div class="metric-row">
-                            <span class="metric-label">
-                                <span style="color: var(--cyan-400); font-weight: 700;">BA011</span>
-                                <span>London (LHR) → Singapore (SIN)</span>
-                            </span>
-                            <span class="metric-val" style="color: var(--emerald-400); font-weight: 700;">€600 Enforced</span>
-                        </div>
+                    <div class="trust-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>$0 Upfront Risk (Strict No Win, No Fee)</span>
                     </div>
+                    <div class="trust-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Valid for Flights in the Past 3 Years</span>
+                    </div>
+                </div>
 
-                    <div class="diagnostic-cta-card">
-                        <a href="#flight-compensation" class="btn btn-primary" style="width: 100%;">
-                            <span>Calculate Your Flight Cash Now</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </a>
-                        <p class="diagnostic-footer-note">Free 60-second statutory check • Zero upfront legal fees • 36-month lookback</p>
+            </div>
+        </section>
+
+        <!-- Stats Strip -->
+        <section class="stats-strip">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-num">€600</div>
+                        <div class="stat-label">Max Cash (~$650 USD) / Passenger</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num">3 Years</div>
+                        <div class="stat-label">Lookback Eligibility Window</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num">98%</div>
+                        <div class="stat-label">Court Enforcement Win Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num">2.5M+</div>
+                        <div class="stat-label">Passengers Successfully Defended</div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Lab Benchmark Stats Strip -->
-        <section class="lab-stats-strip">
-            <div class="container stats-grid">
-                <div class="stat-card">
-                    <div class="stat-num">€600</div>
-                    <div class="stat-label">Max Statutory Cash Per Passenger</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-num">3 Years</div>
-                    <div class="stat-label">Retroactive Eligibility Window</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-num">98%</div>
-                    <div class="stat-label">Partner Legal Enforcement Court Win Rate</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-num">2.5M+</div>
-                    <div class="stat-label">Airline Passengers Successfully Defended</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Flight Delay & Cancellation Compensation Calculator Section -->
-        <section id="flight-compensation" class="flight-comp-section">
+        <!-- How It Works (Simple 3 Steps) -->
+        <section id="how-it-works" class="section section-alt">
             <div class="container">
                 <div class="section-header">
-                    <span class="section-tag">Passenger Rights Intelligence</span>
-                    <h2 class="section-title">Flight Delay & Cancellation Compensation Calculator</h2>
-                    <p class="section-subtitle">
-                        Under EU Regulation 261/2004 and UK Regulation 261, air passengers are legally entitled to up to €600 (~$650 USD / ~$850 SGD) in statutory cash for delays over 3 hours, cancellations, or denied boarding. Calculate your claim eligibility instantly:
-                    </p>
+                    <span class="section-tag">Simple 3-Step Process</span>
+                    <h2 class="section-title">How To Get Your Compensation</h2>
+                    <p class="section-subtitle">Airlines make individual claims difficult. Here is how our partner legal network handles the entire process for you:</p>
                 </div>
 
-                <!-- Interactive Calculator Widget -->
-                <div class="flight-calc-card">
-                    <div class="flight-calc-grid">
-                        <!-- Left: Inputs -->
-                        <div class="calc-input-group">
-                            <div>
-                                <div class="input-label-row">
-                                    <span class="input-label">Select Frequent Route</span>
-                                    <span style="font-size: 0.78rem; color: var(--text-muted);">Instant Distance Calculation</span>
-                                </div>
-                                <div class="route-presets-wrap">
-                                    <button type="button" class="route-preset-btn active" data-route="LHR-SIN">London (LHR) → Singapore (SIN)</button>
-                                    <button type="button" class="route-preset-btn" data-route="FRA-JFK">Frankfurt (FRA) → New York (JFK)</button>
-                                    <button type="button" class="route-preset-btn" data-route="CDG-LAX">Paris (CDG) → Los Angeles (LAX)</button>
-                                    <button type="button" class="route-preset-btn" data-route="AMS-HND">Amsterdam (AMS) → Tokyo (HND)</button>
-                                    <button type="button" class="route-preset-btn" data-route="MAD-MIA">Madrid (MAD) → Miami (MIA)</button>
-                                </div>
-                            </div>
-
-                            <div class="custom-flight-inputs">
-                                <div>
-                                    <label class="input-label" style="display:block; margin-bottom: 6px;" for="calc-flight-number">Flight Number (Optional)</label>
-                                    <input type="text" id="calc-flight-number" class="calc-input-field" placeholder="e.g. SQ325 / BA15" value="SQ325" autocapitalize="characters" autocomplete="off" spellcheck="false">
-                                </div>
-                                <div>
-                                    <label class="input-label" style="display:block; margin-bottom: 6px;">Airport Route (IATA)</label>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                        <input type="text" id="calc-departure" class="calc-input-field" placeholder="DEP (e.g. LHR)" value="LHR" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
-                                        <input type="text" id="calc-arrival" class="calc-input-field" placeholder="ARR (e.g. SIN)" value="SIN" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="delay-tier-group">
-                                <div class="input-label-row">
-                                    <span class="input-label">Delay at Destination</span>
-                                    <span style="font-size: 0.78rem; color: var(--cyan-400);">EU/UK Statutory Tier</span>
-                                </div>
-                                <div class="delay-tier-selector">
-                                    <button type="button" class="delay-tier-btn" data-hours="2">
-                                        <div class="delay-tier-title">&lt; 3 Hours</div>
-                                        <div class="delay-tier-desc">Meals & Care Only</div>
-                                    </button>
-                                    <button type="button" class="delay-tier-btn active" data-hours="3.5">
-                                        <div class="delay-tier-title">3 to 4 Hours</div>
-                                        <div class="delay-tier-desc">Statutory Threshold</div>
-                                    </button>
-                                    <button type="button" class="delay-tier-btn" data-hours="4.5">
-                                        <div class="delay-tier-title">4+ Hours / Cancelled</div>
-                                        <div class="delay-tier-desc">Full Compensation</div>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right: Live Payout Evaluation Box -->
-                        <div class="calc-result-box">
-                            <div id="payout-status-pill" class="result-status-pill">ELIGIBLE FOR STATUTORY CASH</div>
-                            <div id="payout-amount-val" class="payout-big-number">€600</div>
-                            <div id="payout-currency-sub" class="payout-currency-sub">~$650 USD / ~$850 SGD per passenger</div>
-
-                            <div class="payout-details-list">
-                                <div class="payout-detail-row">
-                                    <span class="payout-detail-label">Distance Tier:</span>
-                                    <span id="payout-distance-val" class="payout-detail-val">Long-Haul (> 3,500 km) (10,887 km)</span>
-                                </div>
-                                <div class="payout-detail-row">
-                                    <span class="payout-detail-label">Governing Law:</span>
-                                    <span id="payout-law-val" class="payout-detail-val">UK 261 / EU 261</span>
-                                </div>
-                                <div class="payout-detail-row">
-                                    <span class="payout-detail-label">Upfront Fee:</span>
-                                    <span class="payout-detail-val" style="color: var(--emerald-400);">$0 (100% Contingency)</span>
-                                </div>
-                                <div class="payout-detail-row">
-                                    <span class="payout-detail-label">Retroactive Window:</span>
-                                    <span class="payout-detail-val">Up to 3 Years (36 Months)</span>
-                                </div>
-                            </div>
-
-                            <a id="calc-claim-cta" href="https://ascendantlabs.co/r/airhelp?flight_number=SQ325&departure=LHR&arrival=SIN&delay=180" target="_blank" rel="noopener noreferrer" class="btn btn-primary calc-cta-btn">
-                                <span>Initiate Statutory Claim for €600</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                            </a>
-                            <div class="calc-guarantee-note">🔒 No Win, No Fee • Over 2.5M+ airline passengers defended</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3-Column Educational Pillar Cards -->
-                <div class="flight-pillars-grid">
-                    <div class="flight-pillar-card">
-                        <div class="flight-pillar-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        </div>
-                        <h3 class="flight-pillar-title">3-Year Retroactive Window</h3>
-                        <p class="flight-pillar-desc">
-                            You don't need to be stranded at the airport today. European and UK flight protection directives allow passengers to recover cash for delayed or cancelled flights taken anytime over the past 3 years (up to 6 years in the UK).
-                        </p>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-num">Step 01</div>
+                        <h3>1. Check in 60 Seconds</h3>
+                        <p>Enter your departure and arrival airports in the portal above. The system instantly checks your route against statutory European &amp; UK distance regulations.</p>
                     </div>
 
-                    <div class="flight-pillar-card">
-                        <div class="flight-pillar-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        </div>
-                        <h3 class="flight-pillar-title">Legally Enforced Cash</h3>
-                        <p class="flight-pillar-desc">
-                            Airlines often offer worthless travel vouchers or ignore individual email inquiries. EU Regulation 261 and UK 261 mandate legally binding cash compensation deposited directly to your bank account.
-                        </p>
+                    <div class="step-card">
+                        <div class="step-num">Step 02</div>
+                        <h3>2. Automated Legal Audit</h3>
+                        <p>Flight radar telemetry and airport METAR weather logs are analyzed automatically to immediately disprove false airline "extraordinary circumstances" excuses.</p>
                     </div>
 
-                    <div class="flight-pillar-card">
-                        <div class="flight-pillar-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        </div>
-                        <h3 class="flight-pillar-title">Zero Upfront Risk ($0)</h3>
-                        <p class="flight-pillar-desc">
-                            Through our legal partner network (AirHelp), specialized aviation advocates handle all court filings, airline negotiations, and enforcement. You pay nothing out of pocket unless money is recovered.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Official Travelpayouts / AirHelp Partner Widget -->
-                <div class="official-widget-wrap" id="official-airhelp-widget" style="margin-top: 36px; background: var(--bg-card); border: 1px solid var(--border-accent); border-radius: 18px; padding: 28px 20px; text-align: center; box-shadow: var(--card-shadow);">
-                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 700; color: var(--cyan-400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-                        <span>Official Partner Verification Portal</span>
-                    </div>
-                    <h3 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">AirHelp Direct Claim Intake Form</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; max-width: 620px; margin: 0 auto 20px;">
-                        Check your disrupted flight through the official AirHelp global legal registry to verify compensation and initiate contingency claim recovery.
-                    </p>
-                    <div class="airhelp-widget-container" style="min-height: 100px; display: flex; justify-content: center; align-items: center; overflow-x: auto;">
-                        <script charset="utf-8" src="//tp.media/content?currency=eur&trs=573423&shmarker=777015&promo_id=8679&source_id=573423&campaign_id=120&type=compact" async></script>
-                    </div>
-                    <div style="margin-top: 14px; font-size: 0.78rem; color: var(--text-muted);">
-                        🔒 256-bit SSL encrypted • Certified AirHelp &amp; Travelpayouts Partner ID: 777015
+                    <div class="step-card">
+                        <div class="step-num">Step 03</div>
+                        <h3>3. Cash In Your Bank</h3>
+                        <p>Specialized aviation attorneys enforce your payout directly against the airline. Once paid, statutory cash is wired straight to your bank. $0 fee if unsuccessful.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Statutory Rights Guide Section -->
-        <section id="rights-guide" class="section comparison-section">
+        <!-- Why Not File Alone (The Rejection Trap) -->
+        <section id="why-us" class="section">
             <div class="container">
                 <div class="section-header">
-                    <span class="section-tag">Statutory Framework</span>
-                    <h2 class="section-title">EU261 & UK261 Compensation Rights Explained</h2>
-                    <p class="section-subtitle">
-                        The European Union and United Kingdom have the strongest passenger protection laws in commercial aviation. Here is the legal breakdown of statutory cash entitlements:
-                    </p>
+                    <span class="section-tag">The Airline Rejection Trap</span>
+                    <h2 class="section-title">Why You Shouldn't File Alone</h2>
+                    <p class="section-subtitle">Airlines employ claims evasion teams trained to reject individual passengers with boilerplate excuses:</p>
                 </div>
 
-                <!-- Desktop Comparison Table of Flight Rights -->
-                <div class="comparison-table-wrap desktop-only">
-                    <table class="comparison-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 26%;">Disruption Category</th>
-                                <th class="brand-col brand-statutory">
-                                    <div class="brand-header-badge">
-                                        <span>Statutory Compensation</span>
-                                        <span class="badge-winner">Cash Law</span>
-                                    </div>
-                                    <div class="brand-tagline">Legally mandated payout amounts based on great-circle flight distance</div>
-                                </th>
-                                <th class="brand-col brand-duty">
-                                    <div class="brand-header-badge">
-                                        <span>Mandatory Airline Care</span>
-                                        <span class="badge-winner">Duty of Care</span>
-                                    </div>
-                                    <div class="brand-tagline">What airlines must provide at the airport regardless of delay cause</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="feature-title">
-                                    Short-Haul Flights
-                                    <span>Distance ≤ 1,500 km (e.g., London to Paris, Frankfurt to Zurich)</span>
-                                </td>
-                                <td class="brand-val highlight">
-                                    €250 (~$275 USD / ~$360 SGD) per passenger
-                                </td>
-                                <td class="brand-val">
-                                    Free food, refreshments, and 2 phone calls/emails after 2 hours
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="feature-title">
-                                    Medium-Haul Flights
-                                    <span>Distance 1,500 km to 3,500 km (e.g., London to Athens, Paris to Cairo)</span>
-                                </td>
-                                <td class="brand-val highlight">
-                                    €400 (~$440 USD / ~$580 SGD) per passenger
-                                </td>
-                                <td class="brand-val">
-                                    Free meals, drinks, and communications after 3 hours
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="feature-title">
-                                    Long-Haul Flights
-                                    <span>Distance &gt; 3,500 km (e.g., London to Singapore, Paris to New York)</span>
-                                </td>
-                                <td class="brand-val highlight">
-                                    €600 (~$650 USD / ~$850 SGD) per passenger
-                                </td>
-                                <td class="brand-val">
-                                    Full meals, beverages, hotel accommodation, and airport transfers for overnight delays
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="feature-title">
-                                    Flight Cancellations
-                                    <span>Informed less than 14 days prior to departure date</span>
-                                </td>
-                                <td class="brand-val highlight">
-                                    Full €250 to €600 compensation PLUS full ticket refund or alternative re-routing
-                                </td>
-                                <td class="brand-val">
-                                    Immediate accommodation and transport if re-routed flight departs next day
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="feature-title">
-                                    Denied Boarding
-                                    <span>Involuntary bumping due to commercial airline overbooking</span>
-                                </td>
-                                <td class="brand-val highlight">
-                                    Immediate €250 to €600 compensation paid at the airport or via bank transfer
-                                </td>
-                                <td class="brand-val">
-                                    Choice between re-routing at earliest opportunity or full fare refund
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="feature-title">
-                                    Missed Connecting Flights
-                                    <span>Connection missed due to earlier leg delay, arriving 3+ hours late at destination</span>
-                                </td>
-                                <td class="brand-val highlight">
-                                    €250 to €600 based on total end-to-end trip distance under single booking
-                                </td>
-                                <td class="brand-val">
-                                    Airlines must rebook free of charge and provide hotel during layover
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Mobile-Optimized Statutory Cards (No Horizontal Scrolling) -->
-                <div class="statutory-cards-mobile mobile-only">
-                    <div class="statutory-mobile-card">
-                        <div class="statutory-card-top">
-                            <div>
-                                <span class="statutory-badge">Distance ≤ 1,500 km</span>
-                                <h3 class="statutory-card-title">Short-Haul Flights</h3>
-                            </div>
-                            <div class="statutory-cash-tag">€250</div>
+                <div class="compare-grid">
+                    <div class="compare-card alone">
+                        <div class="compare-title">
+                            <span>❌ Filing Alone With The Airline</span>
                         </div>
-                        <p class="statutory-card-sub">e.g. London to Paris, Frankfurt to Zurich</p>
-                        <div class="statutory-card-breakdown">
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Cash Entitlement:</span>
-                                <span class="breakdown-val highlight">€250 (~$275 USD / ~$360 SGD)</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Duty of Care:</span>
-                                <span class="breakdown-val">Free food, refreshments, and communications after 2h delay</span>
-                            </div>
-                        </div>
+                        <ul class="compare-list">
+                            <li>• <strong>85% initial rejection rate</strong> using automated boilerplate excuse templates.</li>
+                            <li>• Months of unanswered emails and endless customer service hold times.</li>
+                            <li>• Offered expiring travel vouchers or coupons instead of real cash.</li>
+                            <li>• Zero legal leverage when the airline claims "operational issues".</li>
+                        </ul>
                     </div>
 
-                    <div class="statutory-mobile-card">
-                        <div class="statutory-card-top">
-                            <div>
-                                <span class="statutory-badge">1,500 km – 3,500 km</span>
-                                <h3 class="statutory-card-title">Medium-Haul Flights</h3>
-                            </div>
-                            <div class="statutory-cash-tag">€400</div>
+                    <div class="compare-card partner">
+                        <div class="compare-title">
+                            <span>✅ Partner Aviation Legal Enforcement</span>
                         </div>
-                        <p class="statutory-card-sub">e.g. London to Athens, Paris to Cairo</p>
-                        <div class="statutory-card-breakdown">
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Cash Entitlement:</span>
-                                <span class="breakdown-val highlight">€400 (~$440 USD / ~$580 SGD)</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Duty of Care:</span>
-                                <span class="breakdown-val">Free meals, drinks, and communications after 3h delay</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="statutory-mobile-card featured">
-                        <div class="statutory-card-top">
-                            <div>
-                                <span class="statutory-badge featured-badge">Distance &gt; 3,500 km</span>
-                                <h3 class="statutory-card-title">Long-Haul Flights</h3>
-                            </div>
-                            <div class="statutory-cash-tag featured-tag">€600</div>
-                        </div>
-                        <p class="statutory-card-sub">e.g. London to Singapore, Paris to New York</p>
-                        <div class="statutory-card-breakdown">
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Cash Entitlement:</span>
-                                <span class="breakdown-val highlight">€600 (~$650 USD / ~$850 SGD)</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Duty of Care:</span>
-                                <span class="breakdown-val">Full meals, beverages, hotel room & transfers for overnight delay</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="statutory-mobile-card">
-                        <div class="statutory-card-top">
-                            <div>
-                                <span class="statutory-badge">Notice &lt; 14 Days</span>
-                                <h3 class="statutory-card-title">Flight Cancellations</h3>
-                            </div>
-                            <div class="statutory-cash-tag">€250–€600</div>
-                        </div>
-                        <p class="statutory-card-sub">Informed less than 14 days prior to departure</p>
-                        <div class="statutory-card-breakdown">
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Cash Entitlement:</span>
-                                <span class="breakdown-val highlight">Full €250 to €600 PLUS full ticket refund or rerouting</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Duty of Care:</span>
-                                <span class="breakdown-val">Immediate hotel accommodation & airport transfers if rerouted</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="statutory-mobile-card">
-                        <div class="statutory-card-top">
-                            <div>
-                                <span class="statutory-badge">Overbooking</span>
-                                <h3 class="statutory-card-title">Denied Boarding</h3>
-                            </div>
-                            <div class="statutory-cash-tag">€250–€600</div>
-                        </div>
-                        <p class="statutory-card-sub">Involuntary bumping due to airline overbooking</p>
-                        <div class="statutory-card-breakdown">
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Cash Entitlement:</span>
-                                <span class="breakdown-val highlight">Immediate €250 to €600 cash paid via bank transfer</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Duty of Care:</span>
-                                <span class="breakdown-val">Choice between immediate rerouting or 100% fare refund</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="statutory-mobile-card">
-                        <div class="statutory-card-top">
-                            <div>
-                                <span class="statutory-badge">Single Booking</span>
-                                <h3 class="statutory-card-title">Missed Connections</h3>
-                            </div>
-                            <div class="statutory-cash-tag">€250–€600</div>
-                        </div>
-                        <p class="statutory-card-sub">First leg delayed causing late arrival at final destination</p>
-                        <div class="statutory-card-breakdown">
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Cash Entitlement:</span>
-                                <span class="breakdown-val highlight">€250 to €600 based on total end-to-end trip distance</span>
-                            </div>
-                            <div class="breakdown-row">
-                                <span class="breakdown-label">Duty of Care:</span>
-                                <span class="breakdown-val">Free airline rebooking & hotel during extended airport layover</span>
-                            </div>
-                        </div>
+                        <ul class="compare-list">
+                            <li>• <strong>98% court win rate</strong> backed by specialized aviation lawyers.</li>
+                            <li>• Immutable ADS-B radar &amp; weather telemetry disproving airline excuses.</li>
+                            <li>• Direct cash bank deposits (mandated under EC 261/2004).</li>
+                            <li>• <strong>Strict No Win, No Fee</strong> — you risk exactly $0.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- How It Works Section -->
-        <section id="how-it-works" class="section" style="background: var(--bg-surface-raised);">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-tag">Claim Lifecycle</span>
-                    <h2 class="section-title">How Compensation Is Enforced</h2>
-                    <p class="section-subtitle">
-                        Airlines have dedicated claims teams trained to reject self-filed passenger emails. Our partner enforcement workflow bridges the legal gap:
-                    </p>
-                </div>
-
-                <div class="tools-grid">
-                    <div class="tool-card">
-                        <div>
-                            <div class="tool-badge-pill">
-                                <span>Step 01 • 60 Seconds</span>
-                            </div>
-                            <h3>Instant Eligibility Screening</h3>
-                            <p>
-                                Enter your flight number, departure airport, and date of travel. Our automated engine matches your route against European Court of Justice (ECJ) precedents and great-circle mileage to calculate your exact statutory payout.
-                            </p>
-                        </div>
-                        <a href="#flight-compensation" class="btn btn-secondary btn-sm" style="margin-top: 16px;">
-                            <span>Run Free Flight Check</span>
-                        </a>
-                    </div>
-
-                    <div class="tool-card">
-                        <div>
-                            <div class="tool-badge-pill">
-                                <span>Step 02 • Radar Telemetry</span>
-                            </div>
-                            <h3>Aviation Data Corroboration</h3>
-                            <p>
-                                Airlines frequently invent fake "weather" or "air traffic control" excuses. Partner aviation databases pull historical ADS-B radar tracks and airport METAR weather logs to definitively debunk airline fabrications.
-                            </p>
-                        </div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 16px;">
-                            Defeats false airline "extraordinary circumstances" claims
-                        </div>
-                    </div>
-
-                    <div class="tool-card">
-                        <div>
-                            <div class="tool-badge-pill">
-                                <span>Step 03 • Legal Representation</span>
-                            </div>
-                            <h3>Aviation Attorney Escalation</h3>
-                            <p>
-                                Specialized aviation lawyers file direct statutory demand letters. If the airline continues stalling or refuses compliance, legal partners take them directly to national enforcement bodies or European civil courts.
-                            </p>
-                        </div>
-                        <div style="font-size: 0.85rem; color: var(--cyan-400); margin-top: 16px;">
-                            Over 98% court win rate against commercial airlines
-                        </div>
-                    </div>
-
-                    <div class="tool-card">
-                        <div>
-                            <div class="tool-badge-pill">
-                                <span>Step 04 • Cash Deposit</span>
-                            </div>
-                            <h3>Direct Bank Payout ($0 Risk)</h3>
-                            <p>
-                                Once the airline releases funds, your statutory compensation is wired straight to your bank account. If the claim is unsuccessful for any reason, you owe exactly $0 under strict contingency terms.
-                            </p>
-                        </div>
-                        <div style="font-size: 0.85rem; color: var(--emerald-400); font-weight: 700; margin-top: 16px;">
-                            Strict No Win, No Fee Guarantee
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Airlines Enforced Section -->
-        <section id="airlines" class="section">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-tag">Airlines Covered</span>
-                    <h2 class="section-title">Enforcing Claims Against Major Carriers</h2>
-                    <p class="section-subtitle">
-                        EU Regulation 261 and UK 261 apply to all flights departing from an EU/UK airport, or flights arriving in the EU/UK operated by an EU/UK carrier:
-                    </p>
-                </div>
-
-                <div class="threats-grid">
-                    <div class="threat-card">
-                        <div class="threat-icon-wrap">
-                            <span style="font-size: 1.2rem;">🇬🇧</span>
-                        </div>
-                        <h3>British Airways & Virgin Atlantic</h3>
-                        <p>Fully governed under UK 261. High compensation recovery on transatlantic routes to New York, Los Angeles, and Asia with a 6-year lookback period in UK courts.</p>
-                    </div>
-
-                    <div class="threat-card">
-                        <div class="threat-icon-wrap">
-                            <span style="font-size: 1.2rem;">🇩🇪</span>
-                        </div>
-                        <h3>Lufthansa & Swiss</h3>
-                        <p>Germany's strict civil aviation enforcement makes Lufthansa flight delay claims highly recoverable for European hubs in Frankfurt, Munich, and Zurich.</p>
-                    </div>
-
-                    <div class="threat-card">
-                        <div class="threat-icon-wrap">
-                            <span style="font-size: 1.2rem;">🇫🇷</span>
-                        </div>
-                        <h3>Air France & KLM</h3>
-                        <p>Covered across Paris Charles de Gaulle (CDG) and Amsterdam Schiphol (AMS). Technical issues and airport operational delays are legally recoverable.</p>
-                    </div>
-
-                    <div class="threat-card">
-                        <div class="threat-icon-wrap">
-                            <span style="font-size: 1.2rem;">🇸🇬</span>
-                        </div>
-                        <h3>Singapore Airlines, Emirates & Qatar</h3>
-                        <p>All international flights departing European airports (LHR, FRA, CDG, AMS, MAD, BCN) are strictly covered under EU261, entitling passengers to the full €600 payout.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Scientific Methodology Section -->
-        <section id="methodology" class="section" style="background: var(--bg-surface-raised);">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-tag">Scientific Methodology</span>
-                    <h2 class="section-title">How Flight Delays Are Verified</h2>
-                    <p class="section-subtitle">
-                        We don't rely on airline declarations. Aviation consumer defense relies on immutable telemetry and court precedents:
-                    </p>
-                </div>
-
-                <div class="methodology-grid">
-                    <div class="methodology-card">
-                        <div class="method-step-num">Pillar 01</div>
-                        <h3>Gate Arrival Timestamp Telemetry</h3>
-                        <p>Under European Court of Justice ruling C-452/13 (Germanwings v Henning), flight arrival is legally defined as the exact moment the aircraft doors open at the gate—not when wheels touch down.</p>
-                    </div>
-
-                    <div class="methodology-card">
-                        <div class="method-step-num">Pillar 02</div>
-                        <h3>METAR Airport Weather Auditing</h3>
-                        <p>Airlines routinely use "bad weather" as a catch-all excuse to deny payouts. Official meteorological aerodrome reports (METAR) and radar logs are audited to prove whether neighboring flights operated normally.</p>
-                    </div>
-
-                    <div class="methodology-card">
-                        <div class="method-step-num">Pillar 03</div>
-                        <h3>Technical Defect ECJ Jurisprudence</h3>
-                        <p>The ECJ has ruled repeatedly (C-549/07 Wallentin-Hermann) that technical malfunctions, engine wear, and component breakdowns are inherent to airline operations and do NOT constitute extraordinary circumstances.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- FAQ Section -->
-        <section id="faq" class="section">
+        <!-- Frequently Asked Questions -->
+        <section id="faq" class="section section-alt">
             <div class="container">
                 <div class="section-header">
                     <span class="section-tag">Frequently Asked Questions</span>
-                    <h2 class="section-title">Air Passenger Compensation FAQ</h2>
-                    <p class="section-subtitle">Clear, legally backed answers to the most common questions regarding flight delay claims.</p>
+                    <h2 class="section-title">Common Questions Answered</h2>
                 </div>
 
                 <div class="faq-wrap">
                     <div class="faq-item active">
                         <button class="faq-question" type="button">
-                            <span>Can I claim compensation if my flight was delayed months or years ago?</span>
+                            <span>Can I claim for a flight delayed months or years ago?</span>
                             <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                         <div class="faq-answer">
-                            Yes! You do not need to submit your claim while at the airport. Under statutory limitation laws across European countries, passengers have up to 3 years to file retroactive claims (and up to 6 years for flights under English law in the UK). If you experienced an eligible disruption anytime in the past 36 months, you can still claim your €600 today.
+                            Yes! European law gives passengers up to 3 years to file retroactive claims (and up to 6 years for flights under English law in the UK). If you experienced a 3+ hour delay or cancellation anytime in the last 36 months, you are still legally entitled to claim your €600 (~$650 USD) cash.
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" type="button">
-                            <span>The airline already gave me a food voucher or rebooked me. Can I still claim €600?</span>
+                            <span>The airline gave me a food voucher or hotel. Can I still get cash?</span>
                             <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                         <div class="faq-answer">
-                            Yes, absolutely. Food, hotel stays, and rebooking are categorized under "Duty of Care" (Article 9 of EU261). Accepting a meal voucher or hotel room does NOT waive your statutory right to €250, €400, or €600 in cash compensation under Article 7. Only signing a specific settlement release document can forfeit your claim.
+                            Yes, 100%. Food, hotel accommodations, and rebooking are categorized under "Duty of Care" (Article 9 of EU261). Accepting a meal voucher or hotel room does NOT waive your statutory right to €250, €400, or €600 cash compensation under Article 7.
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" type="button">
-                            <span>The airline sent an email claiming "extraordinary circumstances." Is that final?</span>
+                            <span>What airlines and routes are covered?</span>
                             <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                         <div class="faq-answer">
-                            No. Over 85% of self-filed passenger claims are initially rejected by airlines using automated boilerplate letters citing "weather" or "air traffic constraints." When our partnered legal network cross-checks radar data and issues formal statutory warnings, airlines routinely concede and pay the full statutory amount.
+                            Any commercial flight departing from an airport in the European Union or United Kingdom is strictly covered, regardless of the airline (e.g. Delta, United, American, Singapore Airlines, Emirates). Flights into Europe operated by European carriers (e.g. British Airways, Lufthansa, Air France, KLM) are also covered.
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" type="button">
-                            <span>Are non-European airlines (like Singapore Airlines, Emirates, or United) covered?</span>
+                            <span>How much does it cost me?</span>
                             <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                         <div class="faq-answer">
-                            Yes! ANY commercial flight departing from an airport located inside the European Union or United Kingdom is strictly covered, regardless of whether the operating airline is European, Asian, American, or Middle Eastern. For example, a Singapore Airlines flight from London to Singapore or Frankfurt to New York is 100% covered.
-                        </div>
-                    </div>
-
-                    <div class="faq-item">
-                        <button class="faq-question" type="button">
-                            <span>How much does it cost to check or submit my claim?</span>
-                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                        <div class="faq-answer">
-                            There is $0 upfront cost to check your flight eligibility or file a claim. The entire process is conducted on a strict "No Win, No Fee" contingency basis. Specialized aviation attorneys handle all dispute correspondence, radar logs, and legal escalation. A standard agreed success commission is deducted only when money is successfully recovered from the airline.
-                        </div>
-                    </div>
-
-                    <div class="faq-item">
-                        <button class="faq-question" type="button">
-                            <span>What documents do I need to submit a claim?</span>
-                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                        <div class="faq-answer">
-                            All you need is your booking reference code (PNR) or e-ticket number, flight number, and date of travel. You can find these on your booking confirmation email or boarding pass. If you've lost your paper boarding pass, your e-ticket email is sufficient.
+                            It costs you $0 upfront. Checking your flight is completely free. If you submit a claim, specialized aviation lawyers handle all court filings, airline disputes, and enforcement on a strict "No Win, No Fee" contingency basis. A standard commission is deducted only when compensation is successfully secured.
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Final CTA Banner Section -->
-        <section class="cta-banner-section">
+        <!-- Final CTA Banner -->
+        <section class="cta-section">
             <div class="container">
-                <div class="cta-banner-card">
-                    <h2 class="serif-display">Don't Let Airlines Keep Your Compensation</h2>
-                    <p>
-                        Over €5 billion in statutory flight compensation goes unclaimed every year because travelers don't know their legal rights. Check your flight from the past 3 years now with zero upfront risk.
-                    </p>
-                    <div class="cta-banner-buttons">
-                        <a href="#flight-compensation" class="btn btn-primary btn-lg">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                            <span>Check Flight Compensation (€600)</span>
-                        </a>
-                        <a href="https://ascendantlabs.co/r/airhelp" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
-                            <span>Open AirHelp Claims Portal</span>
-                        </a>
-                    </div>
+                <div class="cta-box">
+                    <h2 class="serif-display">Don't Let The Airline Keep Your Cash</h2>
+                    <p>Over €5 billion in legally mandated passenger compensation goes unclaimed each year. Check your flight in 60 seconds with $0 upfront cost.</p>
+                    <a href="#claim-portal" class="btn btn-primary btn-lg">
+                        <span>Check Flight Compensation (€600)</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Comprehensive Site Footer -->
+    <!-- Clean Footer -->
     <footer class="site-footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <h4>Ascendant<span>Labs</span></h4>
-                    <p>
-                        Independent aviation consumer advocacy, flight delay compensation intelligence, and statutory EU261/UK261 claim audits.
-                    </p>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">
-                        Laboratory Contact: <a href="mailto:contact@ascendantlabs.co" style="color: var(--cyan-400);">contact@ascendantlabs.co</a>
-                    </div>
-                </div>
-
-                <div class="footer-col">
-                    <h5>Passenger Rights & Tools</h5>
-                    <ul class="footer-links-list">
-                        <li><a href="#flight-compensation">Flight Delay Calculator (€600)</a></li>
-                        <li><a href="#rights-guide">EU261 Statutory Compensation Guide</a></li>
-                        <li><a href="#rights-guide">UK Regulation 261 Guide</a></li>
-                        <li><a href="#how-it-works">How Legal Enforcement Works</a></li>
-                        <li><a href="#airlines">Airlines Covered & Radar Data</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-col">
-                    <h5>Verified Solutions</h5>
-                    <ul class="footer-links-list">
-                        <li><a href="https://ascendantlabs.co/r/airhelp" target="_blank" rel="noopener noreferrer">AirHelp (EU261 Contingency Recovery)</a></li>
-                        <li><a href="#flight-compensation">Calculate Retroactive Claim</a></li>
-                        <li><a href="#faq">Compensation FAQ</a></li>
-                        <li><a href="#methodology">Aviation Telemetry Methodology</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-col">
-                    <h5>Laboratory & Legal</h5>
-                    <ul class="footer-links-list">
-                        <li><a href="#methodology">Audit Methodology</a></li>
-                        <li><a href="#faq">Frequently Asked Questions</a></li>
-                        <li><a href="#rights-guide">ECJ Legal Precedent Database</a></li>
-                        <li><a href="mailto:contact@ascendantlabs.co">Editorial Integrity</a></li>
-                        <li><a href="mailto:contact@ascendantlabs.co">Contact Legal Team</a></li>
-                    </ul>
-                </div>
+        <div class="container footer-inner">
+            <div class="footer-logo">
+                ✈️ Ascendant<span>Labs</span>
             </div>
+            <p class="footer-desc">
+                Independent air passenger rights advocacy and automated statutory compensation screening under European Regulation (EC) No 261/2004 and The Air Passenger Rights (Amendment) (EU Exit) Regulations 2019 (UK 261).
+            </p>
 
-            <!-- FTC Affiliate Disclosure -->
             <div class="footer-disclosure">
-                <strong>FTC & Affiliate Disclosure:</strong> Ascendant Labs is an independent consumer advocacy and aviation intelligence laboratory. We provide free flight disruption calculators and statutory education under EU Regulation 261/2004 and UK 261. To maintain our testing utilities at zero cost to travelers, we participate in affiliate partnerships with vetted organizations, including AirHelp (specialized contingency air passenger rights recovery). When you initiate a flight compensation claim through our links (such as /r/airhelp), we may receive an affiliate commission at no additional cost to you.
+                <strong>FTC &amp; Affiliate Disclosure:</strong> Ascendant Labs participates in verified partner affiliate programs, including Travelpayouts and AirHelp. When you submit a flight compensation claim through our portal, we may receive an affiliate commission at no additional cost to you. Payouts and legal enforcement are conducted on a strict contingency ("No Win, No Fee") basis.
             </div>
 
-            <div class="footer-bottom">
-                <div>&copy; 2026 Ascendant Labs. All rights reserved.</div>
-                <div style="display: flex; gap: 20px;">
-                    <a href="#flight-compensation">Flight Calculator</a>
-                    <a href="#rights-guide">EU261 Passenger Rights</a>
-                    <a href="https://ascendantlabs.co/r/airhelp" target="_blank" rel="noopener noreferrer">AirHelp Claims Portal</a>
-                    <a href="mailto:contact@ascendantlabs.co">Contact Lab</a>
-                </div>
+            <div class="footer-links">
+                <span>&copy; 2026 Ascendant Labs. All rights reserved.</span>
+                <a href="#claim-portal">Claim Portal</a>
+                <a href="#faq">FAQ</a>
+                <a href="mailto:contact@ascendantlabs.co">Contact</a>
             </div>
         </div>
     </footer>
 
-    <!-- Sticky Mobile Bottom Conversion Bar -->
+    <!-- Sticky Mobile Conversion Bar -->
     <div id="mobile-sticky-bar" class="mobile-sticky-bar" aria-label="Mobile quick action bar">
         <div class="mobile-sticky-inner">
             <div class="mobile-sticky-info">
                 <span class="mobile-sticky-label">EC 261 / UK 261</span>
-                <span class="mobile-sticky-payout">Claim Up to <strong id="sticky-payout-val">€600</strong></span>
+                <span class="mobile-sticky-payout">Claim Up to <strong>€600</strong> (~$650 USD)</span>
             </div>
-            <a href="#flight-compensation" class="btn btn-primary btn-sm mobile-sticky-cta">
-                <span>Check Cash</span>
+            <a href="#claim-portal" class="btn btn-primary btn-sm">
+                <span>Claim Cash</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
         </div>
     </div>
 
-    <!-- Client-Side Scripts -->
+    <!-- Client-Side Script with Meta Pixel Event Tracking -->
     <script src="/app.js"></script>
 </body>
 </html>
