@@ -139,89 +139,63 @@
       <div class="modal-card split-layout">
         <div class="modal-header">
           <div class="modal-titles">
-            <span class="modal-page-name" id="modalPageName">Advertiser</span>
-            <span class="modal-verified-badge" id="modalVerifiedBadge" title="Verified Meta Advertiser">✓</span>
-            <span class="modal-ad-id" id="modalAdId">ID: 000000</span>
+            <div class="modal-brand-avatar" id="modalBrandAvatar">A</div>
+            <div class="modal-brand-info">
+              <div class="modal-brand-row">
+                <span class="modal-page-name" id="modalPageName">Advertiser</span>
+                <span class="modal-verified-badge" id="modalVerifiedBadge" title="Verified Meta Advertiser">✓</span>
+              </div>
+              <span class="modal-ad-id" id="modalAdId">ID: 000000</span>
+            </div>
           </div>
           <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">✕</button>
         </div>
         <div class="modal-split-body">
-          <!-- Left Column: Realistic Ad Feed Preview & Asset Actions -->
+          <!-- Left Column: Focused Studio Creative Showcase -->
           <div class="modal-left-col">
-            <div class="feed-preview-card">
-              <!-- Top Feed Meta Header -->
-              <div class="feed-card-header">
-                <div class="feed-avatar" id="feedAvatar">A</div>
-                <div class="feed-header-text">
-                  <span class="feed-page-name" id="feedPageName">Advertiser</span>
-                  <span class="feed-sponsored-label">Sponsored</span>
-                </div>
-                <span class="feed-badge-pill" id="feedFormatBadge">CREATIVE</span>
-              </div>
-
-              <!-- Media Container -->
+            <div class="modal-media-canvas">
               <div class="modal-media-wrap" id="modalMediaWrap"></div>
-
-              <!-- Authentic Interactive Feed CTA Bar -->
-              <a href="#" target="_blank" rel="noopener noreferrer" class="feed-cta-bar" id="feedCtaBar">
-                <div class="feed-cta-left">
-                  <span class="feed-cta-domain" id="feedCtaDomain">destination.com</span>
-                  <span class="feed-cta-headline" id="feedCtaHeadline">Headline snippet...</span>
-                </div>
-                <div class="feed-cta-btn" id="feedCtaBtn">
-                  <span id="feedCtaBtnText">Learn More</span>
-                  <span class="cta-arrow">→</span>
-                </div>
-              </a>
             </div>
-
-            <!-- Modern Creative Asset Toolbar (Clean, Refined Replacement for Download Button) -->
+            <!-- Clean Creative Asset Toolbar -->
             <div class="creative-asset-toolbar" id="modalMediaActions"></div>
           </div>
 
-          <!-- Right Column: Destination Intel, Stats, Copy, and Library Link -->
+          <!-- Right Column: Ad Copy, Destination, Stats & Actions -->
           <div class="modal-right-col">
-            <!-- 1. Destination & CTA Intel Card (Highest Priority) -->
+            <!-- 1. Ad Copy & Messaging Block -->
+            <div class="modal-copy-block">
+              <div class="copy-header-row">
+                <div class="copy-header-tags">
+                  <span class="copy-label">AD MESSAGING</span>
+                  <span class="creative-hook-pill" id="modalHookPill">Direct-Response</span>
+                </div>
+                <button class="copy-clipboard-btn" id="copyClipboardBtn" title="Copy Ad Text">📋 Copy Text</button>
+              </div>
+              <h4 class="modal-headline" id="modalHeadline"></h4>
+              <p class="modal-body-text" id="modalBodyText"></p>
+            </div>
+
+            <!-- 2. Destination & Action Card (Unified, Non-Duplicated) -->
             <div class="destination-intel-card" id="destinationIntelCard">
               <div class="destination-intel-header">
-                <div class="destination-tag">
-                  <span class="dest-icon">🎯</span>
-                  <span>DESTINATION & CALL TO ACTION</span>
-                </div>
-                <span class="cta-action-badge" id="modalCtaBadge">⚡ Shop Now</span>
+                <span class="dest-label">DESTINATION LINK</span>
+                <span class="dest-status-pill" id="modalDestStatusPill">Verified Landing Page</span>
               </div>
               <div class="destination-url-box">
-                <div class="destination-url-display">
-                  <span class="url-protocol">https://</span>
-                  <span class="url-full-text" id="modalDestUrlText">derila-ergo.com/product</span>
-                </div>
+                <span class="url-full-text" id="modalDestUrlText">destination.com</span>
                 <div class="destination-actions">
                   <a href="#" target="_blank" rel="noopener noreferrer" class="dest-visit-btn" id="modalVisitDestBtn">
-                    Visit Destination ↗
+                    <span id="modalVisitDestBtnText">Visit Site</span>
                   </a>
                   <button type="button" class="dest-copy-btn" id="modalCopyDestBtn" title="Copy Destination URL">
-                    📋 Copy URL
+                    📋 Copy
                   </button>
                 </div>
               </div>
-              <div class="destination-meta-row">
-                <span class="dest-domain-pill" id="modalDestDomainPill">🌐 Domain: derila-ergo.com</span>
-                <span class="dest-status-pill" id="modalDestStatusPill">Direct Store Offer</span>
-              </div>
             </div>
 
-            <!-- 2. Campaign Flight & Scale Stats -->
+            <!-- 3. Campaign Flight & Scale Stats -->
             <div class="modal-stats-grid" id="modalStatsRow"></div>
-
-            <!-- 3. Ad Copy Block -->
-            <div class="modal-copy-block">
-              <div class="copy-header-row">
-                <span class="copy-label">AD TEXT & COPY</span>
-                <button class="copy-clipboard-btn" id="copyClipboardBtn">📋 Copy Text</button>
-              </div>
-              <h4 id="modalHeadline">Headline</h4>
-              <p id="modalBodyText">Ad Body Copy...</p>
-            </div>
 
             <!-- 4. Footer Meta Library Action -->
             <div class="modal-footer-actions">

@@ -50,32 +50,25 @@ const pageNumbersList = document.getElementById('pageNumbersList');
 // Modal Elements
 const adModal = document.getElementById('adModal');
 const modalCloseBtn = document.getElementById('modalCloseBtn');
+const modalBrandAvatar = document.getElementById('modalBrandAvatar');
 const modalPageName = document.getElementById('modalPageName');
+const modalVerifiedBadge = document.getElementById('modalVerifiedBadge');
 const modalAdId = document.getElementById('modalAdId');
 const modalMediaWrap = document.getElementById('modalMediaWrap');
 const modalMediaActions = document.getElementById('modalMediaActions');
 const modalStatsRow = document.getElementById('modalStatsRow');
 const modalHeadline = document.getElementById('modalHeadline');
 const modalBodyText = document.getElementById('modalBodyText');
+const modalHookPill = document.getElementById('modalHookPill');
 const copyClipboardBtn = document.getElementById('copyClipboardBtn');
 const modalLibraryLink = document.getElementById('modalLibraryLink');
 
-// Feed Preview Elements
-const feedAvatar = document.getElementById('feedAvatar');
-const feedPageName = document.getElementById('feedPageName');
-const feedFormatBadge = document.getElementById('feedFormatBadge');
-const feedCtaBar = document.getElementById('feedCtaBar');
-const feedCtaDomain = document.getElementById('feedCtaDomain');
-const feedCtaHeadline = document.getElementById('feedCtaHeadline');
-const feedCtaBtnText = document.getElementById('feedCtaBtnText');
-
-// Destination & Funnel Intel Elements
+// Destination & Action Elements
 const destinationIntelCard = document.getElementById('destinationIntelCard');
-const modalCtaBadge = document.getElementById('modalCtaBadge');
 const modalDestUrlText = document.getElementById('modalDestUrlText');
 const modalVisitDestBtn = document.getElementById('modalVisitDestBtn');
+const modalVisitDestBtnText = document.getElementById('modalVisitDestBtnText');
 const modalCopyDestBtn = document.getElementById('modalCopyDestBtn');
-const modalDestDomainPill = document.getElementById('modalDestDomainPill');
 const modalDestStatusPill = document.getElementById('modalDestStatusPill');
 
 // Initialize Event Listeners
@@ -104,7 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   copyClipboardBtn.addEventListener('click', () => {
-    const text = `${modalHeadline.textContent}\n\n${modalBodyText.textContent}`.trim();
+    const headline = (modalHeadline && modalHeadline.style.display !== 'none') ? modalHeadline.textContent.trim() : '';
+    const body = modalBodyText ? modalBodyText.textContent.trim() : '';
+    const text = [headline, body].filter(Boolean).join('\n\n');
     navigator.clipboard.writeText(text).then(() => {
       copyClipboardBtn.textContent = '✅ Copied!';
       setTimeout(() => { copyClipboardBtn.textContent = '📋 Copy Text'; }, 2000);
@@ -760,11 +755,14 @@ window.openModalById = function (adId) {
 
 function openModal(ad) {
   adModal.setAttribute('data-active-id', String(ad.id));
-  modalPageName.textContent = ad.pageName;
-  modalAdId.textContent = `ID: ${ad.id}`;
-  modalHeadline.textContent = ad.copy.headline || 'No Headline';
-  modalBodyText.textContent = ad.copy.body;
-  modalLibraryLink.href = ad.adLibraryUrl;
+  
+  // 1. Header Information (Single source of brand name & ID)
+  if (modalBrandAvatar) {
+    modalBrandAvatar.textContent = (ad.pageName || 'A').charAt(0).toUpperCase();
+  }
+  if (modalPageName) modalPageName.textContent = ad.pageName;
+  if (modalAdId) modalAdId.textContent = `ID: ${ad.id}`;
+  if (modalLibraryLink) modalLibraryLink.href = ad.adLibraryUrl;
 
   const media = state.resolvedMediaMap[ad.id] || ad.media;
   const destUrl = (media && media.destinationUrl) || ad.destinationUrl || '';
@@ -780,45 +778,62 @@ function openModal(ad) {
     domain = ad.copy.caption || ad.pageName || 'Website';
   }
 
-  // 1. Feed Ad Mockup Header
-  if (feedAvatar) feedAvatar.textContent = (ad.pageName || 'A').charAt(0).toUpperCase();
-  if (feedPageName) feedPageName.textContent = ad.pageName;
-  if (feedFormatBadge) {
-    feedFormatBadge.textContent = media?.videoUrl ? '▶ VIDEO AD' : (media?.thumbnailUrl ? '🖼️ IMAGE AD' : 'CREATIVE');
+  // 2. Intelligent Copy & Messaging Deduplication
+  const rawHeadline = (ad.copy?.headline || '').trim();
+  const rawBody = (ad.copy?.body || '').trim();
+  const pageName = (ad.pageName || '').trim();
+
+  // Deduplicate: If headline is identical to body or brand name or is generic, hide headline
+  const isDuplicateHeadline = !rawHeadline || 
+    rawHeadline.toLowerCase() === rawBody.toLowerCase() || 
+    rawHeadline.toLowerCase() === pageName.toLowerCase() ||
+    rawHeadline.toLowerCase() === 'no headline';
+
+  if (!isDuplicateHeadline) {
+    modalHeadline.textContent = rawHeadline;
+    modalHeadline.style.display = 'block';
+  } else {
+    modalHeadline.textContent = '';
+    modalHeadline.style.display = 'none';
   }
 
-  // 2. Interactive Feed CTA Bar (Directly beneath creative)
-  if (feedCtaBar) {
-    feedCtaBar.href = destUrl || ad.adLibraryUrl;
-    if (feedCtaDomain) feedCtaDomain.textContent = (domain || 'VISIT STORE').toUpperCase();
-    if (feedCtaHeadline) feedCtaHeadline.textContent = ad.copy.headline || ad.pageName;
-    if (feedCtaBtnText) feedCtaBtnText.textContent = cta;
+  if (rawBody) {
+    modalBodyText.textContent = rawBody;
+    modalBodyText.style.display = 'block';
+  } else if (isDuplicateHeadline && rawHeadline && rawHeadline.toLowerCase() !== 'no headline') {
+    // If body was empty but headline held the message, show it as body
+    modalBodyText.textContent = rawHeadline;
+    modalBodyText.style.display = 'block';
+  } else {
+    modalBodyText.textContent = 'Creative visual copy without separate text caption.';
+    modalBodyText.style.display = 'block';
   }
 
-  // 3. Destination & CTA Intel Card (Right Column)
-  if (modalCtaBadge) modalCtaBadge.textContent = `⚡ Action: ${cta}`;
+  if (modalHookPill) {
+    modalHookPill.textContent = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook || 'Direct-Response';
+  }
+
+  // 3. Unified Destination & Action Card
   if (modalDestUrlText) {
-    if (destUrl) {
-      modalDestUrlText.textContent = destUrl.replace(/^https?:\/\//, '');
-      modalDestUrlText.title = destUrl;
-      modalVisitDestBtn.href = destUrl;
-    } else {
-      modalDestUrlText.textContent = domain ? `${domain} (Direct offer link pending)` : 'Visit offer via Meta Library';
-      modalDestUrlText.title = domain ? `https://${domain}` : ad.adLibraryUrl;
-      modalVisitDestBtn.href = domain ? `https://${domain}` : ad.adLibraryUrl;
-    }
+    const displayUrl = destUrl ? destUrl.replace(/^https?:\/\//, '') : (domain ? `${domain} (Direct link pending)` : 'Meta Ad Library');
+    modalDestUrlText.textContent = displayUrl;
+    modalDestUrlText.title = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
+  }
+
+  if (modalVisitDestBtnText) {
+    modalVisitDestBtnText.textContent = cta ? `Visit (${cta})` : 'Visit Site';
+  }
+
+  if (modalVisitDestBtn) {
+    modalVisitDestBtn.href = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
   }
 
   if (modalCopyDestBtn) {
     modalCopyDestBtn.onclick = (e) => {
       e.preventDefault();
       const toCopy = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
-      copyToClipboard(toCopy, modalCopyDestBtn, '✅ Copied URL!');
+      copyToClipboard(toCopy, modalCopyDestBtn, '✅ Copied!');
     };
-  }
-
-  if (modalDestDomainPill) {
-    modalDestDomainPill.textContent = `🌐 Domain: ${domain || 'Display Link'}`;
   }
 
   if (modalDestStatusPill) {
@@ -835,28 +850,29 @@ function openModal(ad) {
   }
 
   // 4. Campaign Stats Grid
+  const platforms = (ad.stats.platforms || ['facebook', 'instagram']).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
   modalStatsRow.innerHTML = `
     <div class="stat-item">
       <span class="stat-label">Campaign Status</span>
       <span class="stat-value ${ad.stats.isActive ? 'highlight-green' : ''}">
-        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays} days)
+        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays}d)
       </span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Popularity / Scale</span>
-      <span class="stat-value highlight-amber">${ad.stats.scaleTier.includes('High') ? 'Top Performer' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Creative Hook</span>
-      <span class="stat-value">${ad.copy.primaryHook}</span>
+      <span class="stat-label">Scale & Longevity</span>
+      <span class="stat-value highlight-amber">${ad.stats.scaleTier.includes('High') ? 'Top Scaler' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}</span>
     </div>
     <div class="stat-item">
       <span class="stat-label">Target Countries</span>
       <span class="stat-value">${(ad.stats.countries || []).join(', ') || 'Global'}</span>
     </div>
+    <div class="stat-item">
+      <span class="stat-label">Platforms</span>
+      <span class="stat-value">${platforms}</span>
+    </div>
   `;
 
-  // 5. Media & Modern Creative Asset Toolbar (Clean replacement for ugly raw download button)
+  // 5. Media & Creative Asset Toolbar (Focused Studio Display)
   if (media && media.videoUrl) {
     const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
     modalMediaWrap.innerHTML = `
