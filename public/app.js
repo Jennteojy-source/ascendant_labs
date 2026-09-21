@@ -307,9 +307,7 @@ function renderAdGrid(ads) {
     const statusText = ad.stats.isActive ? 'Active' : 'Ended';
     const relType = ad.ranking && ad.ranking.relevanceType;
     let relBadge = '';
-    if (relType === 'DIRECT_BRAND') {
-      relBadge = `<span class="relevance-tag brand-tag">Brand</span>`;
-    } else if (relType === 'COMPETITOR') {
+    if (relType === 'COMPETITOR') {
       relBadge = `<span class="relevance-tag comp-tag">Similar</span>`;
     }
 
@@ -359,9 +357,6 @@ function renderAdGrid(ads) {
 
       <div class="card-footer">
         <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Details</button>
-        <a href="${ad.adLibraryUrl}" target="_blank" rel="noopener noreferrer" class="library-btn" title="Open on Meta Ads Library">
-          Meta Library ↗
-        </a>
       </div>
     `;
 

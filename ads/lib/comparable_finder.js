@@ -174,10 +174,12 @@ async function findComparables(searchPlan = {}, options = {}) {
     if (!term || term.length < 2) continue;
 
     vectorHits[term] = 0;
+    const isCoreVector = vector.type === 'BRAND' || vector.type === 'PRODUCT';
+    const effectiveLimit = isCoreVector ? Math.max(limitPerVector, 75) : limitPerVector;
     const { data, error } = await queryMetaArchive(term, {
       countries,
       status,
-      limit: limitPerVector,
+      limit: effectiveLimit,
       mediaType,
     });
 

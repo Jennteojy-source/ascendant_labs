@@ -535,13 +535,16 @@ body {
   background: #ffffff;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-primary);
-  padding: 6px 14px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: var(--transition-fast);
-  margin-left: auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .view-ad-btn:hover {
@@ -767,14 +770,12 @@ body {
 
 /* Card Footer */
 .card-footer {
-  padding: 8px 16px;
+  padding: 10px 16px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
   border-top: 1px solid var(--border-subtle);
   background: #fafafa;
-  font-size: 0.72rem;
-  color: var(--text-muted);
 }
 
 .country-tags {

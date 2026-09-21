@@ -199,7 +199,7 @@ const server = http.createServer(async (req, res) => {
           countries,
           status,
           mediaType,
-          limitPerVector: 25,
+          limitPerVector: 50,
           enableAgenticLoop: true,
         });
 

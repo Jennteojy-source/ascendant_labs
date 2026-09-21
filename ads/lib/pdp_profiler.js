@@ -172,18 +172,15 @@ Extract and return ONLY a valid raw JSON object (no markdown, no backticks):
   ]
 }`;
 
-  const models = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
-  for (const model of models) {
-    try {
-      const raw = await callGemini(model, apiKey, prompt);
-      const cleaned = raw.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(cleaned);
-      if (parsed.brandName && Array.isArray(parsed.suggestedVectors)) {
-        return parsed;
-      }
-    } catch (err) {
-      // Model overloaded or timed out, attempt next fallback model
+  try {
+    const raw = await callGemini('gemini-flash-lite-latest', apiKey, prompt);
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed.brandName && Array.isArray(parsed.suggestedVectors)) {
+      return parsed;
     }
+  } catch (err) {
+    // Fallback if AI call times out
   }
   return null;
 }
@@ -245,8 +242,9 @@ async function profilePDP(inputUrl) {
   }
 
   // 2. Generic Heuristic Fallback (Only if AI key missing or network down)
-  const baseDomain = rootDomain.split('.')[0];
-  const genericBrand = baseDomain.charAt(0).toUpperCase() + baseDomain.slice(1);
+  const rawSub = rootDomain.split('.')[0];
+  const baseDomain = rawSub.replace(/[-_]?\d+$/, '');
+  const genericBrand = (baseDomain || rawSub).charAt(0).toUpperCase() + (baseDomain || rawSub).slice(1);
 
   return {
     url: cleanUrl,
