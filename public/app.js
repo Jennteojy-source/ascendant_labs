@@ -121,21 +121,77 @@ async function executeSearch(targetInput, page = 1) {
 
   state.searchMode = state.searchMode || 'auto';
 
-  // UI state transitions
+  // UI state transitions — hide stale content from previous search
   emptyState.style.display = 'none';
   adGrid.style.display = 'none';
   paginationNav.style.display = 'none';
+  pdpDossierCard.style.display = 'none';
   loadingState.style.display = 'block';
   searchSubmitBtn.disabled = true;
 
   const isUrl = /^https?:\/\//i.test(targetInput) || targetInput.includes('.com') || targetInput.includes('.io') || targetInput.includes('.co');
-  if (isUrl || state.searchMode === 'url') {
-    loadingTitle.textContent = 'Reading Website...';
-    loadingSubhead.textContent = 'Finding brand details and active competitor ads.';
-  } else {
-    loadingTitle.textContent = 'Searching Meta Ads...';
-    loadingSubhead.textContent = 'Finding active ads and top performers.';
-  }
+
+  // Build rich loading progress UI
+  const steps = isUrl
+    ? [
+        { label: 'Reading website...', delay: 0 },
+        { label: 'Identifying brand & products...', delay: 3000 },
+        { label: 'Searching Meta Ad Library...', delay: 7000 },
+        { label: 'Ranking competitor ads...', delay: 12000 },
+        { label: 'Loading ad previews...', delay: 18000 },
+      ]
+    : [
+        { label: 'Searching Meta Ad Library...', delay: 0 },
+        { label: 'Finding active campaigns...', delay: 3000 },
+        { label: 'Ranking results...', delay: 8000 },
+        { label: 'Loading ad previews...', delay: 14000 },
+      ];
+
+  loadingState.innerHTML = `
+    <div class="spinner"></div>
+    <h3 id="loadingTitle">${steps[0].label}</h3>
+    <p id="loadingSubhead">This may take a moment.</p>
+    <div class="loading-progress" id="loadingProgress">
+      ${steps.map((s, i) => `
+        <div class="loading-step ${i === 0 ? 'active' : ''}" id="loadStep${i}">
+          <span class="step-icon">${i === 0 ? '●' : '○'}</span>
+          <span>${s.label}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="loading-elapsed" id="loadingElapsed">0s</div>
+  `;
+
+  // Animate through steps on timers
+  const stepTimers = [];
+  const searchStartTime = Date.now();
+  const elapsedInterval = setInterval(() => {
+    const el = document.getElementById('loadingElapsed');
+    if (el) el.textContent = `${Math.floor((Date.now() - searchStartTime) / 1000)}s`;
+  }, 1000);
+
+  steps.forEach((s, i) => {
+    if (i === 0) return;
+    stepTimers.push(setTimeout(() => {
+      // Mark previous as done
+      for (let j = 0; j < i; j++) {
+        const prev = document.getElementById(`loadStep${j}`);
+        if (prev) {
+          prev.classList.remove('active');
+          prev.classList.add('done');
+          prev.querySelector('.step-icon').textContent = '✓';
+        }
+      }
+      // Mark current as active
+      const curr = document.getElementById(`loadStep${i}`);
+      if (curr) {
+        curr.classList.add('active');
+        curr.querySelector('.step-icon').textContent = '●';
+      }
+      const title = document.getElementById('loadingTitle');
+      if (title) title.textContent = s.label;
+    }, s.delay));
+  });
 
   try {
     const response = await fetch('/api/search', {
@@ -178,6 +234,8 @@ async function executeSearch(targetInput, page = 1) {
       <button class="chip-btn" style="margin-top: 16px;" onclick="executeSearch(state.currentInput, 1)">Retry Search</button>
     `;
   } finally {
+    stepTimers.forEach(t => clearTimeout(t));
+    clearInterval(elapsedInterval);
     searchSubmitBtn.disabled = false;
   }
 }
@@ -314,9 +372,6 @@ function renderAdGrid(ads) {
       </div>
 
       <div class="card-footer">
-        <a href="${ad.adLibraryUrl}" target="_blank" rel="noopener noreferrer" class="library-link">
-          Facebook Ad Library ↗
-        </a>
         <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Ad</button>
       </div>
     `;
@@ -350,9 +405,7 @@ function buildMediaHtml(adId, media, isSniffed = false) {
   }
 
   if (media.videoUrl) {
-    const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
     return `
-      ${backdrop}
       <span class="video-badge">▶ VIDEO</span>
       <video 
         id="video-${adId}"
@@ -374,7 +427,6 @@ function buildMediaHtml(adId, media, isSniffed = false) {
 
   if (media.thumbnailUrl) {
     return `
-      <div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>
       <img 
         src="${media.thumbnailUrl}" 
         alt="Meta Ad Creative" 
