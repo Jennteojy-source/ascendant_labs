@@ -17,6 +17,7 @@ const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
+const { getCachedMediaBatch } = require('./lib/firestore_cache');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
@@ -231,8 +232,9 @@ const server = http.createServer(async (req, res) => {
         searchCache.set(cacheKey, { rankedAds, profile, timestamp: Date.now() });
       }
 
-      // Hydrate with any media already cached in disk/memory & perform visual media deduplication
-      const mediaCache = loadCache();
+      // Hydrate with any media already cached in Firestore / disk / memory & perform visual media deduplication
+      const allAdIds = (rankedAds || []).map(a => String(a.id));
+      const mediaCache = await getCachedMediaBatch(allAdIds);
       const uniqueVisualAds = [];
       const seenMediaPerAdvertiser = new Set();
 

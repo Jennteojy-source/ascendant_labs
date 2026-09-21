@@ -13,12 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 
-const CACHE_DIR = path.resolve(__dirname, '../.cache');
-const CACHE_FILE = path.join(CACHE_DIR, 'media_cache.json');
-
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-}
+const { getCachedMediaBatch, saveMediaBatch, isUrlExpired, isAvatarUrl } = require('./firestore_cache');
 
 function loadEnv() {
   const envPath = path.resolve(__dirname, '../../functions/.env');
@@ -37,58 +32,15 @@ loadEnv();
 const USER_TOKEN =
   process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
 
-function isAvatarUrl(url) {
-  if (!url) return false;
-  return /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\.82787|_8nqq/i.test(url);
-}
-
-/**
- * Check if a Meta signed CDN URL has expired (oe= parameter is a hex timestamp)
- */
-function isUrlExpired(url) {
-  if (!url) return false;
-  const match = url.match(/[?&]oe=([0-9a-fA-F]+)/);
-  if (match) {
-    const expirySec = parseInt(match[1], 16);
-    if (!isNaN(expirySec) && (Date.now() / 1000) > (expirySec - 3600)) {
-      return true; // Expired or expiring within 1 hour
-    }
-  }
-  return false;
-}
-
 function loadCache() {
-  if (fs.existsSync(CACHE_FILE)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      let modified = false;
-      for (const [id, entry] of Object.entries(data)) {
-        const isBad = (entry.thumbnailUrl && isAvatarUrl(entry.thumbnailUrl)) ||
-                      isUrlExpired(entry.thumbnailUrl) ||
-                      isUrlExpired(entry.videoUrl);
-        if (isBad) {
-          delete data[id];
-          modified = true;
-        }
-      }
-      if (modified) {
-        fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2), 'utf8');
-      }
-      return data;
-    } catch (e) {
-      return {};
-    }
+  const { memoryCache } = require('./firestore_cache');
+  const obj = {};
+  for (const [k, v] of memoryCache.entries()) {
+    obj[k] = v;
   }
-  return {};
+  return obj;
 }
 
-function saveCache(cache) {
-  try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
-  } catch (e) {}
-}
-
-const memoryCache = loadCache();
 let sharedBrowser = null;
 
 async function getBrowser() {
@@ -101,6 +53,9 @@ async function getBrowser() {
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--disable-gpu',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-infobars',
+        '--window-size=1280,800',
       ],
     });
   }
@@ -108,7 +63,7 @@ async function getBrowser() {
 }
 
 /**
- * Sniff media for a single ad snapshot URL
+ * Sniff media for a single ad snapshot URL with anti-bot stealth & fast exit
  */
 async function sniffSingleAd(browser, adId, snapshotUrl) {
   let targetUrl = snapshotUrl;
@@ -123,14 +78,26 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
   const context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-    viewport: { width: 900, height: 1400 },
+    viewport: { width: 900, height: 1200 },
+    extraHTTPHeaders: {
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"macOS"',
+    },
   });
+
+  // Stealth: Mask navigator.webdriver flag
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
+
   const page = await context.newPage();
 
   const networkVideos = [];
   const networkImages = [];
 
-  // 1. Abort non-essential network bloat (fonts, third-party trackers)
+  // 1. Abort non-essential network bloat (fonts, analytics, tracking pixels)
   await page.route('**/*', (route) => {
     const rType = route.request().resourceType();
     const url = route.request().url();
@@ -171,9 +138,9 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
   let domData = { domVideos: [], domImages: [] };
 
   try {
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 9000 });
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 7500 });
 
-    // Try to trigger video play if a video element is in the DOM
+    // Try to trigger video play if a video element is present
     await page.evaluate(() => {
       const vids = document.querySelectorAll('video');
       vids.forEach((v) => {
@@ -182,9 +149,9 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
       });
     }).catch(() => {});
 
-    // Poll until creative arrives (DOM elements or network responses)
+    // Fast-exit polling: Check every 100ms, cap at 2200ms
     const start = Date.now();
-    while (Date.now() - start < 5000) {
+    while (Date.now() - start < 2200) {
       domData = await page.evaluate(() => {
         const vids = Array.from(document.querySelectorAll('video'))
           .map((v) => ({
@@ -208,6 +175,7 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
         return { domVideos: vids, domImages: imgs };
       }).catch(() => ({ domVideos: [], domImages: [] }));
 
+      // Fast exit as soon as creative media arrives
       if (
         domData.domVideos.length > 0 ||
         domData.domImages.length > 0 ||
@@ -216,7 +184,7 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
       ) {
         break;
       }
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
     }
   } catch (err) {
     // Graceful timeout
@@ -260,23 +228,22 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
 }
 
 /**
- * Sniff media for a batch of up to 10 ads (the active page)
+ * Sniff media for a batch of ads with Firestore cache & paced concurrency
  */
 async function sniffPageMedia(adsBatch = []) {
   const results = {};
+  if (!adsBatch || adsBatch.length === 0) return results;
+
+  const adIds = adsBatch.map((a) => String(a.id));
+
+  // 1. Check persistent Firestore + in-memory cache first (0ms)
+  const cachedMediaMap = await getCachedMediaBatch(adIds);
   const adsToSniff = [];
 
-  // Check cache first (ignore old cache if it was marked unknown, has avatar URL, or has expired)
   for (const ad of adsBatch) {
-    const cached = memoryCache[ad.id];
-    const isBadCache = cached && (
-      (cached.thumbnailUrl && isAvatarUrl(cached.thumbnailUrl)) ||
-      isUrlExpired(cached.thumbnailUrl) ||
-      isUrlExpired(cached.videoUrl)
-    );
-
-    if (cached && cached.mediaType !== 'unknown' && !isBadCache) {
-      results[ad.id] = cached;
+    const idStr = String(ad.id);
+    if (cachedMediaMap[idStr] && cachedMediaMap[idStr].mediaType !== 'unknown') {
+      results[idStr] = cachedMediaMap[idStr];
     } else {
       adsToSniff.push(ad);
     }
@@ -286,8 +253,10 @@ async function sniffPageMedia(adsBatch = []) {
     return results;
   }
 
+  // 2. Sniff uncached ads with low concurrency (2) & pacing to protect RAM & avoid IP limits
   const browser = await getBrowser();
-  const concurrency = 4;
+  const concurrency = 2;
+  const newlySniffed = {};
 
   for (let i = 0; i < adsToSniff.length; i += concurrency) {
     const chunk = adsToSniff.slice(i, i + concurrency);
@@ -296,13 +265,21 @@ async function sniffPageMedia(adsBatch = []) {
         const media = await sniffSingleAd(browser, ad.id, ad.adSnapshotUrl);
         results[ad.id] = media;
         if (media.mediaType !== 'unknown') {
-          memoryCache[ad.id] = { ...media, cachedAt: Date.now() };
+          newlySniffed[ad.id] = media;
         }
       })
     );
+    // Pacing jitter between chunks (200ms)
+    if (i + concurrency < adsToSniff.length) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
   }
 
-  saveCache(memoryCache);
+  // 3. Persist newly sniffed ads to Firestore + in-memory cache
+  if (Object.keys(newlySniffed).length > 0) {
+    await saveMediaBatch(newlySniffed);
+  }
+
   return results;
 }
 

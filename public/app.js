@@ -242,8 +242,8 @@ function applyFiltersAndRender(targetPage = 1) {
   renderAdGrid(pageItems);
   renderPagination();
 
-  // Sniff media for cards on this page
-  sniffMediaForCurrentPage(pageItems);
+  // Lazily sniff media only when cards enter the viewport
+  observeCardsForSniffing();
 }
 
 
@@ -300,6 +300,7 @@ function renderAdGrid(ads) {
     const card = document.createElement('div');
     card.className = 'ad-card';
     card.id = `ad-card-${ad.id}`;
+    card.setAttribute('data-ad-id', String(ad.id));
 
     const cachedMedia = state.resolvedMediaMap[ad.id] || ad.media;
     const mediaHtml = buildMediaHtml(ad.id, cachedMedia);
@@ -468,19 +469,82 @@ function buildMediaHtml(adId, media, isSniffed = false) {
 }
 
 /**
- * On-Demand Media Sniffer with Visual Deduplication
+ * Viewport-Based Lazy Media Sniffer with Visual Deduplication (Zero-Cost Anti-Scraping)
+ * Only sniffs media when a card enters or approaches the viewport (rootMargin: 250px).
  */
-async function sniffMediaForCurrentPage(ads) {
-  const needsSniffing = ads.filter(
-    (ad) => !state.resolvedMediaMap[ad.id] && (!ad.media || (!ad.media.thumbnailUrl && !ad.media.videoUrl))
+let cardObserver = null;
+const pendingSniffQueue = new Set();
+let sniffDebounceTimer = null;
+
+function observeCardsForSniffing() {
+  if (!window.IntersectionObserver) {
+    // Fallback for browsers without IntersectionObserver
+    const pageAds = state.currentAds || [];
+    executeSniffBatch(pageAds.map(a => a.id));
+    return;
+  }
+
+  if (cardObserver) {
+    cardObserver.disconnect();
+  }
+
+  cardObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const adId = entry.target.getAttribute('data-ad-id');
+          if (adId && !state.resolvedMediaMap[adId]) {
+            pendingSniffQueue.add(adId);
+            scheduleFlushSniffQueue();
+          }
+          // Once queued, unobserve this card
+          cardObserver.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      rootMargin: '250px 0px', // Prefetch 250px before entering viewport for instantaneous display
+      threshold: 0.05,
+    }
+  );
+
+  document.querySelectorAll('.ad-card').forEach((card) => {
+    const adId = card.getAttribute('data-ad-id');
+    const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
+    const hasMedia =
+      state.resolvedMediaMap[adId] ||
+      (ad && ad.media && (ad.media.thumbnailUrl || ad.media.videoUrl));
+
+    if (!hasMedia) {
+      cardObserver.observe(card);
+    }
+  });
+}
+
+function scheduleFlushSniffQueue() {
+  if (sniffDebounceTimer) clearTimeout(sniffDebounceTimer);
+  sniffDebounceTimer = setTimeout(async () => {
+    if (pendingSniffQueue.size === 0) return;
+    const batchIds = Array.from(pendingSniffQueue).slice(0, 6);
+    batchIds.forEach((id) => pendingSniffQueue.delete(id));
+
+    await executeSniffBatch(batchIds);
+
+    if (pendingSniffQueue.size > 0) {
+      scheduleFlushSniffQueue();
+    }
+  }, 120);
+}
+
+async function executeSniffBatch(adIds = []) {
+  const needsSniffing = adIds.filter(
+    (id) => !state.resolvedMediaMap[id]
   );
 
   if (needsSniffing.length === 0) return;
 
   try {
-    const payload = needsSniffing.map((a) => ({
-      id: a.id,
-    }));
+    const payload = needsSniffing.map((id) => ({ id }));
 
     const res = await fetch('/api/sniff-page', {
       method: 'POST',
@@ -492,11 +556,11 @@ async function sniffMediaForCurrentPage(ads) {
     if (data.mediaMap) {
       Object.assign(state.resolvedMediaMap, data.mediaMap);
 
-      // Visual Deduplication: Ensure no two cards from the same advertiser display the exact same image/video
+      // Visual Deduplication: Ensure no two cards from the same advertiser display the exact same creative
       const seenMediaKeys = new Map();
 
       // Index media already present on active page
-      (state.currentAds || []).forEach(a => {
+      (state.currentAds || []).forEach((a) => {
         const m = state.resolvedMediaMap[a.id] || a.media;
         const url = m && (m.videoUrl || m.thumbnailUrl);
         if (url) {
@@ -507,14 +571,14 @@ async function sniffMediaForCurrentPage(ads) {
         }
       });
 
-      // Patch media & remove duplicate creative cards
+      // Patch media & collapse duplicate creative cards
       for (const [adId, media] of Object.entries(data.mediaMap)) {
         const mediaUrl = media.videoUrl || media.thumbnailUrl;
-        const ad = (state.currentAds || []).find(a => String(a.id) === String(adId));
+        const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
         const key = ad && mediaUrl ? `${(ad.pageName || '').toLowerCase()}:::${mediaUrl}` : null;
 
         if (key && seenMediaKeys.has(key) && String(seenMediaKeys.get(key)) !== String(adId)) {
-          // Collapse duplicate visual card into the primary card
+          // Collapse duplicate visual card into primary card
           const primaryId = seenMediaKeys.get(key);
           const duplicateCard = document.getElementById(`ad-card-${adId}`);
           if (duplicateCard) {
@@ -547,8 +611,13 @@ async function sniffMediaForCurrentPage(ads) {
       fetchHealth();
     }
   } catch (e) {
-    console.warn('[Sniffer] Page sniffing notice:', e.message);
+    console.warn('[Sniffer] Batch sniffing notice:', e.message);
   }
+}
+
+// Backward compatibility alias
+function sniffMediaForCurrentPage(ads) {
+  observeCardsForSniffing();
 }
 
 /**
