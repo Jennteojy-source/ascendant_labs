@@ -358,7 +358,10 @@ function renderAdGrid(ads) {
       </div>
 
       <div class="card-footer">
-        <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Ad</button>
+        <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Details</button>
+        <a href="${ad.adLibraryUrl}" target="_blank" rel="noopener noreferrer" class="library-btn" title="Open on Meta Ads Library">
+          Meta Library ↗
+        </a>
       </div>
     `;
 
@@ -445,7 +448,6 @@ async function sniffMediaForCurrentPage(ads) {
   try {
     const payload = needsSniffing.map((a) => ({
       id: a.id,
-      adSnapshotUrl: a.adSnapshotUrl,
     }));
 
     const res = await fetch('/api/sniff-page', {

@@ -20,19 +20,53 @@ if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
 
+function loadEnv() {
+  const envPath = path.resolve(__dirname, '../../functions/.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach((line) => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match && !process.env[match[1].trim()]) {
+        process.env[match[1].trim()] = match[2].trim();
+      }
+    });
+  }
+}
+loadEnv();
+
+const USER_TOKEN =
+  process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
+
 function isAvatarUrl(url) {
   if (!url) return false;
   return /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\.82787|_8nqq/i.test(url);
+}
+
+/**
+ * Check if a Meta signed CDN URL has expired (oe= parameter is a hex timestamp)
+ */
+function isUrlExpired(url) {
+  if (!url) return false;
+  const match = url.match(/[?&]oe=([0-9a-fA-F]+)/);
+  if (match) {
+    const expirySec = parseInt(match[1], 16);
+    if (!isNaN(expirySec) && (Date.now() / 1000) > (expirySec - 3600)) {
+      return true; // Expired or expiring within 1 hour
+    }
+  }
+  return false;
 }
 
 function loadCache() {
   if (fs.existsSync(CACHE_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      // Clean out any stale avatar entries
       let modified = false;
       for (const [id, entry] of Object.entries(data)) {
-        if (entry.thumbnailUrl && isAvatarUrl(entry.thumbnailUrl)) {
+        const isBad = (entry.thumbnailUrl && isAvatarUrl(entry.thumbnailUrl)) ||
+                      isUrlExpired(entry.thumbnailUrl) ||
+                      isUrlExpired(entry.videoUrl);
+        if (isBad) {
           delete data[id];
           modified = true;
         }
@@ -77,7 +111,12 @@ async function getBrowser() {
  * Sniff media for a single ad snapshot URL
  */
 async function sniffSingleAd(browser, adId, snapshotUrl) {
-  if (!snapshotUrl) {
+  let targetUrl = snapshotUrl;
+  if (!targetUrl && adId && USER_TOKEN) {
+    targetUrl = `https://www.facebook.com/ads/archive/render_ad/?id=${adId}&access_token=${USER_TOKEN}`;
+  }
+
+  if (!targetUrl) {
     return { thumbnailUrl: null, videoUrl: null, mediaType: 'unknown' };
   }
 
@@ -132,7 +171,7 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
   let domData = { domVideos: [], domImages: [] };
 
   try {
-    await page.goto(snapshotUrl, { waitUntil: 'domcontentloaded', timeout: 9000 });
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 9000 });
 
     // Try to trigger video play if a video element is in the DOM
     await page.evaluate(() => {
@@ -227,10 +266,14 @@ async function sniffPageMedia(adsBatch = []) {
   const results = {};
   const adsToSniff = [];
 
-  // Check cache first (ignore old cache if it was marked unknown or has avatar URL)
+  // Check cache first (ignore old cache if it was marked unknown, has avatar URL, or has expired)
   for (const ad of adsBatch) {
     const cached = memoryCache[ad.id];
-    const isBadCache = cached && cached.thumbnailUrl && isAvatarUrl(cached.thumbnailUrl);
+    const isBadCache = cached && (
+      (cached.thumbnailUrl && isAvatarUrl(cached.thumbnailUrl)) ||
+      isUrlExpired(cached.thumbnailUrl) ||
+      isUrlExpired(cached.videoUrl)
+    );
 
     if (cached && cached.mediaType !== 'unknown' && !isBadCache) {
       results[ad.id] = cached;

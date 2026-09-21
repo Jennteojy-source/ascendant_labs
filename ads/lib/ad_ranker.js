@@ -183,7 +183,6 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       id: ad.id,
       pageId: ad.page_id,
       pageName: ad.page_name || 'Advertiser',
-      adSnapshotUrl: ad.ad_snapshot_url,
       adLibraryUrl: `https://www.facebook.com/ads/library/?id=${ad.id}`,
       variantCount: group.variantCount,
       associatedAdIds: group.allAdIds,

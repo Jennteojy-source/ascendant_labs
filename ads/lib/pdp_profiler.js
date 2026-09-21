@@ -43,13 +43,24 @@ function fetchHtml(urlStr, maxRedirects = 5) {
             Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
           },
-          timeout: 12000,
+          timeout: 4000,
         },
         (res) => {
           if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && hops < maxRedirects) {
             hops++;
             res.resume();
             return go(new URL(res.headers.location, target).toString());
+          }
+
+          // Immediately abort on Cloudflare / anti-bot challenge status codes
+          if (res.statusCode === 403 || res.statusCode === 503) {
+            res.resume();
+            return resolve({
+              statusCode: res.statusCode,
+              html: '',
+              finalUrl: target,
+              isBotBlocked: true,
+            });
           }
 
           const chunks = [];
