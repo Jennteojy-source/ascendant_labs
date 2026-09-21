@@ -172,15 +172,18 @@ Extract and return ONLY a valid raw JSON object (no markdown, no backticks):
   ]
 }`;
 
-  try {
-    const raw = await callGemini('gemini-flash-lite-latest', apiKey, prompt);
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
-    if (parsed.brandName && Array.isArray(parsed.suggestedVectors)) {
-      return parsed;
+  const models = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+  for (const model of models) {
+    try {
+      const raw = await callGemini(model, apiKey, prompt);
+      const cleaned = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.brandName && Array.isArray(parsed.suggestedVectors)) {
+        return parsed;
+      }
+    } catch (err) {
+      // Model overloaded or timed out, attempt next fallback model
     }
-  } catch (err) {
-    // Fallback if AI call times out
   }
   return null;
 }
