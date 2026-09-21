@@ -355,9 +355,9 @@ function renderAdGrid(ads) {
         ${mediaHtml}
       </div>
 
-      <div class="card-destination-strip" id="card-dest-${ad.id}">
+      <div class="card-destination-strip" id="card-dest-${ad.id}" onclick="event.stopPropagation(); window.openOutboundUrl('${ad.id}')" title="Visit landing page (opens in new tab)">
         <span class="card-dest-domain" title="${ad.destinationUrl || ad.displayDomain || ''}">🌐 ${ad.displayDomain || 'Website'}</span>
-        <span class="card-dest-cta">${ad.ctaText || 'Learn More'} →</span>
+        <span class="card-dest-cta">${ad.ctaText || 'Learn More'} ↗</span>
       </div>
 
       <div class="card-stats-strip">
@@ -471,8 +471,11 @@ function buildMediaHtml(adId, media, isSniffed = false) {
         onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')"
         onerror="if (this.getAttribute('poster')) { this.outerHTML = '<img src=\\'' + this.getAttribute('poster') + '\\' alt=\\'Meta Ad Creative\\' referrerpolicy=\\'no-referrer\\' />'; }"
       ></video>
-      <button class="sound-toggle-btn" onclick="event.stopPropagation(); toggleAudio('${adId}')" title="Mute/Unmute Audio">
-        🔊
+      <div class="video-play-overlay" id="play-overlay-${adId}" onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')">
+        <span class="play-overlay-icon">▶</span>
+      </div>
+      <button class="sound-toggle-btn" id="sound-btn-${adId}" onclick="event.stopPropagation(); window.toggleAudio('${adId}')" title="Unmute Video Audio">
+        🔇
       </button>
     `;
   }
@@ -554,7 +557,7 @@ function scheduleFlushSniffQueue() {
   if (sniffDebounceTimer) clearTimeout(sniffDebounceTimer);
   sniffDebounceTimer = setTimeout(async () => {
     if (pendingSniffQueue.size === 0) return;
-    const batchIds = Array.from(pendingSniffQueue).slice(0, 6);
+    const batchIds = Array.from(pendingSniffQueue).slice(0, 4);
     batchIds.forEach((id) => pendingSniffQueue.delete(id));
 
     await executeSniffBatch(batchIds);
@@ -562,7 +565,7 @@ function scheduleFlushSniffQueue() {
     if (pendingSniffQueue.size > 0) {
       scheduleFlushSniffQueue();
     }
-  }, 120);
+  }, 100);
 }
 
 async function executeSniffBatch(adIds = []) {
@@ -679,26 +682,69 @@ function sniffMediaForCurrentPage(ads) {
 }
 
 /**
- * Toggle Video Play / Pause
+ * Toggle Video Play / Pause with Visual Feedback
  */
 window.toggleVideoPlay = function (adId) {
   const video = document.getElementById(`video-${adId}`);
+  const overlay = document.getElementById(`play-overlay-${adId}`);
   if (video) {
-    if (video.paused) video.play().catch(() => {});
-    else video.pause();
+    if (video.paused) {
+      video.play().catch(() => {});
+      if (overlay) overlay.style.display = 'none';
+    } else {
+      video.pause();
+      if (overlay) overlay.style.display = 'flex';
+    }
   }
 };
 
 /**
- * Audio Toggle Helper
+ * Audio Toggle Helper with Exclusive Sound (Only one video sounds at a time)
  */
 window.toggleAudio = function (adId) {
   const video = document.getElementById(`video-${adId}`);
   if (video) {
+    if (video.muted) {
+      // Mute all other playing videos
+      document.querySelectorAll('.ad-card video').forEach((v) => {
+        if (v !== video) {
+          v.muted = true;
+          const otherBtn = v.parentElement?.querySelector('.sound-toggle-btn');
+          if (otherBtn) {
+            otherBtn.textContent = '🔇';
+            otherBtn.title = 'Unmute Video Audio';
+            otherBtn.classList.remove('unmuted');
+          }
+        }
+      });
+    }
+
     video.muted = !video.muted;
-    const btn = video.parentElement.querySelector('.sound-toggle-btn');
-    if (btn) btn.textContent = video.muted ? '🔇' : '🔊';
-    if (!video.muted && video.paused) video.play();
+    const btn = document.getElementById(`sound-btn-${adId}`);
+    if (btn) {
+      btn.textContent = video.muted ? '🔇' : '🔊';
+      btn.title = video.muted ? 'Unmute Video Audio' : 'Mute Video Audio';
+      if (!video.muted) btn.classList.add('unmuted');
+      else btn.classList.remove('unmuted');
+    }
+    if (!video.muted && video.paused) {
+      video.play().catch(() => {});
+      const overlay = document.getElementById(`play-overlay-${adId}`);
+      if (overlay) overlay.style.display = 'none';
+    }
+  }
+};
+
+/**
+ * Outbound Landing Page Navigation (Opens advertiser destination in new tab)
+ */
+window.openOutboundUrl = function (adId) {
+  const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
+  const url = ad?.destinationUrl || (state.resolvedMediaMap[adId]?.destinationUrl);
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    openModalById(adId);
   }
 };
 

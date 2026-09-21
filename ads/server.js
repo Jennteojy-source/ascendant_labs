@@ -16,7 +16,7 @@ const { profilePDP } = require('./lib/pdp_profiler');
 const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
-const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
+const { sniffPageMedia, loadCache, getBrowser } = require('./lib/paginated_sniffer');
 const { getCachedMediaBatch } = require('./lib/firestore_cache');
 const { logSearchSession, getRecentSearches, getSearchSession } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
@@ -274,6 +274,61 @@ const server = http.createServer(async (req, res) => {
         uniqueVisualAds.push(item);
       }
 
+      // GCP Compute Pre-Warming: Pre-sniff top above-the-fold uncached ads on Cloud Run before returning
+      // Guarantees that the first ads the user sees render their video/images INSTANTLY without shimmer.
+      const topAdsToPrewarm = uniqueVisualAds
+        .slice(0, 3)
+        .filter((a) => !a.media?.videoUrl && !a.media?.thumbnailUrl);
+
+      if (topAdsToPrewarm.length > 0) {
+        logger.info('Pre-warming top above-the-fold ads on GCP Cloud Run', {
+          count: topAdsToPrewarm.length,
+          adIds: topAdsToPrewarm.map((a) => a.id),
+        });
+        try {
+          const prewarmStart = Date.now();
+          const resolvedMedia = await Promise.race([
+            sniffPageMedia(topAdsToPrewarm),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Prewarm timeout')), 2400)),
+          ]);
+          if (resolvedMedia) {
+            for (const [adId, media] of Object.entries(resolvedMedia)) {
+              const matchedAd = uniqueVisualAds.find((a) => String(a.id) === String(adId));
+              if (matchedAd && media && media.mediaType !== 'unknown') {
+                matchedAd.media = media;
+                if (media.destinationUrl) {
+                  matchedAd.destinationUrl = media.destinationUrl;
+                  try {
+                    matchedAd.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
+                  } catch (e) {}
+                }
+                if (media.ctaText) matchedAd.ctaText = media.ctaText;
+              }
+            }
+          }
+          logger.info('GCP pre-warming finished', {
+            durationMs: Date.now() - prewarmStart,
+            resolved: Object.keys(resolvedMedia || {}).length,
+          });
+        } catch (pwErr) {
+          logger.info('GCP pre-warming yielded to search response (continuing in background)', {
+            reason: pwErr.message,
+          });
+        }
+      }
+
+      // Background Pre-Warming on GCP: Asynchronously resolve next 5 ads on Page 1 into Firestore
+      // So when the user scrolls down, subsequent cards load in ~10ms from cache!
+      const backgroundAdsToPrewarm = uniqueVisualAds
+        .slice(3, 8)
+        .filter((a) => !a.media?.videoUrl && !a.media?.thumbnailUrl);
+
+      if (backgroundAdsToPrewarm.length > 0) {
+        sniffPageMedia(backgroundAdsToPrewarm).catch((err) => {
+          logger.info('Background GCP prewarm finished', { error: err.message });
+        });
+      }
+
       // Paginate
       const paginated = paginateAds(uniqueVisualAds, page, pageSize);
 
@@ -418,4 +473,9 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(` URL:     http://localhost:${PORT}`);
   console.log(` Web UI:  ${path.join(WEB_DIR, 'index.html')}`);
   console.log(`========================================================================\n`);
+
+  // Pre-warm headless Chromium in background for instant 0-latency media sniffing
+  getBrowser()
+    .then(() => logger.info('Headless Chromium pre-warmed and ready for media sniffing'))
+    .catch((err) => logger.warn('Chromium pre-warm notice:', { error: err.message }));
 });

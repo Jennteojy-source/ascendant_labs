@@ -622,6 +622,18 @@ body {
   height: auto;
   display: block;
   z-index: 1;
+  animation: fadeInMedia 0.3s ease-out forwards;
+}
+
+@keyframes fadeInMedia {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .video-badge {
@@ -638,26 +650,79 @@ body {
   align-items: center;
   gap: 3px;
   z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.video-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 2;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.video-play-overlay:hover {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+.play-overlay-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  padding-left: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease;
+}
+
+.video-play-overlay:hover .play-overlay-icon {
+  transform: scale(1.1);
 }
 
 .sound-toggle-btn {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.85);
-  border: none;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 2;
+  z-index: 3;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Card Destination Strip */
+.sound-toggle-btn:hover {
+  transform: scale(1.1);
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.sound-toggle-btn.unmuted {
+  background: rgba(16, 185, 129, 0.9);
+  border-color: #a7f3d0;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+/* Card Destination Strip (Interactive Outbound Link) */
 .card-destination-strip {
   display: flex;
   align-items: center;
@@ -666,7 +731,13 @@ body {
   background: #f8fafc;
   border-bottom: 1px solid var(--border-subtle);
   font-size: 0.74rem;
-  transition: var(--transition-fast);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.card-destination-strip:hover {
+  background: #f1f5f9;
+  border-bottom-color: #cbd5e1;
 }
 
 .card-dest-domain {
@@ -681,15 +752,27 @@ body {
   gap: 4px;
 }
 
+.card-destination-strip:hover .card-dest-domain {
+  color: var(--accent-primary);
+}
+
 .card-dest-cta {
   font-weight: 700;
   color: var(--accent-primary);
   background: var(--accent-primary-light);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-full);
   font-size: 0.68rem;
   letter-spacing: 0.02em;
   white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.card-destination-strip:hover .card-dest-cta {
+  background: var(--accent-primary);
+  color: #ffffff;
+  transform: translateX(2px);
+  box-shadow: 0 2px 6px rgba(255, 87, 34, 0.3);
 }
 
 .shimmer-placeholder {

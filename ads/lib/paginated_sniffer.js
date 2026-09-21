@@ -75,69 +75,70 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
     return { thumbnailUrl: null, videoUrl: null, mediaType: 'unknown' };
   }
 
-  const context = await browser.newContext({
-    userAgent:
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-    viewport: { width: 900, height: 1200 },
-    extraHTTPHeaders: {
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-      'Sec-Ch-Ua-Mobile': '?0',
-      'Sec-Ch-Ua-Platform': '"macOS"',
-    },
-  });
-
-  // Stealth: Mask navigator.webdriver flag
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-  });
-
-  const page = await context.newPage();
-
+  let context = null;
+  let page = null;
   const networkVideos = [];
   const networkImages = [];
-
-  // 1. Abort non-essential network bloat (fonts, analytics, tracking pixels)
-  await page.route('**/*', (route) => {
-    const rType = route.request().resourceType();
-    const url = route.request().url();
-    if (
-      rType === 'font' ||
-      url.includes('google-analytics') ||
-      url.includes('hsts-pixel')
-    ) {
-      return route.abort();
-    }
-    return route.continue();
-  });
-
-  // 2. Intercept CDN packets
-  page.on('response', (res) => {
-    const url = res.url();
-    const ct = (res.headers()['content-type'] || '').toLowerCase();
-
-    // Catch MP4 video stream
-    if (ct.startsWith('video/') || url.includes('.mp4')) {
-      if (!networkVideos.includes(url)) {
-        networkVideos.push(url);
-      }
-    }
-    // Catch high-res creative images
-    else if (
-      ct.startsWith('image/') &&
-      (url.includes('scontent') || url.includes('fbcdn.net')) &&
-      !url.includes('hsts-pixel') &&
-      !url.includes('rsrc.php')
-    ) {
-      if (!isAvatarUrl(url) && !networkImages.includes(url)) {
-        networkImages.push(url);
-      }
-    }
-  });
-
-  let domData = { domVideos: [], domImages: [] };
+  let domData = { domVideos: [], domImages: [], domLinks: [], domButtons: [] };
 
   try {
+    context = await browser.newContext({
+      userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      viewport: { width: 900, height: 1200 },
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"macOS"',
+      },
+    });
+
+    // Stealth: Mask navigator.webdriver flag
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
+
+    page = await context.newPage();
+
+    // 1. Abort non-essential network bloat (fonts, analytics, tracking pixels)
+    await page.route('**/*', (route) => {
+      const rType = route.request().resourceType();
+      const url = route.request().url();
+      if (
+        rType === 'font' ||
+        url.includes('google-analytics') ||
+        url.includes('hsts-pixel')
+      ) {
+        return route.abort();
+      }
+      return route.continue();
+    });
+
+    // 2. Intercept CDN packets
+    page.on('response', (res) => {
+      const url = res.url();
+      const ct = (res.headers()['content-type'] || '').toLowerCase();
+
+      // Catch MP4 video stream
+      if (ct.startsWith('video/') || url.includes('.mp4')) {
+        if (!networkVideos.includes(url)) {
+          networkVideos.push(url);
+        }
+      }
+      // Catch high-res creative images
+      else if (
+        ct.startsWith('image/') &&
+        (url.includes('scontent') || url.includes('fbcdn.net')) &&
+        !url.includes('hsts-pixel') &&
+        !url.includes('rsrc.php')
+      ) {
+        if (!isAvatarUrl(url) && !networkImages.includes(url)) {
+          networkImages.push(url);
+        }
+      }
+    });
+
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 7500 });
 
     // Try to trigger video play if a video element is present
@@ -149,9 +150,9 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
       });
     }).catch(() => {});
 
-    // Fast-exit polling: Check every 100ms, cap at 2200ms
+    // Fast-exit polling: Check every 60ms, cap at 2000ms
     const start = Date.now();
-    while (Date.now() - start < 2200) {
+    while (Date.now() - start < 2000) {
       domData = await page.evaluate(() => {
         const vids = Array.from(document.querySelectorAll('video'))
           .map((v) => ({
@@ -168,9 +169,24 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
             const isAvatar =
               /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\./i.test(src) ||
               i.classList.contains('_8nqq');
-            return w >= 150 && h >= 150 && !isAvatar && !src.includes('rsrc.php') && !src.includes('hsts-pixel');
+            return ((w >= 150 && h >= 150) || (w === 0 && h === 0 && (src.includes('scontent') || src.includes('fbcdn.net')))) && !isAvatar && !src.includes('rsrc.php') && !src.includes('hsts-pixel');
           })
           .map((i) => i.src);
+
+        // Also extract CSS background images on creative containers
+        const bgImgs = Array.from(document.querySelectorAll('div[style*="background-image"], i[style*="background-image"]'))
+          .map((el) => {
+            const style = el.getAttribute('style') || '';
+            const m = style.match(/background-image:\s*url\(['"]?(https?:\/\/[^'"\)]+)['"]?\)/i);
+            return m ? m[1] : null;
+          })
+          .filter((src) => {
+            if (!src) return false;
+            const isAvatar = /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\./i.test(src);
+            return !isAvatar && !src.includes('rsrc.php') && !src.includes('hsts-pixel') && (src.includes('fbcdn.net') || src.includes('scontent'));
+          });
+
+        const allImages = [...imgs, ...bgImgs];
 
         // Extract outbound destination links
         const links = Array.from(document.querySelectorAll('a'))
@@ -182,25 +198,27 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
           .map((b) => (b.innerText || '').trim())
           .filter(Boolean);
 
-        return { domVideos: vids, domImages: imgs, domLinks: links, domButtons: buttons };
+        return { domVideos: vids, domImages: allImages, domLinks: links, domButtons: buttons };
       }).catch(() => ({ domVideos: [], domImages: [], domLinks: [], domButtons: [] }));
 
-      // Fast exit as soon as creative media arrives
-      if (
+      // Fast exit as soon as creative media arrives and destination info is captured
+      const hasMedia =
         domData.domVideos.length > 0 ||
         domData.domImages.length > 0 ||
         networkVideos.length > 0 ||
-        networkImages.length > 0
-      ) {
+        networkImages.length > 0;
+      const hasMeta = domData.domLinks.length > 0 || domData.domButtons.length > 0;
+
+      if (hasMedia && (hasMeta || Date.now() - start > 1000)) {
         break;
       }
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(60);
     }
   } catch (err) {
     // Graceful timeout
   } finally {
-    await page.close().catch(() => {});
-    await context.close().catch(() => {});
+    if (page) await page.close().catch(() => {});
+    if (context) await context.close().catch(() => {});
   }
 
   // Resolve best video and thumbnail
@@ -298,9 +316,9 @@ async function sniffPageMedia(adsBatch = []) {
     return results;
   }
 
-  // 2. Sniff uncached ads with low concurrency (2) & pacing to protect RAM & avoid IP limits
+  // 2. Sniff uncached ads with concurrency (3) & fast pacing to maximize Cloud Run throughput
   const browser = await getBrowser();
-  const concurrency = 2;
+  const concurrency = 3;
   const newlySniffed = {};
 
   for (let i = 0; i < adsToSniff.length; i += concurrency) {
@@ -314,9 +332,9 @@ async function sniffPageMedia(adsBatch = []) {
         }
       })
     );
-    // Pacing jitter between chunks (200ms)
+    // Pacing jitter between chunks (100ms)
     if (i + concurrency < adsToSniff.length) {
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 100));
     }
   }
 
@@ -331,4 +349,5 @@ async function sniffPageMedia(adsBatch = []) {
 module.exports = {
   sniffPageMedia,
   loadCache,
+  getBrowser,
 };
