@@ -140,28 +140,90 @@
         <div class="modal-header">
           <div class="modal-titles">
             <span class="modal-page-name" id="modalPageName">Advertiser</span>
+            <span class="modal-verified-badge" id="modalVerifiedBadge" title="Verified Meta Advertiser">✓</span>
             <span class="modal-ad-id" id="modalAdId">ID: 000000</span>
           </div>
-          <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+          <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">✕</button>
         </div>
         <div class="modal-split-body">
-          <!-- Left Column: Media Player & Asset Actions -->
+          <!-- Left Column: Realistic Ad Feed Preview & Asset Actions -->
           <div class="modal-left-col">
-            <div class="modal-media-wrap" id="modalMediaWrap"></div>
-            <div class="modal-media-actions" id="modalMediaActions"></div>
+            <div class="feed-preview-card">
+              <!-- Top Feed Meta Header -->
+              <div class="feed-card-header">
+                <div class="feed-avatar" id="feedAvatar">A</div>
+                <div class="feed-header-text">
+                  <span class="feed-page-name" id="feedPageName">Advertiser</span>
+                  <span class="feed-sponsored-label">Sponsored</span>
+                </div>
+                <span class="feed-badge-pill" id="feedFormatBadge">CREATIVE</span>
+              </div>
+
+              <!-- Media Container -->
+              <div class="modal-media-wrap" id="modalMediaWrap"></div>
+
+              <!-- Authentic Interactive Feed CTA Bar -->
+              <a href="#" target="_blank" rel="noopener noreferrer" class="feed-cta-bar" id="feedCtaBar">
+                <div class="feed-cta-left">
+                  <span class="feed-cta-domain" id="feedCtaDomain">destination.com</span>
+                  <span class="feed-cta-headline" id="feedCtaHeadline">Headline snippet...</span>
+                </div>
+                <div class="feed-cta-btn" id="feedCtaBtn">
+                  <span id="feedCtaBtnText">Learn More</span>
+                  <span class="cta-arrow">→</span>
+                </div>
+              </a>
+            </div>
+
+            <!-- Modern Creative Asset Toolbar (Clean, Refined Replacement for Download Button) -->
+            <div class="creative-asset-toolbar" id="modalMediaActions"></div>
           </div>
-          <!-- Right Column: Stats, Angles, Full Copy -->
+
+          <!-- Right Column: Destination Intel, Stats, Copy, and Library Link -->
           <div class="modal-right-col">
+            <!-- 1. Destination & CTA Intel Card (Highest Priority) -->
+            <div class="destination-intel-card" id="destinationIntelCard">
+              <div class="destination-intel-header">
+                <div class="destination-tag">
+                  <span class="dest-icon">🎯</span>
+                  <span>DESTINATION & CALL TO ACTION</span>
+                </div>
+                <span class="cta-action-badge" id="modalCtaBadge">⚡ Shop Now</span>
+              </div>
+              <div class="destination-url-box">
+                <div class="destination-url-display">
+                  <span class="url-protocol">https://</span>
+                  <span class="url-full-text" id="modalDestUrlText">derila-ergo.com/product</span>
+                </div>
+                <div class="destination-actions">
+                  <a href="#" target="_blank" rel="noopener noreferrer" class="dest-visit-btn" id="modalVisitDestBtn">
+                    Visit Destination ↗
+                  </a>
+                  <button type="button" class="dest-copy-btn" id="modalCopyDestBtn" title="Copy Destination URL">
+                    📋 Copy URL
+                  </button>
+                </div>
+              </div>
+              <div class="destination-meta-row">
+                <span class="dest-domain-pill" id="modalDestDomainPill">🌐 Domain: derila-ergo.com</span>
+                <span class="dest-status-pill" id="modalDestStatusPill">Direct Store Offer</span>
+              </div>
+            </div>
+
+            <!-- 2. Campaign Flight & Scale Stats -->
             <div class="modal-stats-grid" id="modalStatsRow"></div>
 
+            <!-- 3. Ad Copy Block -->
             <div class="modal-copy-block">
               <div class="copy-header-row">
-                <span class="copy-label">AD TEXT & MESSAGE</span>
+                <span class="copy-label">AD TEXT & COPY</span>
                 <button class="copy-clipboard-btn" id="copyClipboardBtn">📋 Copy Text</button>
               </div>
               <h4 id="modalHeadline">Headline</h4>
               <p id="modalBodyText">Ad Body Copy...</p>
             </div>
+
+            <!-- 4. Footer Meta Library Action -->
             <div class="modal-footer-actions">
               <a href="#" target="_blank" rel="noopener noreferrer" class="modal-library-btn" id="modalLibraryLink">
                 View on Facebook Ad Library ↗

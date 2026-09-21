@@ -144,6 +144,8 @@ async function getCachedMediaBatch(adIds = []) {
                 thumbnailUrl: data.thumbnailUrl || null,
                 videoUrl: data.videoUrl || null,
                 mediaType: data.mediaType || 'unknown',
+                destinationUrl: data.destinationUrl || null,
+                ctaText: data.ctaText || null,
                 cachedAt: data.cachedAt || Date.now(),
               };
               results[id] = entry;
@@ -164,7 +166,7 @@ async function getCachedMediaBatch(adIds = []) {
 
 /**
  * Save media entries to cache (In-memory + Firestore + Local fallback)
- * @param {Record<string, { thumbnailUrl: string, videoUrl: string, mediaType: string }>>} entries
+ * @param {Record<string, { thumbnailUrl: string, videoUrl: string, mediaType: string, destinationUrl?: string, ctaText?: string }>>} entries
  */
 async function saveMediaBatch(entries = {}) {
   const entriesToSave = Object.entries(entries).filter(([_, m]) => m && m.mediaType !== 'unknown');
@@ -176,6 +178,8 @@ async function saveMediaBatch(entries = {}) {
       thumbnailUrl: media.thumbnailUrl || null,
       videoUrl: media.videoUrl || null,
       mediaType: media.mediaType,
+      destinationUrl: media.destinationUrl || null,
+      ctaText: media.ctaText || null,
       cachedAt: Date.now(),
     };
     memoryCache.set(String(id), entry);
@@ -194,6 +198,8 @@ async function saveMediaBatch(entries = {}) {
           thumbnailUrl: media.thumbnailUrl || null,
           videoUrl: media.videoUrl || null,
           mediaType: media.mediaType,
+          destinationUrl: media.destinationUrl || null,
+          ctaText: media.ctaText || null,
           cachedAt: Date.now(),
         }, { merge: true });
       }

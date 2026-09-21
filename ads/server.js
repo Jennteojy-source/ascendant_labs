@@ -241,6 +241,15 @@ const server = http.createServer(async (req, res) => {
       for (const item of rankedAds) {
         if (mediaCache[item.id]) {
           item.media = mediaCache[item.id];
+          if (item.media.destinationUrl) {
+            item.destinationUrl = item.media.destinationUrl;
+            try {
+              item.displayDomain = new URL(item.media.destinationUrl).hostname.replace(/^www\./, '');
+            } catch (e) {}
+          }
+          if (item.media.ctaText) {
+            item.ctaText = item.media.ctaText;
+          }
           const mediaKey = item.media.videoUrl || item.media.thumbnailUrl;
           if (mediaKey) {
             const advMediaId = `${(item.pageName || '').toLowerCase()}:::${mediaKey}`;

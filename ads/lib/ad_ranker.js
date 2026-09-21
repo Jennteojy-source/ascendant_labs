@@ -198,11 +198,40 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     // Countries served
     const countries = ad.languages && ad.languages.length > 0 ? ad.languages : targetCountries;
 
+    // Baseline destination URL & display domain extraction
+    let displayDomain = caption || '';
+    let destinationUrl = '';
+    
+    if (caption) {
+      if (/^https?:\/\//i.test(caption)) {
+        destinationUrl = caption;
+        try { displayDomain = new URL(caption).hostname.replace(/^www\./, ''); } catch (e) {}
+      } else if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(caption)) {
+        destinationUrl = `https://${caption.trim()}`;
+        displayDomain = caption.split('/')[0].trim().replace(/^www\./, '');
+      }
+    }
+    
+    // Fallback: check body copy for full URLs
+    if (!destinationUrl && body) {
+      const urlMatch = body.match(/https?:\/\/[^\s"'<>]+/i);
+      if (urlMatch) {
+        destinationUrl = urlMatch[0];
+        try { displayDomain = new URL(destinationUrl).hostname.replace(/^www\./, ''); } catch (e) {}
+      }
+    }
+
+    const ctaText = 'Learn More';
+
     rankedItems.push({
       id: ad.id,
       pageId: ad.page_id,
       pageName: ad.page_name || 'Advertiser',
       adLibraryUrl: `https://www.facebook.com/ads/library/?id=${ad.id}`,
+      adSnapshotUrl: ad.ad_snapshot_url || null,
+      destinationUrl,
+      displayDomain,
+      ctaText,
       variantCount: group.variantCount,
       associatedAdIds: group.allAdIds,
       stats: {

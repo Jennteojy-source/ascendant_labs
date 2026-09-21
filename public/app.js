@@ -60,6 +60,24 @@ const modalBodyText = document.getElementById('modalBodyText');
 const copyClipboardBtn = document.getElementById('copyClipboardBtn');
 const modalLibraryLink = document.getElementById('modalLibraryLink');
 
+// Feed Preview Elements
+const feedAvatar = document.getElementById('feedAvatar');
+const feedPageName = document.getElementById('feedPageName');
+const feedFormatBadge = document.getElementById('feedFormatBadge');
+const feedCtaBar = document.getElementById('feedCtaBar');
+const feedCtaDomain = document.getElementById('feedCtaDomain');
+const feedCtaHeadline = document.getElementById('feedCtaHeadline');
+const feedCtaBtnText = document.getElementById('feedCtaBtnText');
+
+// Destination & Funnel Intel Elements
+const destinationIntelCard = document.getElementById('destinationIntelCard');
+const modalCtaBadge = document.getElementById('modalCtaBadge');
+const modalDestUrlText = document.getElementById('modalDestUrlText');
+const modalVisitDestBtn = document.getElementById('modalVisitDestBtn');
+const modalCopyDestBtn = document.getElementById('modalCopyDestBtn');
+const modalDestDomainPill = document.getElementById('modalDestDomainPill');
+const modalDestStatusPill = document.getElementById('modalDestStatusPill');
+
 // Initialize Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   fetchHealth();
@@ -331,6 +349,11 @@ function renderAdGrid(ads) {
         ${mediaHtml}
       </div>
 
+      <div class="card-destination-strip" id="card-dest-${ad.id}">
+        <span class="card-dest-domain" title="${ad.destinationUrl || ad.displayDomain || ''}">🌐 ${ad.displayDomain || 'Website'}</span>
+        <span class="card-dest-cta">${ad.ctaText || 'Learn More'} →</span>
+      </div>
+
       <div class="card-stats-strip">
         <div class="stat-item">
           <span class="stat-label">Duration</span>
@@ -544,7 +567,10 @@ async function executeSniffBatch(adIds = []) {
   if (needsSniffing.length === 0) return;
 
   try {
-    const payload = needsSniffing.map((id) => ({ id }));
+    const payload = needsSniffing.map((id) => {
+      const ad = (state.currentAds || []).find((a) => String(a.id) === String(id));
+      return { id, adSnapshotUrl: ad?.adSnapshotUrl || null };
+    });
 
     const res = await fetch('/api/sniff-page', {
       method: 'POST',
@@ -604,6 +630,32 @@ async function executeSniffBatch(adIds = []) {
         const box = document.getElementById(`media-box-${adId}`);
         if (box) {
           box.innerHTML = buildMediaHtml(adId, media, true);
+        }
+
+        // Update destination and CTA data on the card
+        if (ad) {
+          if (media.destinationUrl) {
+            ad.destinationUrl = media.destinationUrl;
+            try {
+              ad.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
+            } catch (e) {}
+          }
+          if (media.ctaText) {
+            ad.ctaText = media.ctaText;
+          }
+
+          const destStrip = document.getElementById(`card-dest-${adId}`);
+          if (destStrip) {
+            destStrip.innerHTML = `
+              <span class="card-dest-domain" title="${ad.destinationUrl || ad.displayDomain || ''}">🌐 ${ad.displayDomain || 'Website'}</span>
+              <span class="card-dest-cta">${ad.ctaText || 'Learn More'} →</span>
+            `;
+          }
+
+          // If modal is actively inspecting this ad, refresh modal contents
+          if (adModal.style.display === 'flex' && adModal.getAttribute('data-active-id') === String(adId)) {
+            openModal(ad);
+          }
         }
       }
 
@@ -696,34 +748,104 @@ window.openModalById = function (adId) {
 };
 
 function openModal(ad) {
+  adModal.setAttribute('data-active-id', String(ad.id));
   modalPageName.textContent = ad.pageName;
   modalAdId.textContent = `ID: ${ad.id}`;
   modalHeadline.textContent = ad.copy.headline || 'No Headline';
   modalBodyText.textContent = ad.copy.body;
   modalLibraryLink.href = ad.adLibraryUrl;
 
+  const media = state.resolvedMediaMap[ad.id] || ad.media;
+  const destUrl = (media && media.destinationUrl) || ad.destinationUrl || '';
+  const cta = (media && media.ctaText) || ad.ctaText || 'Learn More';
+  
+  let domain = ad.displayDomain || '';
+  if (!domain && destUrl) {
+    try {
+      domain = new URL(destUrl).hostname.replace(/^www\./, '');
+    } catch (e) {}
+  }
+  if (!domain) {
+    domain = ad.copy.caption || ad.pageName || 'Website';
+  }
+
+  // 1. Feed Ad Mockup Header
+  if (feedAvatar) feedAvatar.textContent = (ad.pageName || 'A').charAt(0).toUpperCase();
+  if (feedPageName) feedPageName.textContent = ad.pageName;
+  if (feedFormatBadge) {
+    feedFormatBadge.textContent = media?.videoUrl ? '▶ VIDEO AD' : (media?.thumbnailUrl ? '🖼️ IMAGE AD' : 'CREATIVE');
+  }
+
+  // 2. Interactive Feed CTA Bar (Directly beneath creative)
+  if (feedCtaBar) {
+    feedCtaBar.href = destUrl || ad.adLibraryUrl;
+    if (feedCtaDomain) feedCtaDomain.textContent = (domain || 'VISIT STORE').toUpperCase();
+    if (feedCtaHeadline) feedCtaHeadline.textContent = ad.copy.headline || ad.pageName;
+    if (feedCtaBtnText) feedCtaBtnText.textContent = cta;
+  }
+
+  // 3. Destination & CTA Intel Card (Right Column)
+  if (modalCtaBadge) modalCtaBadge.textContent = `⚡ Action: ${cta}`;
+  if (modalDestUrlText) {
+    if (destUrl) {
+      modalDestUrlText.textContent = destUrl.replace(/^https?:\/\//, '');
+      modalDestUrlText.title = destUrl;
+      modalVisitDestBtn.href = destUrl;
+    } else {
+      modalDestUrlText.textContent = domain ? `${domain} (Direct offer link pending)` : 'Visit offer via Meta Library';
+      modalDestUrlText.title = domain ? `https://${domain}` : ad.adLibraryUrl;
+      modalVisitDestBtn.href = domain ? `https://${domain}` : ad.adLibraryUrl;
+    }
+  }
+
+  if (modalCopyDestBtn) {
+    modalCopyDestBtn.onclick = (e) => {
+      e.preventDefault();
+      const toCopy = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
+      copyToClipboard(toCopy, modalCopyDestBtn, '✅ Copied URL!');
+    };
+  }
+
+  if (modalDestDomainPill) {
+    modalDestDomainPill.textContent = `🌐 Domain: ${domain || 'Display Link'}`;
+  }
+
+  if (modalDestStatusPill) {
+    if (destUrl && (destUrl.includes('hop.clickbank.net') || destUrl.includes('aff_c') || destUrl.includes('affid') || destUrl.includes('hop='))) {
+      modalDestStatusPill.textContent = 'Affiliate Tracking Link';
+      modalDestStatusPill.className = 'dest-status-pill affiliate';
+    } else if (destUrl) {
+      modalDestStatusPill.textContent = 'Verified Landing Page';
+      modalDestStatusPill.className = 'dest-status-pill direct';
+    } else {
+      modalDestStatusPill.textContent = 'Display Domain';
+      modalDestStatusPill.className = 'dest-status-pill';
+    }
+  }
+
+  // 4. Campaign Stats Grid
   modalStatsRow.innerHTML = `
     <div class="stat-item">
-      <span class="stat-label">Status</span>
+      <span class="stat-label">Campaign Status</span>
       <span class="stat-value ${ad.stats.isActive ? 'highlight-green' : ''}">
-        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays} days running)
+        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays} days)
       </span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Popularity</span>
+      <span class="stat-label">Popularity / Scale</span>
       <span class="stat-value highlight-amber">${ad.stats.scaleTier.includes('High') ? 'Top Performer' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}</span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Ad Style</span>
+      <span class="stat-label">Creative Hook</span>
       <span class="stat-value">${ad.copy.primaryHook}</span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Regions</span>
-      <span class="stat-value">${(ad.stats.countries || []).join(', ')}</span>
+      <span class="stat-label">Target Countries</span>
+      <span class="stat-value">${(ad.stats.countries || []).join(', ') || 'Global'}</span>
     </div>
   `;
 
-  const media = state.resolvedMediaMap[ad.id] || ad.media;
+  // 5. Media & Modern Creative Asset Toolbar (Clean replacement for ugly raw download button)
   if (media && media.videoUrl) {
     const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
     modalMediaWrap.innerHTML = `
@@ -731,9 +853,31 @@ function openModal(ad) {
       <video src="${media.videoUrl}" poster="${media.thumbnailUrl || ''}" controls autoplay playsinline referrerpolicy="no-referrer"></video>
     `;
     modalMediaActions.innerHTML = `
-      <a href="${media.videoUrl}" target="_blank" download="ad_${ad.id}.mp4" class="export-btn">
-        ⬇️ Download Video (.mp4)
-      </a>
+      <div class="asset-toolbar-wrap">
+        <a href="${media.videoUrl}" target="_blank" download="creative_${ad.id}.mp4" class="asset-btn primary" title="Download High-Definition MP4 Video">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Save Video</span>
+          <span class="asset-pill-tag">HD MP4</span>
+        </a>
+        <button type="button" class="asset-btn secondary" onclick="copyAssetLink('${media.videoUrl}', this)" title="Copy Direct MP4 Stream Link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          <span>Copy Stream URL</span>
+        </button>
+        <a href="${media.videoUrl}" target="_blank" rel="noopener noreferrer" class="asset-btn icon-only" title="Open Video in Full Browser Window">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+      </div>
     `;
   } else if (media && media.thumbnailUrl) {
     modalMediaWrap.innerHTML = `
@@ -741,13 +885,35 @@ function openModal(ad) {
       <img src="${media.thumbnailUrl}" alt="${ad.pageName}" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span>Meta Ad Snapshot</span></div>'" />
     `;
     modalMediaActions.innerHTML = `
-      <a href="${media.thumbnailUrl}" target="_blank" download="ad_${ad.id}.jpg" class="export-btn">
-        ⬇️ Download Image (.jpg)
-      </a>
+      <div class="asset-toolbar-wrap">
+        <a href="${media.thumbnailUrl}" target="_blank" download="creative_${ad.id}.jpg" class="asset-btn primary" title="Download High-Resolution Image Creative">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Save Image</span>
+          <span class="asset-pill-tag">Original</span>
+        </a>
+        <button type="button" class="asset-btn secondary" onclick="copyAssetLink('${media.thumbnailUrl}', this)" title="Copy Direct Image CDN Link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          <span>Copy Image URL</span>
+        </button>
+        <a href="${media.thumbnailUrl}" target="_blank" rel="noopener noreferrer" class="asset-btn icon-only" title="Open Image in Full Browser Window">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+      </div>
     `;
   } else {
     modalMediaWrap.innerHTML = `
-      <div class="shimmer-placeholder static-preview"><span>Ad Snapshot</span></div>
+      <div class="shimmer-placeholder static-preview"><span>Meta Ad Creative Preview</span></div>
     `;
     modalMediaActions.innerHTML = '';
   }
@@ -757,5 +923,23 @@ function openModal(ad) {
 
 function closeModal() {
   adModal.style.display = 'none';
+  adModal.removeAttribute('data-active-id');
   modalMediaWrap.innerHTML = '';
+  modalMediaActions.innerHTML = '';
 }
+
+window.copyToClipboard = function (text, btnElement, successMsg = '✅ Copied!') {
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    if (btnElement) {
+      const orig = btnElement.innerHTML;
+      btnElement.innerHTML = successMsg;
+      setTimeout(() => { btnElement.innerHTML = orig; }, 2000);
+    }
+  });
+};
+
+window.copyAssetLink = function (url, btnElement) {
+  if (!url) return;
+  copyToClipboard(url, btnElement, '✅ Copied Link!');
+};

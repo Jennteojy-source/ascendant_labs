@@ -172,8 +172,18 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
           })
           .map((i) => i.src);
 
-        return { domVideos: vids, domImages: imgs };
-      }).catch(() => ({ domVideos: [], domImages: [] }));
+        // Extract outbound destination links
+        const links = Array.from(document.querySelectorAll('a'))
+          .map((a) => a.href)
+          .filter((h) => Boolean(h) && (h.includes('l.facebook.com/l.php') || (!h.includes('facebook.com') && (h.startsWith('http://') || h.startsWith('https://')))));
+
+        // Extract CTA buttons or role="button" elements
+        const buttons = Array.from(document.querySelectorAll('div[role="button"], a[role="button"], button'))
+          .map((b) => (b.innerText || '').trim())
+          .filter(Boolean);
+
+        return { domVideos: vids, domImages: imgs, domLinks: links, domButtons: buttons };
+      }).catch(() => ({ domVideos: [], domImages: [], domLinks: [], domButtons: [] }));
 
       // Fast exit as soon as creative media arrives
       if (
@@ -218,12 +228,47 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
     }
   }
 
+  // 4. Resolve Destination URL & CTA
+  let destinationUrl = null;
+  let ctaText = null;
+
+  if (domData.domLinks && domData.domLinks.length > 0) {
+    for (const link of domData.domLinks) {
+      if (link.includes('l.facebook.com/l.php')) {
+        try {
+          const parsed = new URL(link);
+          const u = parsed.searchParams.get('u');
+          if (u) {
+            destinationUrl = decodeURIComponent(u);
+            break;
+          }
+        } catch (e) {}
+      } else if (!link.includes('facebook.com') && !link.includes('fbcdn.net')) {
+        destinationUrl = link;
+        break;
+      }
+    }
+  }
+
+  if (domData.domButtons && domData.domButtons.length > 0) {
+    const ctaRegex = /^(Shop [Nn]ow|Learn [Mm]ore|Order [Nn]ow|Get [Oo]ffer|Sign [Uu]p|Download|Book [Nn]ow|Apply [Nn]ow|Contact [Uu]s|Watch [Mm]ore|Subscribe|Get [Qq]uote|Buy [Nn]ow|Claim [Oo]ffer|Visit [Ww]ebsite|Play [Gg]ame)$/i;
+    for (const btnText of domData.domButtons) {
+      const match = btnText.match(ctaRegex);
+      if (match) {
+        ctaText = match[0];
+        break;
+      }
+    }
+  }
+
   const mediaType = videoUrl ? 'video' : thumbnailUrl ? 'image' : 'unknown';
 
   return {
     thumbnailUrl,
     videoUrl,
     mediaType,
+    destinationUrl,
+    ctaText,
   };
 }
 
