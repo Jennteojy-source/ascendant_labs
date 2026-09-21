@@ -34,7 +34,6 @@ const state = {
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
 const searchSubmitBtn = document.getElementById('searchSubmitBtn');
-const quickChips = document.querySelectorAll('.chip-btn');
 
 const pdpDossierCard = document.getElementById('pdpDossierCard');
 const dossierBrandName = document.getElementById('dossierBrandName');
@@ -77,14 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const val = searchInput.value.trim();
     if (val) executeSearch(val, 1);
-  });
-
-  quickChips.forEach((chip) => {
-    chip.addEventListener('click', () => {
-      const url = chip.getAttribute('data-url');
-      searchInput.value = url;
-      executeSearch(url, 1);
-    });
   });
 
   // Pagination navigation

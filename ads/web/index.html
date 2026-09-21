@@ -17,10 +17,25 @@
   <link rel="icon" type="image/svg+xml" href="/assets/logos/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/logos/ascendant_labs_logo_warm.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/logos/ascendant_labs_logo_warm.png" />
+  <link rel="canonical" href="https://ascendantlabs.co/" />
+  <meta name="author" content="Ascendant Labs" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta property="og:url" content="https://ascendantlabs.co/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Ascendant Labs",
+    "url": "https://ascendantlabs.co",
+    "description": "Discover live competitor Facebook and Instagram ads, winning copy angles, and video creatives.",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "All"
+  }
+  </script>
 </head>
 <body>
   <!-- Main Application Wrapper -->
@@ -40,10 +55,10 @@
     <section class="hero-search-section">
       <div class="hero-content">
         <h2 class="hero-headline">
-          See What Ads Other Brands Are Running
+          Find Competitor Meta Ads
         </h2>
         <p class="hero-subhead">
-          Paste any website link below to browse their live Facebook and Instagram ads, watch video ideas, and get inspired.
+          Enter any product or website URL to discover live competitor ads, winning copy hooks, and video creatives.
         </p>
 
         <!-- Direct Minimal Search Bar -->
@@ -56,28 +71,18 @@
               </svg>
             </div>
             <input 
-              type="text" 
+              type="url" 
               id="searchInput" 
               class="search-input" 
-              placeholder="Enter any store or brand website (e.g. derila-ergo.com)..." 
-              value="https://derila-ergo.com" 
+              placeholder="Enter website URL (e.g. https://yourbrand.com)..." 
               required 
               autocomplete="off" 
             />
             <button type="submit" class="search-submit-btn" id="searchSubmitBtn">
-              <span class="btn-text">Find Ads</span>
+              <span class="btn-text">Find Competitors</span>
             </button>
           </div>
         </form>
-
-        <!-- Quick Example Chips -->
-        <div class="quick-chips">
-          <span class="chips-label">Try an example:</span>
-          <button class="chip-btn" data-url="https://derila-ergo.com">Derila Pillows</button>
-          <button class="chip-btn" data-url="https://nordvpn.com">NordVPN</button>
-          <button class="chip-btn" data-url="https://prodentim.com">ProDentim</button>
-          <button class="chip-btn" data-url="https://airhelp.com">AirHelp</button>
-        </div>
       </div>
     </section>
 

@@ -1,0 +1,7 @@
+node_modules
+.git
+.firebase
+nord_vpn
+*.log
+scratch_*.png
+.DS_Store

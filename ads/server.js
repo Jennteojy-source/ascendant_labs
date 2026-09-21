@@ -16,6 +16,7 @@ const { profilePDP } = require('./lib/pdp_profiler');
 const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
+const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
 const WEB_DIR = path.resolve(__dirname, 'web');
@@ -69,8 +70,15 @@ function serveStatic(res, filePath, contentType) {
 const searchCache = new Map();
 
 const server = http.createServer(async (req, res) => {
+  const startTime = Date.now();
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname;
+
+  // Structured GCP HTTP request logging
+  res.on('finish', () => {
+    const durationMs = Date.now() - startTime;
+    logger.logHttp(req, res.statusCode, durationMs);
+  });
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -200,6 +208,14 @@ const server = http.createServer(async (req, res) => {
           coreKeywords,
           targetDomain,
         });
+        logger.info('Competitor search request processed', {
+          input: trimmedInput,
+          isUrl,
+          targetBrand,
+          totalAdsFound: rankedAds.length,
+          activeCount: rankedAds.filter(a => a.stats.isActive).length,
+        });
+
         searchCache.set(cacheKey, { rankedAds, profile, timestamp: Date.now() });
       }
 
@@ -237,8 +253,18 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'Missing or empty "ads" array' });
       }
 
+      logger.info('Media sniffing batch started', {
+        batchSize: ads.length,
+        adIds: ads.map(a => a.id),
+      });
+
       // Sniff media for up to 10 ads on the active page
       const mediaMap = await sniffPageMedia(ads.slice(0, 10));
+
+      logger.info('Media sniffing batch completed', {
+        resolvedCount: Object.keys(mediaMap).length,
+      });
+
       return sendJson(res, 200, { mediaMap });
     }
 
@@ -256,14 +282,24 @@ const server = http.createServer(async (req, res) => {
     // 404 for unknown routes
     sendJson(res, 404, { error: 'Endpoint not found' });
   } catch (err) {
-    console.error('Server error:', err);
+    logger.error('Server error handling request', {
+      error: err.message,
+      stack: err.stack,
+      url: req.url,
+      method: req.method,
+    });
     sendJson(res, 500, { error: 'Internal server error: ' + err.message });
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
+  logger.info(`Ascendant Labs Meta Ad Intelligence Server is listening on 0.0.0.0:${PORT}`, {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    service: process.env.K_SERVICE || 'local',
+  });
   console.log(`\n========================================================================`);
-  console.log(` 🚀 AGENTIC META AD INTELLIGENCE ENGINE & WEB UI IS LIVE!`);
+  console.log(` 🚀 ASCENDANT LABS — META AD INTELLIGENCE ENGINE IS LIVE!`);
   console.log(` URL:     http://localhost:${PORT}`);
   console.log(` Web UI:  ${path.join(WEB_DIR, 'index.html')}`);
   console.log(`========================================================================\n`);

@@ -1,20 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ascendantlabs.co/</loc>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://ascendantlabs.co/" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://ascendantlabs.co/?lang=en" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://ascendantlabs.co/?lang=es" />
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://ascendantlabs.co/?lang=pt-BR" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://ascendantlabs.co/?lang=de" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://ascendantlabs.co/?lang=fr" />
-    <xhtml:link rel="alternate" hreflang="it" href="https://ascendantlabs.co/?lang=it" />
-    <xhtml:link rel="alternate" hreflang="tr" href="https://ascendantlabs.co/?lang=tr" />
-    <xhtml:link rel="alternate" hreflang="ar" href="https://ascendantlabs.co/?lang=ar" />
     <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 </urlset>
-
