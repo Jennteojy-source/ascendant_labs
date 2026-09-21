@@ -162,16 +162,19 @@ async function findComparables(searchPlan = {}, options = {}) {
   const uniqueVectors = [];
   for (const v of vectors) {
     const term = (v.query || '').trim().toLowerCase();
-    if (term && term.length >= 2 && !seenTerms.has(term)) {
+    if (term && term.length >= 1 && !seenTerms.has(term)) {
       seenTerms.add(term);
       uniqueVectors.push(v);
     }
   }
 
+  // Known clickbait spam pages that hijack general keywords
+  const spamPageRegex = /novels? lover|novel drama|good2go|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
+
   // 1. Run Search Vectors
   for (const vector of uniqueVectors) {
     const term = vector.query ? vector.query.trim() : '';
-    if (!term || term.length < 2) continue;
+    if (!term || term.length < 1) continue;
 
     vectorHits[term] = 0;
     const isCoreVector = vector.type === 'BRAND' || vector.type === 'PRODUCT';
@@ -190,6 +193,7 @@ async function findComparables(searchPlan = {}, options = {}) {
 
     for (const ad of data) {
       if (!ad.id) continue;
+      if (ad.page_name && spamPageRegex.test(ad.page_name)) continue;
 
       if (!rawAdsMap.has(ad.id)) {
         rawAdsMap.set(ad.id, {

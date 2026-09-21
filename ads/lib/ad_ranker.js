@@ -137,19 +137,19 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const coreKeywords = (options.coreKeywords || []).map(k => String(k).toLowerCase().trim()).filter(Boolean);
     const targetDomain = (options.targetDomain || '').toLowerCase().trim();
 
-    const stopWords = new Set(['app', 'the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'store', 'shop', 'get', 'try', 'buy', 'new', 'deals', 'discount', 'top']);
-    const meaningfulKeywords = coreKeywords.filter(k => k.length > 2 && !stopWords.has(k));
+    const stopWords = new Set(['the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'new', 'top']);
+    const meaningfulKeywords = coreKeywords.filter(k => k.length >= 1 && !stopWords.has(k));
 
     let relevanceType = 'NICHE_AD';
-    let relevanceScore = 0;
+    let relevanceScore = 10; // Baseline candidate relevance from Meta search hit
 
     let brandMatched = false;
-    if (targetBrand && targetBrand.length >= 2) {
+    if (targetBrand && targetBrand.length >= 1) {
       const escaped = targetBrand.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
       const brandRegex = new RegExp(`\\b${escaped}\\b`, 'i');
       brandMatched = brandRegex.test(combinedContent) || (ad.page_name && brandRegex.test(ad.page_name));
     }
-    const domainMatched = targetDomain && targetDomain.length > 3 && combinedContent.includes(targetDomain);
+    const domainMatched = targetDomain && targetDomain.length > 2 && combinedContent.includes(targetDomain);
 
     let keywordMatches = 0;
     for (const kw of meaningfulKeywords) {
@@ -162,22 +162,9 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     if (brandMatched || domainMatched) {
       relevanceType = 'DIRECT_BRAND';
       relevanceScore = 90;
-    } else if (meaningfulKeywords.length > 0) {
-      // For multi-word queries (e.g. "language learning", "teeth whitening", "memory foam"):
-      // Require either:
-      // 1. At least 2 keyword matches
-      // 2. The primary domain noun (meaningfulKeywords[0]) matches
-      // Disqualify ads that only match secondary generic words (e.g. "learning" for baby books)
-      const hasPrimaryKeyword = combinedContent.includes(meaningfulKeywords[0]);
-      const isMultiWord = meaningfulKeywords.length >= 2;
-
-      if ((isMultiWord && (keywordMatches >= 2 || hasPrimaryKeyword)) || (!isMultiWord && keywordMatches >= 1)) {
-        relevanceType = 'COMPETITOR';
-        relevanceScore = Math.min(60, 25 + keywordMatches * 15);
-      } else {
-        // Exclude ads with no strong connection to the target
-        continue;
-      }
+    } else if (keywordMatches >= 1 || (meaningfulKeywords.length > 0 && combinedContent.includes(meaningfulKeywords[0]))) {
+      relevanceType = 'COMPETITOR';
+      relevanceScore = Math.min(70, 30 + keywordMatches * 15);
     }
 
     // Dual-Metric Ranking Formula:

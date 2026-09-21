@@ -231,6 +231,27 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
     });
   }
 
+  // Safety net: Never return 0 results if valid candidate ads were retrieved from Meta
+  if (rerankedList.length === 0 && candidateAds.length > 0) {
+    for (const ad of candidateAds) {
+      rerankedList.push({
+        ...ad,
+        ranking: {
+          ...(ad.ranking || {}),
+          rankScore: ad.ranking?.score || 50,
+          relevanceScore: 50,
+          relationship: 'COMPETITOR',
+          relevanceType: 'COMPETITOR',
+        },
+        aiAnalysis: {
+          relationship: 'COMPETITOR',
+          creativeAngle: ad.copy?.primaryHook || 'Direct Response',
+          aiInsight: `Active campaign matching query in Meta Ad Library.`,
+        },
+      });
+    }
+  }
+
   // Sort descending by total fused score
   rerankedList.sort((a, b) => (b.ranking?.rankScore || 0) - (a.ranking?.rankScore || 0));
   return rerankedList;

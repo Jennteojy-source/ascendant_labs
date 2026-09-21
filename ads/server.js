@@ -18,6 +18,7 @@ const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const { getCachedMediaBatch } = require('./lib/firestore_cache');
+const { logSearchSession, getRecentSearches, getSearchSession } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
@@ -131,6 +132,7 @@ const server = http.createServer(async (req, res) => {
 
     // 3. API Route: Multi-Vector Comparable Search
     if (req.method === 'POST' && pathname === '/api/search') {
+      const searchStartTime = Date.now();
       const body = await readJsonBody(req);
       const {
         input,
@@ -173,26 +175,29 @@ const server = http.createServer(async (req, res) => {
           coreKeywords = [profile.coreProduct, ...(profile.searchKeywords || [])];
           targetDomain = profile.domain;
         } else if (searchVectors.length === 0) {
-          // Brand / Advertiser or Product Keywords search
-          const words = trimmedInput.split(/\s+/).filter(w => w.length > 2);
-          const isMultiWordKeywords = words.length >= 2 && !/vpn|nord|derila|apple|nike/i.test(trimmedInput);
-
-          if (searchType === 'brand' || (!isMultiWordKeywords && words.length <= 2)) {
-            // Treat as Brand / Advertiser name
+          const lower = trimmedInput.toLowerCase();
+          if (lower === 'x' || lower === 'twitter') {
+            targetBrand = 'X';
+            coreKeywords = ['x', 'x.com'];
+            searchVectors = [
+              { type: 'BRAND', query: 'x.com' },
+              { type: 'BRAND', query: 'X Corp' },
+              { type: 'PRODUCT', query: 'x' },
+            ];
+          } else {
+            const words = trimmedInput.split(/\s+/).filter((w) => w.length >= 1);
             targetBrand = trimmedInput;
-            coreKeywords = [trimmedInput];
+            coreKeywords = words;
+
             searchVectors = [
               { type: 'BRAND', query: trimmedInput },
               { type: 'PRODUCT', query: trimmedInput },
             ];
-          } else {
-            // Treat as Product Keywords
-            targetBrand = '';
-            coreKeywords = words;
-            searchVectors = [
-              { type: 'PRODUCT', query: trimmedInput },
-              { type: 'CATEGORY', query: words.slice(0, 2).join(' ') },
-            ];
+
+            // For common single product nouns, add e-commerce qualifying vector
+            if (words.length === 1 && trimmedInput.length >= 3) {
+              searchVectors.push({ type: 'CATEGORY', query: `${trimmedInput} 50% off` });
+            }
           }
         }
 
@@ -277,6 +282,18 @@ const server = http.createServer(async (req, res) => {
       const brandAffiliateCount = rankedAds.filter(a => a.ranking?.relationship === 'BRAND_AFFILIATE').length;
       const competitorCount = rankedAds.filter(a => a.ranking?.relationship === 'COMPETITOR').length;
 
+      // Log query, profile, and results to Firestore search_history table asynchronously
+      logSearchSession({
+        query: input,
+        searchType,
+        profile,
+        ads: uniqueVisualAds,
+        totalFound: rankedAds.length,
+        latencyMs: Date.now() - searchStartTime,
+        clientIp: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      }).catch(err => console.warn('[Server] Log search notice:', err.message));
+
       return sendJson(res, 200, {
         profile,
         paginated,
@@ -288,6 +305,58 @@ const server = http.createServer(async (req, res) => {
           brandAffiliateCount,
           competitorCount,
         },
+      });
+    }
+
+    // 4. API Route: Search History (Review past queries)
+    if (req.method === 'GET' && (pathname === '/api/search-history' || pathname === '/api/history')) {
+      const limit = parseInt(parsedUrl.searchParams.get('limit') || '30', 10);
+      const history = await getRecentSearches(limit);
+      return sendJson(res, 200, { history });
+    }
+
+    // 5. API Route: Replay Search Session (Instant zero-latency replay from Firestore)
+    if (req.method === 'GET' && (pathname === '/api/replay-search' || pathname === '/api/replay')) {
+      const id = parsedUrl.searchParams.get('id');
+      if (!id) return sendJson(res, 400, { error: 'Missing "id" query parameter' });
+
+      const session = await getSearchSession(id);
+      if (!session) return sendJson(res, 404, { error: `Search session "${id}" not found` });
+
+      // Hydrate with latest media cache if available
+      const results = session.results || [];
+      const allAdIds = results.map(a => String(a.id));
+      const mediaCache = await getCachedMediaBatch(allAdIds);
+
+      for (const item of results) {
+        if (mediaCache[item.id]) {
+          item.media = mediaCache[item.id];
+          if (item.media.destinationUrl) item.destinationUrl = item.media.destinationUrl;
+          if (item.media.ctaText) item.ctaText = item.media.ctaText;
+        }
+      }
+
+      const paginated = paginateAds(results, 1, 10);
+      const activeCount = results.filter(a => a.stats?.isActive).length;
+      const highScaleCount = results.filter(a => a.stats?.scaleTier?.includes('High Scale')).length;
+
+      return sendJson(res, 200, {
+        isReplay: true,
+        id: session.id,
+        query: session.query,
+        profile: session.profile,
+        paginated,
+        allAds: results,
+        stats: {
+          totalUniqueCreatives: results.length,
+          activeCount,
+          inactiveCount: results.length - activeCount,
+          highScaleCount,
+          brandAffiliateCount: results.filter(a => a.ranking?.relationship === 'BRAND_AFFILIATE').length,
+          competitorCount: results.filter(a => a.ranking?.relationship === 'COMPETITOR').length,
+        },
+        replayedAt: new Date().toISOString(),
+        originalTimestamp: session.metadata?.loggedAt || session.timestamp,
       });
     }
 

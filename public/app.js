@@ -225,7 +225,7 @@ async function executeSearch(targetInput, page = 1) {
     renderProfileDossier(data.profile);
 
     loadingState.style.display = 'none';
-    adGrid.style.display = 'block';
+    adGrid.style.display = 'grid';
 
     applyFiltersAndRender(1);
     fetchHealth();
@@ -304,11 +304,22 @@ function renderAdGrid(ads) {
   adGrid.innerHTML = '';
 
   if (!ads || ads.length === 0) {
+    const query = (state.currentInput || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     adGrid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1; padding: 50px 20px;">
-        <div class="empty-icon">📭</div>
-        <h3>No Competitor Ads Match This Filter</h3>
-        <p>Try switching status to "All Ads" or clearing the keyword filter.</p>
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>No Ads Found for "${query}"</h3>
+        <p>Try searching for a broader product term, a popular brand name, or a direct website domain.</p>
+        <div class="empty-suggestions">
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Popular Searches:</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+            <button type="button" class="suggestion-chip" onclick="searchInput.value='Derila'; executeSearch('Derila', 1);">Derila</button>
+            <button type="button" class="suggestion-chip" onclick="searchInput.value='NordVPN'; executeSearch('NordVPN', 1);">NordVPN</button>
+            <button type="button" class="suggestion-chip" onclick="searchInput.value='Ridge Wallet'; executeSearch('Ridge Wallet', 1);">Ridge Wallet</button>
+            <button type="button" class="suggestion-chip" onclick="searchInput.value='Ergonomic Pillow'; executeSearch('Ergonomic Pillow', 1);">Ergonomic Pillow</button>
+            <button type="button" class="suggestion-chip" onclick="searchInput.value='Running Shoes'; executeSearch('Running Shoes', 1);">Running Shoes</button>
+          </div>
+        </div>
       </div>
     `;
     return;
