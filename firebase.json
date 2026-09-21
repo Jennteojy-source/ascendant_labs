@@ -10,6 +10,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "ascendant-ads",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/r/**",
         "function": "affiliateRedirect"
       }
