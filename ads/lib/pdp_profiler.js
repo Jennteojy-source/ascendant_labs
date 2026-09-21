@@ -10,9 +10,25 @@
  * - Outbound destination domains / affiliate footprints
  */
 
+const fs = require('fs');
+const path = require('path');
 const https = require('https');
 const http = require('http');
 const { URL } = require('url');
+
+function loadEnv() {
+  const envPath = path.resolve(__dirname, '../../functions/.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach((line) => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match && !process.env[match[1].trim()]) {
+        process.env[match[1].trim()] = match[2].trim();
+      }
+    });
+  }
+}
+loadEnv();
 
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
@@ -100,6 +116,75 @@ function cleanText(s) {
     .trim();
 }
 
+function callGemini(model, apiKey, prompt) {
+  const payload = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.1 }
+  });
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      timeout: 5000,
+    }, res => {
+      let d = '';
+      res.on('data', c => d += c);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          try {
+            const json = JSON.parse(d);
+            resolve(json.candidates?.[0]?.content?.parts?.[0]?.text || '');
+          } catch (e) { reject(e); }
+        } else {
+          reject(new Error(`Gemini status ${res.statusCode}`));
+        }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Gemini timeout')); });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+async function profileWithAI(inputUrl, textContext = '') {
+  const apiKey = process.env.GEMINI_FREE_API_KEY;
+  if (!apiKey) return null;
+
+  const prompt = `You are an expert Meta Ad & Direct-Response Analyst.
+Target to analyze: "${inputUrl}"
+${textContext ? `Page context:\n"""${textContext.slice(0, 1500)}"""\n` : ''}
+
+Extract and return ONLY a valid raw JSON object (no markdown, no backticks):
+{
+  "brandName": "Official brand/product name",
+  "category": "Main consumer category or niche",
+  "coreProduct": "Core product sold",
+  "primaryPainPoints": ["pain point 1", "pain point 2"],
+  "keyBenefits": ["key benefit 1", "key benefit 2"],
+  "searchKeywords": ["keyword 1", "keyword 2"],
+  "suggestedVectors": [
+    { "type": "BRAND", "query": "Brand Name" },
+    { "type": "PRODUCT", "query": "Brand + Product" },
+    { "type": "CATEGORY", "query": "Niche Query" }
+  ]
+}`;
+
+  try {
+    const raw = await callGemini('gemini-flash-lite-latest', apiKey, prompt);
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed.brandName && Array.isArray(parsed.suggestedVectors)) {
+      return parsed;
+    }
+  } catch (err) {
+    // Fallback if AI call times out
+  }
+  return null;
+}
+
 /**
  * Profile any product PDP or offer URL
  */
@@ -120,153 +205,66 @@ async function profilePDP(inputUrl) {
   const hostname = parsedUrl.hostname.toLowerCase();
   const rootDomain = hostname.replace(/^www\./, '');
 
-  if (error || !html) {
-    // Fallback based on domain name if fetch fails
-    const brandGuess = rootDomain.split('.')[0].replace(/[-_]/g, ' ');
-    return {
-      url: cleanUrl,
-      brandName: brandGuess.toUpperCase(),
-      domain: rootDomain,
-      title: brandGuess,
-      description: `Competitor offer on ${rootDomain}`,
-      category: 'E-commerce & Direct Response',
-      coreProduct: brandGuess,
-      primaryPainPoints: ['affordability', 'reliability', 'quality'],
-      keyBenefits: ['effective solution', 'money back guarantee', 'fast shipping'],
-      searchKeywords: [brandGuess, `${brandGuess} review`, `${brandGuess} deal`],
-      suggestedVectors: [
-        { type: 'BRAND', query: brandGuess },
-        { type: 'DOMAIN', query: rootDomain }
-      ]
-    };
-  }
-
-  // 1. Meta & Title tags
+  // Extract meta/title text
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
   let rawTitle = titleMatch ? cleanText(titleMatch[1]) : '';
-
-  const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
-  let ogTitle = ogTitleMatch ? cleanText(ogTitleMatch[1]) : rawTitle;
-
   const descMatch =
     html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
     html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
   let description = descMatch ? cleanText(descMatch[1]) : '';
 
-  // Detect Cloudflare / DDoS / Bot challenge pages and discard junk titles
   const isChallenge = /just a moment|attention required|access denied|security check|cloudflare|ddos protection|verify you are human|bot detection/i.test(
-    `${rawTitle} ${ogTitle} ${description}`
+    `${rawTitle} ${description}`
   );
 
-  if (isChallenge) {
-    rawTitle = '';
-    ogTitle = '';
-    description = '';
+  const cleanContext = isChallenge ? '' : `${rawTitle} ${description}`;
+
+  // 1. Primary: Leverage Google Gemini AI model intelligence
+  const aiProfile = await profileWithAI(cleanUrl, cleanContext);
+  if (aiProfile) {
+    return {
+      url: cleanUrl,
+      finalUrl,
+      brandName: aiProfile.brandName,
+      domain: rootDomain,
+      title: rawTitle || aiProfile.brandName,
+      description: description || `${aiProfile.brandName} - ${aiProfile.coreProduct}`,
+      category: aiProfile.category || 'Direct Response Offer',
+      coreProduct: aiProfile.coreProduct || aiProfile.brandName,
+      primaryPainPoints: aiProfile.primaryPainPoints || ['affordability', 'reliability'],
+      keyBenefits: aiProfile.keyBenefits || ['proven results', 'guarantee'],
+      searchKeywords: aiProfile.searchKeywords || [aiProfile.brandName, rootDomain],
+      suggestedVectors: [
+        ...(aiProfile.suggestedVectors || []),
+        { type: 'DOMAIN', query: rootDomain }
+      ]
+    };
   }
 
-  // 2. Brand Name Extraction
-  let brandName = '';
-  const ogSiteName = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i);
-  if (!isChallenge && ogSiteName && ogSiteName[1]) {
-    brandName = cleanText(ogSiteName[1]);
-  } else if (!isChallenge && ogTitle) {
-    // Extract from title (e.g. "Derila - The Memory Foam Pillow" or "ProDentim Official")
-    const titleParts = ogTitle.split(/[-–—|:]/);
-    if (titleParts.length > 1 && titleParts[0].trim().length < 30) {
-      brandName = titleParts[0].trim();
-    } else {
-      brandName = rootDomain.split('.')[0].replace(/[-_]/g, ' ');
-      brandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
-    }
-  } else {
-    const rawBrand = rootDomain.split('.')[0].replace(/[-_]/g, ' ');
-    brandName = rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1);
-  }
-
-  // Normalize well-known brands
-  if (/^nordvpn$/i.test(brandName)) brandName = 'NordVPN';
-  if (/^protonvpn$/i.test(brandName)) brandName = 'Proton VPN';
-
-  // 3. Core Product & Category Detection
-  const combinedText = `${ogTitle} ${description} ${rawTitle} ${rootDomain}`.toLowerCase();
-  let coreProduct = '';
-  let category = 'Direct Response Offer';
-
-  const categoryMap = [
-    { cat: 'Sleep & Ergonomics', keywords: ['pillow', 'mattress', 'cervical', 'neck pain', 'sleep', 'snoring', 'spine'] },
-    { cat: 'Dental & Oral Health', keywords: ['teeth', 'oral', 'dental', 'gum', 'breath', 'dentist', 'whitening'] },
-    { cat: 'Cybersecurity & Privacy', keywords: ['vpn', 'password', 'antivirus', 'encryption', 'security', 'privacy', 'ip'] },
-    { cat: 'Weight Loss & Metabolism', keywords: ['weight loss', 'metabolism', 'diet', 'keto', 'fat burn', 'lean', 'calories'] },
-    { cat: 'Joint & Pain Relief', keywords: ['joint', 'knee', 'arthritis', 'inflammation', 'sore', 'relief', 'cartilage'] },
-    { cat: 'Pet Health & Training', keywords: ['dog', 'cat', 'puppy', 'pet', 'training', 'barking', 'canine'] },
-    { cat: 'Travel & Mobility', keywords: ['flight', 'travel', 'car rental', 'booking', 'luggage', 'esim', 'roaming'] },
-    { cat: 'Audio & Gadgets', keywords: ['earbuds', 'drone', 'camera', 'headphones', 'smartwatch', 'tracker'] }
-  ];
-
-  for (const item of categoryMap) {
-    const hits = item.keywords.filter(k => combinedText.includes(k));
-    if (hits.length > 0) {
-      category = item.cat;
-      coreProduct = hits.slice(0, 2).join(' ');
-      break;
-    }
-  }
-
-  if (!coreProduct) {
-    coreProduct = ogTitle.split(' ').slice(0, 4).join(' ');
-  }
-
-  // 4. Pain Points & Benefits Harvester
-  const painPoints = [];
-  if (/neck|back|stiff|spine|pain|sore|hurt/i.test(combinedText)) painPoints.push('chronic pain & stiffness');
-  if (/sleep|insomnia|tired|exhausted|snore/i.test(combinedText)) painPoints.push('restless sleep & fatigue');
-  if (/expensive|bill|dentist|cost/i.test(combinedText)) painPoints.push('high medical/dental expenses');
-  if (/hack|leak|track|spy|unsafe/i.test(combinedText)) painPoints.push('privacy exposure & data tracking');
-  if (/yellow|plaque|breath|odor/i.test(combinedText)) painPoints.push('bad breath & stained teeth');
-  if (painPoints.length === 0) painPoints.push('daily friction & inefficiency', 'lack of reliable alternatives');
-
-  const keyBenefits = [];
-  if (/fast|instant|immediate|seconds|quick/i.test(combinedText)) keyBenefits.push('fast acting results');
-  if (/natural|organic|probiotic|plant/i.test(combinedText)) keyBenefits.push('100% natural formulation');
-  if (/guarantee|money back|risk free|warranty/i.test(combinedText)) keyBenefits.push('60-day money back guarantee');
-  if (/ergonomic|contour|cooling/i.test(combinedText)) keyBenefits.push('ergonomic patented contour');
-  if (keyBenefits.length === 0) keyBenefits.push('premium quality', 'proven customer satisfaction');
-
-  // 5. Generate High-Precision Search Vectors
-  // Avoid long keyword-soup phrases which dilute Meta Ads Library queries
-  const cleanCategoryKeyword = coreProduct.split(' ')[0] || 'product';
-  const cleanNichePhrase = `${coreProduct} ${painPoints[0] ? painPoints[0].split(' ')[0] : ''}`.trim();
-
-  const searchKeywords = [
-    brandName,
-    `${brandName} ${coreProduct}`.trim(),
-    coreProduct,
-    rootDomain
-  ].filter(Boolean);
-
-  const suggestedVectors = [
-    { type: 'BRAND', query: brandName, description: 'Direct brand campaigns' },
-    { type: 'PRODUCT', query: `${brandName} ${cleanCategoryKeyword}`.trim(), description: 'Brand product ads' },
-    { type: 'CATEGORY', query: coreProduct, description: 'Direct category competitors' },
-    { type: 'DOMAIN', query: rootDomain, description: 'Landing page domain ads' }
-  ];
+  // 2. Generic Heuristic Fallback (Only if AI key missing or network down)
+  const baseDomain = rootDomain.split('.')[0];
+  const genericBrand = baseDomain.charAt(0).toUpperCase() + baseDomain.slice(1);
 
   return {
     url: cleanUrl,
     finalUrl,
-    brandName,
+    brandName: genericBrand,
     domain: rootDomain,
-    title: ogTitle,
-    description: description.slice(0, 240),
-    category,
-    coreProduct,
-    primaryPainPoints: painPoints,
-    keyBenefits: keyBenefits,
-    searchKeywords,
-    suggestedVectors
+    title: rawTitle || genericBrand,
+    description: description.slice(0, 240) || `Offer on ${rootDomain}`,
+    category: 'E-commerce & Direct Response',
+    coreProduct: genericBrand,
+    primaryPainPoints: ['quality', 'reliability', 'affordability'],
+    keyBenefits: ['effective solution', 'money back guarantee'],
+    searchKeywords: [genericBrand, rootDomain],
+    suggestedVectors: [
+      { type: 'BRAND', query: genericBrand },
+      { type: 'DOMAIN', query: rootDomain }
+    ]
   };
 }
 
 module.exports = {
   profilePDP
 };
+

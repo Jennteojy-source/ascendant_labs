@@ -126,9 +126,9 @@ function deduplicateAndRankAds(rawAds, options = {}) {
 
     // Spam / Unrelated Content Filter (Hard Disqualify)
     const combinedContent = `${ad.page_name || ''} ${headline} ${body} ${caption}`.toLowerCase();
-    const isRomanceSpam = /\b(novel|chapter|billionaire|ceo|divorce|alpha male|werewolf|pregnant|forced to marry|manga|comic|webtoon|slots|casino|horoscope|zodiac|tarot|credit card|payday loan)\b/i.test(combinedContent);
+    const isRomanceSpam = /\b(novel|novels|chapter|chapters|billionaire|ceo|divorce|alpha male|werewolf|pregnant|forced to marry|manga|comic|webtoon|slots|casino|horoscope|zodiac|tarot|credit card|payday loan|dramas? cortos?|dramas? curtos?|short drama|reelshort|dramabox)\b/i.test(combinedContent);
     if (isRomanceSpam) {
-      // Disqualify fiction, romance webnovels, casino, and junk apps completely
+      // Disqualify fiction, romance webnovels, short dramas, casino, and junk apps completely
       continue;
     }
 
@@ -137,28 +137,47 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const coreKeywords = (options.coreKeywords || []).map(k => String(k).toLowerCase().trim()).filter(Boolean);
     const targetDomain = (options.targetDomain || '').toLowerCase().trim();
 
+    const stopWords = new Set(['app', 'the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'store', 'shop', 'get', 'try', 'buy', 'new', 'deals', 'discount', 'top']);
+    const meaningfulKeywords = coreKeywords.filter(k => k.length > 2 && !stopWords.has(k));
+
     let relevanceType = 'NICHE_AD';
     let relevanceScore = 0;
 
-    const brandMatched = targetBrand && targetBrand.length > 2 && combinedContent.includes(targetBrand);
+    let brandMatched = false;
+    if (targetBrand && targetBrand.length >= 2) {
+      const escaped = targetBrand.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const brandRegex = new RegExp(`\\b${escaped}\\b`, 'i');
+      brandMatched = brandRegex.test(combinedContent) || (ad.page_name && brandRegex.test(ad.page_name));
+    }
     const domainMatched = targetDomain && targetDomain.length > 3 && combinedContent.includes(targetDomain);
 
-    let categoryMatches = 0;
-    for (const kw of coreKeywords) {
-      if (kw.length > 2 && combinedContent.includes(kw)) {
-        categoryMatches++;
+    let keywordMatches = 0;
+    for (const kw of meaningfulKeywords) {
+      const kwRegex = new RegExp(`\\b${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+      if (kwRegex.test(combinedContent)) {
+        keywordMatches++;
       }
     }
 
     if (brandMatched || domainMatched) {
       relevanceType = 'DIRECT_BRAND';
-      relevanceScore = 80;
-    } else if (categoryMatches > 0) {
-      relevanceType = 'COMPETITOR';
-      relevanceScore = Math.min(50, 20 + categoryMatches * 10);
-    } else if (coreKeywords.length > 0) {
-      // If the user is searching a product/brand, exclude any ad that has 0 connection to it!
-      continue;
+      relevanceScore = 90;
+    } else if (meaningfulKeywords.length > 0) {
+      // For multi-word queries (e.g. "language learning", "teeth whitening", "memory foam"):
+      // Require either:
+      // 1. At least 2 keyword matches
+      // 2. The primary domain noun (meaningfulKeywords[0]) matches
+      // Disqualify ads that only match secondary generic words (e.g. "learning" for baby books)
+      const hasPrimaryKeyword = combinedContent.includes(meaningfulKeywords[0]);
+      const isMultiWord = meaningfulKeywords.length >= 2;
+
+      if ((isMultiWord && (keywordMatches >= 2 || hasPrimaryKeyword)) || (!isMultiWord && keywordMatches >= 1)) {
+        relevanceType = 'COMPETITOR';
+        relevanceScore = Math.min(60, 25 + keywordMatches * 15);
+      } else {
+        // Exclude ads with no strong connection to the target
+        continue;
+      }
     }
 
     // Dual-Metric Ranking Formula:

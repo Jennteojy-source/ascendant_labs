@@ -220,16 +220,35 @@ const server = http.createServer(async (req, res) => {
         searchCache.set(cacheKey, { rankedAds, profile, timestamp: Date.now() });
       }
 
-      // Paginate
-      const paginated = paginateAds(rankedAds, page, pageSize);
-
-      // Hydrate with any media already cached in disk/memory
+      // Hydrate with any media already cached in disk/memory & perform visual media deduplication
       const mediaCache = loadCache();
-      for (const item of paginated.items) {
+      const uniqueVisualAds = [];
+      const seenMediaPerAdvertiser = new Set();
+
+      for (const item of rankedAds) {
         if (mediaCache[item.id]) {
           item.media = mediaCache[item.id];
+          const mediaKey = item.media.videoUrl || item.media.thumbnailUrl;
+          if (mediaKey) {
+            const advMediaId = `${(item.pageName || '').toLowerCase()}:::${mediaKey}`;
+            if (seenMediaPerAdvertiser.has(advMediaId)) {
+              // Collapse identical creative for same advertiser
+              const existing = uniqueVisualAds.find(a => `${(a.pageName || '').toLowerCase()}:::${(a.media?.videoUrl || a.media?.thumbnailUrl)}` === advMediaId);
+              if (existing) {
+                existing.variantCount = (existing.variantCount || 1) + 1;
+                existing.associatedAdIds = existing.associatedAdIds || [existing.id];
+                existing.associatedAdIds.push(item.id);
+              }
+              continue;
+            }
+            seenMediaPerAdvertiser.add(advMediaId);
+          }
         }
+        uniqueVisualAds.push(item);
       }
+
+      // Paginate
+      const paginated = paginateAds(uniqueVisualAds, page, pageSize);
 
       const activeCount = rankedAds.filter(a => a.stats.isActive).length;
       const highScaleCount = rankedAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;

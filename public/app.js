@@ -365,10 +365,44 @@ function renderAdGrid(ads) {
       </div>
     `;
 
+    // Card hover plays video
+    card.addEventListener('mouseenter', () => {
+      const v = card.querySelector('video');
+      if (v && v.paused) v.play().catch(() => {});
+    });
+
     // Clicking media opens the inspection modal
     card.querySelector('.card-media-box').addEventListener('click', () => openModal(ad));
 
     adGrid.appendChild(card);
+  });
+
+  setupVideoAutoPlay();
+}
+
+/**
+ * Autoplay visible videos on scroll (Pinterest / Instagram feed style)
+ */
+let videoObserver = null;
+function setupVideoAutoPlay() {
+  if (!window.IntersectionObserver) return;
+  if (videoObserver) {
+    videoObserver.disconnect();
+  }
+
+  videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target;
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  }, { threshold: [0, 0.3, 0.7] });
+
+  document.querySelectorAll('.ad-card video').forEach((v) => {
+    videoObserver.observe(v);
   });
 }
 
@@ -394,19 +428,19 @@ function buildMediaHtml(adId, media, isSniffed = false) {
   }
 
   if (media.videoUrl) {
+    const posterAttr = media.thumbnailUrl ? `poster="${media.thumbnailUrl}"` : '';
     return `
       <span class="video-badge">▶ VIDEO</span>
       <video 
         id="video-${adId}"
         src="${media.videoUrl}" 
-        poster="${media.thumbnailUrl || ''}"
+        ${posterAttr}
         referrerpolicy="no-referrer"
         playsinline
         muted
         loop
-        preload="metadata"
-        onmouseenter="this.play()"
-        onmouseleave="this.pause()"
+        preload="auto"
+        onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')"
         onerror="if (this.getAttribute('poster')) { this.outerHTML = '<img src=\\'' + this.getAttribute('poster') + '\\' alt=\\'Meta Ad Creative\\' referrerpolicy=\\'no-referrer\\' />'; }"
       ></video>
       <button class="sound-toggle-btn" onclick="event.stopPropagation(); toggleAudio('${adId}')" title="Mute/Unmute Audio">
@@ -436,7 +470,7 @@ function buildMediaHtml(adId, media, isSniffed = false) {
 }
 
 /**
- * On-Demand Media Sniffer for Current Page Batch
+ * On-Demand Media Sniffer with Visual Deduplication
  */
 async function sniffMediaForCurrentPage(ads) {
   const needsSniffing = ads.filter(
@@ -460,19 +494,75 @@ async function sniffMediaForCurrentPage(ads) {
     if (data.mediaMap) {
       Object.assign(state.resolvedMediaMap, data.mediaMap);
 
-      // Dynamically patch cards in place
+      // Visual Deduplication: Ensure no two cards from the same advertiser display the exact same image/video
+      const seenMediaKeys = new Map();
+
+      // Index media already present on active page
+      (state.currentAds || []).forEach(a => {
+        const m = state.resolvedMediaMap[a.id] || a.media;
+        const url = m && (m.videoUrl || m.thumbnailUrl);
+        if (url) {
+          const key = `${(a.pageName || '').toLowerCase()}:::${url}`;
+          if (!seenMediaKeys.has(key)) {
+            seenMediaKeys.set(key, a.id);
+          }
+        }
+      });
+
+      // Patch media & remove duplicate creative cards
       for (const [adId, media] of Object.entries(data.mediaMap)) {
+        const mediaUrl = media.videoUrl || media.thumbnailUrl;
+        const ad = (state.currentAds || []).find(a => String(a.id) === String(adId));
+        const key = ad && mediaUrl ? `${(ad.pageName || '').toLowerCase()}:::${mediaUrl}` : null;
+
+        if (key && seenMediaKeys.has(key) && String(seenMediaKeys.get(key)) !== String(adId)) {
+          // Collapse duplicate visual card into the primary card
+          const primaryId = seenMediaKeys.get(key);
+          const duplicateCard = document.getElementById(`ad-card-${adId}`);
+          if (duplicateCard) {
+            duplicateCard.remove();
+          }
+          const primaryCard = document.getElementById(`ad-card-${primaryId}`);
+          if (primaryCard) {
+            const statVal = primaryCard.querySelectorAll('.card-stats-strip .stat-value')[2];
+            if (statVal) {
+              const currentText = statVal.textContent;
+              const match = currentText.match(/\((\d+)\s*ads\)/i);
+              const count = match ? parseInt(match[1], 10) + 1 : 2;
+              statVal.innerHTML = `${statVal.innerHTML.split('(')[0].trim()} (${count} ads)`;
+            }
+          }
+          continue;
+        }
+
+        if (key && !seenMediaKeys.has(key)) {
+          seenMediaKeys.set(key, adId);
+        }
+
         const box = document.getElementById(`media-box-${adId}`);
         if (box) {
           box.innerHTML = buildMediaHtml(adId, media, true);
         }
       }
+
+      setupVideoAutoPlay();
       fetchHealth();
     }
   } catch (e) {
     console.warn('[Sniffer] Page sniffing notice:', e.message);
   }
 }
+
+/**
+ * Toggle Video Play / Pause
+ */
+window.toggleVideoPlay = function (adId) {
+  const video = document.getElementById(`video-${adId}`);
+  if (video) {
+    if (video.paused) video.play().catch(() => {});
+    else video.pause();
+  }
+};
 
 /**
  * Audio Toggle Helper

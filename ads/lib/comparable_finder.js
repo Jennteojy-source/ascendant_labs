@@ -50,6 +50,9 @@ function fetchJson(url) {
   });
 }
 
+const metaQueryCache = new Map();
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2-hour TTL
+
 /**
  * Query Meta Graph API ads_archive for a single search term
  */
@@ -62,6 +65,17 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const status = options.status || 'ACTIVE'; // ACTIVE | ALL
   const limit = options.limit || 25;
   const mediaType = options.mediaType || 'ALL'; // ALL | VIDEO | IMAGE
+
+  const normTerm = (searchTerm || '').trim().toLowerCase();
+  const countriesKey = countries.slice().sort().join(',');
+  const cacheKey = `${normTerm}::${countriesKey}::${status}::${mediaType}::${limit}`;
+
+  if (metaQueryCache.has(cacheKey)) {
+    const cached = metaQueryCache.get(cacheKey);
+    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return { data: cached.data || [], error: null, fromCache: true };
+    }
+  }
 
   const fields = [
     'id',
@@ -103,10 +117,26 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const res = await fetchJson(url);
 
   if (res.error) {
-    return { data: [], error: res.error.message };
+    const errMsg = res.error.message || JSON.stringify(res.error);
+    const isRateLimit =
+      res.error.code === 17 ||
+      res.error.code === 4 ||
+      res.error.code === 80004 ||
+      /request limit|rate limit|too many requests|reduce the amount of data/i.test(errMsg);
+
+    if (isRateLimit) {
+      console.warn(`[Meta API Rate Limit] Query "${searchTerm}" hit rate limit. Checking stale cache...`);
+      if (metaQueryCache.has(cacheKey)) {
+        const fallback = metaQueryCache.get(cacheKey);
+        return { data: fallback.data || [], error: null, fromCacheFallback: true };
+      }
+    }
+    return { data: [], error: errMsg };
   }
 
-  return { data: res.data || [], error: null };
+  const results = res.data || [];
+  metaQueryCache.set(cacheKey, { data: results, timestamp: Date.now() });
+  return { data: results, error: null };
 }
 
 /**
@@ -127,8 +157,19 @@ async function findComparables(searchPlan = {}, options = {}) {
   const vectorHits = {};
   const competitorPagesMap = new Map(); // pageName -> count of ads
 
+  // Deduplicate search vectors by query string to prevent redundant API calls
+  const seenTerms = new Set();
+  const uniqueVectors = [];
+  for (const v of vectors) {
+    const term = (v.query || '').trim().toLowerCase();
+    if (term && term.length >= 2 && !seenTerms.has(term)) {
+      seenTerms.add(term);
+      uniqueVectors.push(v);
+    }
+  }
+
   // 1. Run Search Vectors
-  for (const vector of vectors) {
+  for (const vector of uniqueVectors) {
     const term = vector.query ? vector.query.trim() : '';
     if (!term || term.length < 2) continue;
 
