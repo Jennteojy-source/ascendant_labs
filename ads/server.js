@@ -19,7 +19,8 @@ const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
-const WEB_DIR = path.resolve(__dirname, 'web');
+const PUBLIC_DIR = path.resolve(__dirname, '../public');
+const WEB_DIR = fs.existsSync(PUBLIC_DIR) ? PUBLIC_DIR : path.resolve(__dirname, 'web');
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -103,7 +104,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && pathname.startsWith('/assets/logos/')) {
       const fileName = path.basename(pathname);
-      const filePath = path.resolve(__dirname, '../public/assets/logos', fileName);
+      const filePath = path.join(WEB_DIR, 'assets/logos', fileName);
       const ext = path.extname(fileName).toLowerCase();
       const mimeTypes = {
         '.png': 'image/png',
@@ -115,7 +116,7 @@ const server = http.createServer(async (req, res) => {
       return serveStatic(res, filePath, mimeTypes[ext] || 'application/octet-stream');
     }
     if (req.method === 'GET' && (pathname === '/favicon.svg' || pathname === '/favicon.ico')) {
-      return serveStatic(res, path.resolve(__dirname, '../public/assets/logos/favicon.svg'), 'image/svg+xml');
+      return serveStatic(res, path.join(WEB_DIR, 'assets/logos/favicon.svg'), 'image/svg+xml');
     }
 
     // 2. API Route: Analyze PDP
@@ -172,7 +173,7 @@ const server = http.createServer(async (req, res) => {
         } else if (searchVectors.length === 0) {
           // Brand / Advertiser or Product Keywords search
           const words = trimmedInput.split(/\s+/).filter(w => w.length > 2);
-          const isMultiWordKeywords = words.length >= 2 && !/vpn|airhelp|derila|apple|nike/i.test(trimmedInput);
+          const isMultiWordKeywords = words.length >= 2 && !/vpn|nord|derila|apple|nike/i.test(trimmedInput);
 
           if (searchType === 'brand' || (!isMultiWordKeywords && words.length <= 2)) {
             // Treat as Brand / Advertiser name

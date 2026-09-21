@@ -18,15 +18,7 @@ const state = {
   pageSize: 10,
   totalPages: 1,
   rawRankedAds: [],       // All ads returned by server
-  filteredAds: [],        // After applying active filters
   currentProfile: null,
-  activeFilters: {
-    status: 'ACTIVE',
-    country: 'ALL',
-    mediaType: 'ALL',
-    sort: 'RANK',
-    keyword: '',
-  },
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
 };
 
@@ -66,8 +58,6 @@ const modalBodyText = document.getElementById('modalBodyText');
 const copyClipboardBtn = document.getElementById('copyClipboardBtn');
 const modalLibraryLink = document.getElementById('modalLibraryLink');
 
-const cacheCountText = document.getElementById('cacheCountText');
-
 // Initialize Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   fetchHealth();
@@ -104,11 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchHealth() {
   try {
-    const res = await fetch('/api/health');
-    const data = await res.json();
-    if (cacheCountText && data.cachedMediaCount !== undefined) {
-      cacheCountText.textContent = `${data.cachedMediaCount} cached assets`;
-    }
+    await fetch('/api/health');
   } catch (e) {}
 }
 
@@ -559,7 +545,7 @@ function openModal(ad) {
     <div class="stat-item">
       <span class="stat-label">Status</span>
       <span class="stat-value ${ad.stats.isActive ? 'highlight-green' : ''}">
-        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays} days)
+        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays} days running)
       </span>
     </div>
     <div class="stat-item">
@@ -611,65 +597,4 @@ function openModal(ad) {
 function closeModal() {
   adModal.style.display = 'none';
   modalMediaWrap.innerHTML = '';
-}
-
-/**
- * Export Functions (CSV & JSON)
- */
-function exportToCsv() {
-  const items = state.filteredAds.length > 0 ? state.filteredAds : state.rawRankedAds;
-  if (items.length === 0) return alert('No ads available to export.');
-
-  const headers = ['Ad ID', 'Advertiser', 'Status', 'Flight Days', 'Start Date', 'Scale Tier', 'Primary Hook', 'Headline', 'Body', 'Countries', 'Ad Library URL', 'Thumbnail URL', 'Video URL'];
-  const rows = items.map(a => {
-    const media = state.resolvedMediaMap[a.id] || a.media || {};
-    return [
-      `"${a.id}"`,
-      `"${(a.pageName || '').replace(/"/g, '""')}"`,
-      `"${a.stats.isActive ? 'ACTIVE' : 'INACTIVE'}"`,
-      a.stats.flightDays,
-      `"${a.stats.startDate}"`,
-      `"${a.stats.scaleTier.replace(/"/g, '""')}"`,
-      `"${a.copy.primaryHook.replace(/"/g, '""')}"`,
-      `"${(a.copy.headline || '').replace(/"/g, '""')}"`,
-      `"${(a.copy.body || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
-      `"${(a.stats.countries || []).join(', ')}"`,
-      `"${a.adLibraryUrl}"`,
-      `"${media.thumbnailUrl || ''}"`,
-      `"${media.videoUrl || ''}"`
-    ].join(',');
-  });
-
-  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `adscope_competitor_ads_${Date.now()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function exportToJson() {
-  const items = state.filteredAds.length > 0 ? state.filteredAds : state.rawRankedAds;
-  if (items.length === 0) return alert('No ads available to export.');
-
-  const exportData = {
-    query: state.currentInput,
-    profile: state.currentProfile,
-    totalCreatives: items.length,
-    exportedAt: new Date().toISOString(),
-    ads: items.map(a => ({
-      ...a,
-      media: state.resolvedMediaMap[a.id] || a.media,
-    })),
-  };
-
-  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
-  const link = document.createElement('a');
-  link.setAttribute('href', dataStr);
-  link.setAttribute('download', `adscope_dossier_${Date.now()}.json`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }

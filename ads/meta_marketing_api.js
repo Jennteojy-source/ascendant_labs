@@ -169,8 +169,8 @@ async function runAnalysis() {
     console.log(`\n🔻 FUNNEL ANALYSIS:`);
     console.log(`  1. Link Clicks:      ${linkClicks}`);
     console.log(`  2. Landing Page View:${lpv} (${linkClicks > 0 ? ((lpv/linkClicks)*100).toFixed(1) : 0}% connection rate)`);
-    console.log(`  3. Quiz View Content:${viewContent} (${lpv > 0 ? ((viewContent/lpv)*100).toFixed(1) : 0}% of LPV)`);
-    console.log(`  4. Quiz Completed:   ${completeReg || leads} (${viewContent > 0 ? (((completeReg||leads)/viewContent)*100).toFixed(1) : 0}% quiz completion rate)`);
+    console.log(`  3. Content Views:    ${viewContent} (${lpv > 0 ? ((viewContent/lpv)*100).toFixed(1) : 0}% of LPV)`);
+    console.log(`  4. Registrations:    ${completeReg || leads} (${viewContent > 0 ? (((completeReg||leads)/viewContent)*100).toFixed(1) : 0}% completion rate)`);
     console.log(`  5. Initiate Checkout:${initiateCheckout} (${(completeReg||leads) > 0 ? ((initiateCheckout/(completeReg||leads))*100).toFixed(1) : 0}% clicked offer link)`);
     console.log(`  6. Purchases:        ${purchases} (${initiateCheckout > 0 ? ((purchases/initiateCheckout)*100).toFixed(1) : 0}% checkout conversion)`);
 
