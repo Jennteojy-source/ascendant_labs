@@ -1,0 +1,303 @@
+{
+  "success": true,
+  "totalAdsScanned": 42,
+  "activeAdsCount": 2,
+  "topWinningAds": [
+    {
+      "id": "4334723406842388",
+      "pageName": "Mkt Global9",
+      "isActive": true,
+      "flightDays": 103,
+      "startDate": "2026-06-04",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "whatsapp",
+        "threads"
+      ],
+      "headline": "ProDentim - Text Presentation",
+      "caption": "https://prodentim101.com/text.php?hopId=51c3ce39-e...",
+      "body": "",
+      "openingHookText": "ProDentim - Text Presentation",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 85,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=4334723406842388"
+    },
+    {
+      "id": "1520952999474830",
+      "pageName": "Mkt Global9",
+      "isActive": true,
+      "flightDays": 103,
+      "startDate": "2026-06-04",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "whatsapp",
+        "threads"
+      ],
+      "headline": "ProDentim - Text Presentation",
+      "caption": "https://prodentim101.com/text.php?hopId=51c3ce39-e...",
+      "body": "",
+      "openingHookText": "ProDentim - Text Presentation",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 85,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=1520952999474830"
+    },
+    {
+      "id": "1706744513338407",
+      "pageName": "OptiPrime",
+      "isActive": false,
+      "flightDays": 9,
+      "startDate": "2025-11-18",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "threads"
+      ],
+      "headline": "This ad was run by an account or Page we later disabled for not following our Advertising Standards.",
+      "caption": "This ad was run by an account or Page we later disabled for not following our Advertising Standards.",
+      "body": "This ad was run by an account or Page we later disabled for not following our Advertising Standards.",
+      "openingHookText": "This ad was run by an account or Page we later disabled for not following our Advertising Standards.",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 60,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=1706744513338407"
+    },
+    {
+      "id": "874614825344897",
+      "pageName": "Julia Ferreira",
+      "isActive": false,
+      "flightDays": 10,
+      "startDate": "2026-07-21",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger"
+      ],
+      "headline": "Fresher Breath Support",
+      "caption": "prodentim.com",
+      "body": "Looking for new ways to support fresh breath and healthy gums? Discover a probiotic-based oral care formula that’s gaining attention for its unique approach. Learn more and see if it’s right for you.🦷",
+      "openingHookText": "Looking for new ways to support fresh breath and healthy gums? Discover a probiotic-based oral care formula that’s gaining attention for its unique approach.",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 45,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=874614825344897"
+    },
+    {
+      "id": "1308028288169503",
+      "pageName": "ProdentimOficial",
+      "isActive": false,
+      "flightDays": 10,
+      "startDate": "2026-06-10",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "whatsapp",
+        "threads"
+      ],
+      "headline": "Support Healthy Teeth & Gums",
+      "caption": "prodentim24.com",
+      "body": "Looking for a simple way to support your oral care routine?\n\nProdentim is designed to help support healthy teeth and gums with a natural daily formula.\n\nLearn more today.",
+      "openingHookText": "Looking for a simple way to support your oral care routine? Prodentim is designed to help support healthy teeth and gums with a natural daily formula.",
+      "hookArchetype": "Quick Daily Habit / Effortless Routine Hook",
+      "winningScore": 45,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=1308028288169503"
+    },
+    {
+      "id": "3513711332126798",
+      "pageName": "ProdentimOficial",
+      "isActive": false,
+      "flightDays": 11,
+      "startDate": "2026-06-10",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "whatsapp",
+        "threads"
+      ],
+      "headline": "Support Healthy Teeth & Gums",
+      "caption": "prodentim24.com",
+      "body": "Support your daily oral care routine with a natural formula designed for healthy teeth and gums.\n\nLearn more about Prodentim today.",
+      "openingHookText": "Support your daily oral care routine with a natural formula designed for healthy teeth and gums. Learn more about Prodentim today.",
+      "hookArchetype": "Quick Daily Habit / Effortless Routine Hook",
+      "winningScore": 45,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=3513711332126798"
+    },
+    {
+      "id": "1009843781972157",
+      "pageName": "ProdentimOficial",
+      "isActive": false,
+      "flightDays": 12,
+      "startDate": "2026-06-09",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "whatsapp",
+        "threads"
+      ],
+      "headline": "Support Healthy Teeth & Gums",
+      "caption": "prodentim24.com",
+      "body": "Support your daily oral care routine with a natural formula designed for healthy teeth and gums.\n\nLearn more about Prodentim today.",
+      "openingHookText": "Support your daily oral care routine with a natural formula designed for healthy teeth and gums. Learn more about Prodentim today.",
+      "hookArchetype": "Quick Daily Habit / Effortless Routine Hook",
+      "winningScore": 45,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=1009843781972157"
+    },
+    {
+      "id": "3038613633140415",
+      "pageName": "Ascendant Labs",
+      "isActive": false,
+      "flightDays": 3,
+      "startDate": "2026-09-11",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "whatsapp",
+        "threads"
+      ],
+      "headline": "Your Mouth Is An Ecosystem 🌱",
+      "caption": "https://prodentim101.com",
+      "body": "4 dentists told me \"everything looks textbook clean.\"\n2 ENTs checked my sinuses.\nI even spent $2,200 out of pocket on a tonsil procedure.\nYet for 17 years, I couldn't have a close-up conversation without holding a hand over my mouth or popping mints every 15 minutes.\nHere is the one simple truth that none of those expensive appointments explained:\nYour mouth is an ecosystem, not a kitchen floor. \nWhen you constantly blast it with alcohol mouthwash and harsh chemicals, you eliminate the beneficial bacterial shield that naturally neutralizes odor and protects your enamel.\nThe real breakthrough came when I started repopulating my mouth with 3.5 billion targeted oral probiotic strains.\nInstead of masking the problem, it addresses the bacterial imbalance directly. \nWeek 2 was the first time in my adult life I could lean in and talk with total confidence.\nTap below to read the full story and see how the oral probiotic formula works 👇",
+      "openingHookText": "4 dentists told me \"everything looks textbook clean.\"\n2 ENTs checked my sinuses. I even spent $2,200 out of pocket on a tonsil procedure.",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 20,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=3038613633140415"
+    },
+    {
+      "id": "855306407550098",
+      "pageName": "Ag Pixel Perfect",
+      "isActive": false,
+      "flightDays": 1,
+      "startDate": "2026-08-25",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "threads"
+      ],
+      "headline": "2 BOTTLES · 60 Day Supply ·$158",
+      "caption": "prodentim101.com",
+      "body": "Get ProDentim® directly from the official seller. Includes 2 free bonuses & free shipping.",
+      "openingHookText": "Get ProDentim® directly from the official seller. Includes 2 free bonuses & free shipping.",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 20,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=855306407550098"
+    },
+    {
+      "id": "1478443927439794",
+      "pageName": "Ag Pixel Perfect",
+      "isActive": false,
+      "flightDays": 1,
+      "startDate": "2026-08-25",
+      "platforms": [
+        "facebook",
+        "instagram",
+        "audience_network",
+        "messenger",
+        "threads"
+      ],
+      "headline": "2 BOTTLES · 60 Day Supply ·$158",
+      "caption": "prodentim101.com",
+      "body": "ProDentim® Official Website - Save Big On ProDentim Today",
+      "openingHookText": "ProDentim® Official Website - Save Big On ProDentim Today",
+      "hookArchetype": "Direct Value & Problem-Solution Hook",
+      "winningScore": 20,
+      "adLibraryUrl": "https://www.facebook.com/ads/library/?id=1478443927439794"
+    }
+  ],
+  "topHooks": [
+    {
+      "rank": 1,
+      "pageName": "Mkt Global9",
+      "flightDays": 103,
+      "archetype": "Direct Value & Problem-Solution Hook",
+      "openingHook": "ProDentim - Text Presentation",
+      "headline": "ProDentim - Text Presentation",
+      "winningScore": 85,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=4334723406842388"
+    },
+    {
+      "rank": 2,
+      "pageName": "Mkt Global9",
+      "flightDays": 103,
+      "archetype": "Direct Value & Problem-Solution Hook",
+      "openingHook": "ProDentim - Text Presentation",
+      "headline": "ProDentim - Text Presentation",
+      "winningScore": 85,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=1520952999474830"
+    },
+    {
+      "rank": 3,
+      "pageName": "OptiPrime",
+      "flightDays": 9,
+      "archetype": "Direct Value & Problem-Solution Hook",
+      "openingHook": "This ad was run by an account or Page we later disabled for not following our Advertising Standards.",
+      "headline": "This ad was run by an account or Page we later disabled for not following our Advertising Standards.",
+      "winningScore": 60,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=1706744513338407"
+    },
+    {
+      "rank": 4,
+      "pageName": "Julia Ferreira",
+      "flightDays": 10,
+      "archetype": "Direct Value & Problem-Solution Hook",
+      "openingHook": "Looking for new ways to support fresh breath and healthy gums? Discover a probiotic-based oral care formula that’s gaining attention for its unique approach.",
+      "headline": "Fresher Breath Support",
+      "winningScore": 45,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=874614825344897"
+    },
+    {
+      "rank": 5,
+      "pageName": "ProdentimOficial",
+      "flightDays": 10,
+      "archetype": "Quick Daily Habit / Effortless Routine Hook",
+      "openingHook": "Looking for a simple way to support your oral care routine? Prodentim is designed to help support healthy teeth and gums with a natural daily formula.",
+      "headline": "Support Healthy Teeth & Gums",
+      "winningScore": 45,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=1308028288169503"
+    },
+    {
+      "rank": 6,
+      "pageName": "ProdentimOficial",
+      "flightDays": 11,
+      "archetype": "Quick Daily Habit / Effortless Routine Hook",
+      "openingHook": "Support your daily oral care routine with a natural formula designed for healthy teeth and gums. Learn more about Prodentim today.",
+      "headline": "Support Healthy Teeth & Gums",
+      "winningScore": 45,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=3513711332126798"
+    },
+    {
+      "rank": 7,
+      "pageName": "ProdentimOficial",
+      "flightDays": 12,
+      "archetype": "Quick Daily Habit / Effortless Routine Hook",
+      "openingHook": "Support your daily oral care routine with a natural formula designed for healthy teeth and gums. Learn more about Prodentim today.",
+      "headline": "Support Healthy Teeth & Gums",
+      "winningScore": 45,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=1009843781972157"
+    },
+    {
+      "rank": 8,
+      "pageName": "Ascendant Labs",
+      "flightDays": 3,
+      "archetype": "Direct Value & Problem-Solution Hook",
+      "openingHook": "4 dentists told me \"everything looks textbook clean.\"\n2 ENTs checked my sinuses. I even spent $2,200 out of pocket on a tonsil procedure.",
+      "headline": "Your Mouth Is An Ecosystem 🌱",
+      "winningScore": 20,
+      "libraryUrl": "https://www.facebook.com/ads/library/?id=3038613633140415"
+    }
+  ]
+}

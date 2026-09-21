@@ -158,7 +158,24 @@ a {
 }
 
 .logo-icon-wrap {
-    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.brand-logo-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: contain;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.28);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logo-brand:hover .brand-logo-img {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.5);
 }
 
 .logo-brand span {
@@ -924,11 +941,26 @@ html[dir="rtl"] body {
 }
 
 .footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-size: 1.15rem;
     font-weight: 800;
     margin-bottom: 8px;
     direction: ltr;
     unicode-bidi: isolate;
+}
+
+.footer-logo-img {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.footer-logo span {
+    color: var(--cyan-400);
 }
 
 .footer-desc {

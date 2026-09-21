@@ -7,3 +7,6 @@ firebase-key.json
 .firebase/
 firebase-debug.log
 nord_vpn/
+ads/.cache/
+scratch_snapshot.png
+

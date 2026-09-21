@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ascendant Labs — Competitor Ad Intelligence & Meta Ad Search</title>
+  <meta name="description" content="Search and analyze competitor Meta ads by product URL or brand. Discover live scaling ads, watch video creatives, and inspect winning copy with Ascendant Labs." />
+  <meta property="og:title" content="Ascendant Labs — Competitor Ad Intelligence" />
+  <meta property="og:description" content="Search and analyze competitor Meta ads by product URL or brand. Discover live scaling ads and watch video creatives." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ascendant Labs" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ascendant Labs — Competitor Ad Intelligence" />
+  <meta name="twitter:description" content="Search and inspect winning competitor Meta ads by product URL or brand." />
+  <meta name="twitter:image" content="/assets/logos/ascendant_labs_profile_logo.png" />
+  <meta property="og:image" content="/assets/logos/ascendant_labs_profile_logo.png" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logos/ascendant_labs_logo_icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Main Application Wrapper -->
+  <div class="app-container">
+    
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-logo-icon">
+          <img src="/assets/logos/ascendant_labs_logo_icon.png" alt="Ascendant Labs Logo" class="brand-logo-img" width="28" height="28" style="border-radius: 6px; object-fit: contain; box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);" />
+        </div>
+        <div class="brand-titles">
+          <h1 class="brand-name">Ascendant Labs</h1>
+          <p class="brand-tagline">Competitor Ad Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Minimal clean header, no clutter -->
+    </header>
+
+    <!-- Hero Search Section -->
+    <section class="hero-search-section">
+      <div class="hero-content">
+        <h2 class="hero-headline">
+          Find Competitor Meta Ads
+        </h2>
+        <p class="hero-subhead">
+          Paste any product website URL to see live scaling ads and video creatives.
+        </p>
+
+        <!-- Direct Minimal Search Bar -->
+        <form class="search-form" id="searchForm">
+          <div class="search-bar-wrapper">
+            <div class="search-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+            <input 
+              type="text" 
+              id="searchInput" 
+              class="search-input" 
+              placeholder="Paste product website URL (e.g. https://derila-ergo.com)..."
+              value="https://derila-ergo.com"
+              required
+              autocomplete="off"
+            />
+            <button type="submit" class="search-submit-btn" id="searchSubmitBtn">
+              <span class="btn-text">Search</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Quick Example Chips -->
+        <div class="quick-chips">
+          <span class="chips-label">Examples:</span>
+          <button class="chip-btn" data-url="https://derila-ergo.com">Derila Pillow</button>
+          <button class="chip-btn" data-url="https://nordvpn.com">NordVPN</button>
+          <button class="chip-btn" data-url="https://prodentim.com">ProDentim</button>
+          <button class="chip-btn" data-url="https://airhelp.com">AirHelp</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Product Overview Card (Visible after URL analysis) -->
+    <section class="pdp-dossier-card" id="pdpDossierCard" style="display: none;">
+      <div class="dossier-header">
+        <div class="dossier-title-wrap">
+          <span class="dossier-tag">PRODUCT FOUND</span>
+          <h3 class="dossier-brand" id="dossierBrandName">Brand</h3>
+          <span class="dossier-domain" id="dossierDomain">domain.com</span>
+        </div>
+        <div class="dossier-cat-badge" id="dossierCategory">Category</div>
+      </div>
+      <div class="dossier-body">
+        <p class="dossier-desc" id="dossierDesc">Product summary...</p>
+        <div class="dossier-vectors">
+          <span class="vectors-title">Target Searches:</span>
+          <div class="vectors-list" id="dossierVectorsList"></div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- Search Results Grid Section -->
+    <main class="results-section" id="resultsSection">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🔍</div>
+        <h3>Ready to Explore Ads</h3>
+        <p>Enter any product link or brand name above to view active Meta ads and video previews.</p>
+      </div>
+
+      <div class="loading-state" id="loadingState" style="display: none;">
+        <div class="spinner"></div>
+        <h3 id="loadingTitle">Searching Meta Ads...</h3>
+        <p id="loadingSubhead">Finding active ads and finding top performers.</p>
+      </div>
+
+      <!-- 10-Item Paginated Ad Card Grid -->
+      <div class="ad-grid" id="adGrid" style="display: none;"></div>
+
+      <!-- Modern Pagination Controller -->
+      <nav class="pagination-nav" id="paginationNav" style="display: none;">
+        <button class="page-btn prev-btn" id="prevPageBtn" disabled>
+          ← Previous
+        </button>
+        <div class="page-numbers" id="pageNumbersList"></div>
+        <button class="page-btn next-btn" id="nextPageBtn">
+          Next →
+        </button>
+      </nav>
+    </main>
+
+    <!-- Ad Copy Modal / Lightbox (Spacious 2-Column Split) -->
+    <div class="modal-overlay" id="adModal" style="display: none;">
+      <div class="modal-card split-layout">
+        <div class="modal-header">
+          <div class="modal-titles">
+            <span class="modal-page-name" id="modalPageName">Advertiser</span>
+            <span class="modal-ad-id" id="modalAdId">ID: 000000</span>
+          </div>
+          <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+        </div>
+        <div class="modal-split-body">
+          <!-- Left Column: Media Player & Asset Actions -->
+          <div class="modal-left-col">
+            <div class="modal-media-wrap" id="modalMediaWrap"></div>
+            <div class="modal-media-actions" id="modalMediaActions"></div>
+          </div>
+          <!-- Right Column: Stats, Angles, Full Copy -->
+          <div class="modal-right-col">
+            <div class="modal-stats-grid" id="modalStatsRow"></div>
+            <div class="modal-copy-block">
+              <div class="copy-header-row">
+                <span class="copy-label">AD CREATIVE COPY</span>
+                <button class="copy-clipboard-btn" id="copyClipboardBtn">📋 Copy Text</button>
+              </div>
+              <h4 id="modalHeadline">Headline</h4>
+              <p id="modalBodyText">Ad Body Copy...</p>
+            </div>
+            <div class="modal-footer-actions">
+              <a href="#" target="_blank" rel="noopener noreferrer" class="modal-library-btn" id="modalLibraryLink">
+                View on Meta Ad Library ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

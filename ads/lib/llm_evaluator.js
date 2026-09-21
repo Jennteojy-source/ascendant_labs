@@ -33,7 +33,7 @@ function callGemini(apiKey, promptText) {
     const req = https.request(
       {
         hostname: 'generativelanguage.googleapis.com',
-        path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        path: `/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ ${
  * Main evaluation entry point
  */
 async function evaluateLoopPerformance(aggregatedData) {
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const geminiKey = process.env.GEMINI_FREE_API_KEY || process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
 
   const agentCode = getActiveAgentCode();
