@@ -377,15 +377,15 @@ function buildMediaHtml(adId, media, isSniffed = false) {
     if (isSniffed) {
       return `
         <div class="shimmer-placeholder static-preview">
-          <span class="shimmer-icon">🖼️</span>
-          <span>Ad Snapshot</span>
+          <span class="shimmer-icon">✨</span>
+          <span>Ad Creative</span>
         </div>
       `;
     }
     return `
       <div class="shimmer-placeholder">
         <span class="shimmer-icon">🎬</span>
-        <span>Loading preview...</span>
+        <span>Loading creative...</span>
       </div>
     `;
   }
@@ -404,6 +404,7 @@ function buildMediaHtml(adId, media, isSniffed = false) {
         preload="metadata"
         onmouseenter="this.play()"
         onmouseleave="this.pause()"
+        onerror="if (this.getAttribute('poster')) { this.outerHTML = '<img src=\\'' + this.getAttribute('poster') + '\\' alt=\\'Meta Ad Creative\\' referrerpolicy=\\'no-referrer\\' />'; }"
       ></video>
       <button class="sound-toggle-btn" onclick="event.stopPropagation(); toggleAudio('${adId}')" title="Mute/Unmute Audio">
         🔊
@@ -418,14 +419,15 @@ function buildMediaHtml(adId, media, isSniffed = false) {
         alt="Meta Ad Creative" 
         referrerpolicy="no-referrer" 
         loading="lazy"
-        onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span class=\\'shimmer-icon\\'>🖼️</span><span>Ad Snapshot</span></div>'"
+        onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span class=\\'shimmer-icon\\'>✨</span><span>Ad Creative</span></div>'"
       />
     `;
   }
 
   return `
     <div class="shimmer-placeholder static-preview">
-      <span>Ad Snapshot</span>
+      <span class="shimmer-icon">✨</span>
+      <span>Ad Creative</span>
     </div>
   `;
 }

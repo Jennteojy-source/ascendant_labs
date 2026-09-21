@@ -123,9 +123,8 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
       !url.includes('hsts-pixel') &&
       !url.includes('rsrc.php')
     ) {
-      const len = Number(res.headers()['content-length'] || 0);
-      if (!isAvatarUrl(url) && (len > 25000 || url.includes('s600x600') || url.includes('t0.49642-6'))) {
-        if (!networkImages.includes(url)) networkImages.push(url);
+      if (!isAvatarUrl(url) && !networkImages.includes(url)) {
+        networkImages.push(url);
       }
     }
   });
@@ -146,7 +145,7 @@ async function sniffSingleAd(browser, adId, snapshotUrl) {
 
     // Poll until creative arrives (DOM elements or network responses)
     const start = Date.now();
-    while (Date.now() - start < 3500) {
+    while (Date.now() - start < 5000) {
       domData = await page.evaluate(() => {
         const vids = Array.from(document.querySelectorAll('video'))
           .map((v) => ({

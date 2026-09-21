@@ -132,22 +132,33 @@ async function profilePDP(inputUrl) {
 
   // 1. Meta & Title tags
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  const rawTitle = titleMatch ? cleanText(titleMatch[1]) : '';
+  let rawTitle = titleMatch ? cleanText(titleMatch[1]) : '';
 
   const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
-  const ogTitle = ogTitleMatch ? cleanText(ogTitleMatch[1]) : rawTitle;
+  let ogTitle = ogTitleMatch ? cleanText(ogTitleMatch[1]) : rawTitle;
 
   const descMatch =
     html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
     html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
-  const description = descMatch ? cleanText(descMatch[1]) : '';
+  let description = descMatch ? cleanText(descMatch[1]) : '';
+
+  // Detect Cloudflare / DDoS / Bot challenge pages and discard junk titles
+  const isChallenge = /just a moment|attention required|access denied|security check|cloudflare|ddos protection|verify you are human|bot detection/i.test(
+    `${rawTitle} ${ogTitle} ${description}`
+  );
+
+  if (isChallenge) {
+    rawTitle = '';
+    ogTitle = '';
+    description = '';
+  }
 
   // 2. Brand Name Extraction
   let brandName = '';
   const ogSiteName = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i);
-  if (ogSiteName && ogSiteName[1]) {
+  if (!isChallenge && ogSiteName && ogSiteName[1]) {
     brandName = cleanText(ogSiteName[1]);
-  } else {
+  } else if (!isChallenge && ogTitle) {
     // Extract from title (e.g. "Derila - The Memory Foam Pillow" or "ProDentim Official")
     const titleParts = ogTitle.split(/[-–—|:]/);
     if (titleParts.length > 1 && titleParts[0].trim().length < 30) {
@@ -156,10 +167,17 @@ async function profilePDP(inputUrl) {
       brandName = rootDomain.split('.')[0].replace(/[-_]/g, ' ');
       brandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
     }
+  } else {
+    const rawBrand = rootDomain.split('.')[0].replace(/[-_]/g, ' ');
+    brandName = rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1);
   }
 
+  // Normalize well-known brands
+  if (/^nordvpn$/i.test(brandName)) brandName = 'NordVPN';
+  if (/^protonvpn$/i.test(brandName)) brandName = 'Proton VPN';
+
   // 3. Core Product & Category Detection
-  const combinedText = `${ogTitle} ${description} ${rawTitle}`.toLowerCase();
+  const combinedText = `${ogTitle} ${description} ${rawTitle} ${rootDomain}`.toLowerCase();
   let coreProduct = '';
   let category = 'Direct Response Offer';
 
