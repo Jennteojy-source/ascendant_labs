@@ -1,20 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
-  <rect width="128" height="128" rx="28" fill="#070c18" />
-  <defs>
-    <linearGradient id="cyanGlow" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="50%" stop-color="#00f0ff" />
-      <stop offset="100%" stop-color="#0284c7" />
-    </linearGradient>
-    <filter id="neonBlur" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  <!-- Ascendant Labs Chevron A Symbol -->
-  <path d="M64 22 L102 88 L85 88 L64 56 L43 88 L26 88 Z" fill="none" stroke="url(#cyanGlow)" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" filter="url(#neonBlur)" />
-  <path d="M64 22 L102 88 L85 88 L64 56 L43 88 L26 88 Z" fill="none" stroke="#e0f2fe" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+  <!-- Warm Ivory Canvas -->
+  <rect width="128" height="128" rx="28" fill="#FAF7F2" />
+  <rect x="1" y="1" width="126" height="126" rx="27" stroke="#E8E1D5" stroke-width="2" />
+  
+  <!-- Warm Geometric Origami "A" Emblem from Ascendant Labs Warm Logo -->
+  <!-- Left Muted Sage Facet -->
+  <polygon points="61,44 40,78 61,60" fill="#7FA8A8" />
+  
+  <!-- Right Terracotta Coral Facet -->
+  <polygon points="64,39 64,56 71,68 88,88 71,88 64,76 47,88 35,88" fill="#DE5B38" />
 </svg>

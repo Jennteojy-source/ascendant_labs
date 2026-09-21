@@ -1,48 +1,50 @@
 /* ==========================================================================
-   AdScope AI — Minimalist Light Mode Design System
-   Theme: Clean, Crisp, High-Contrast Modern Light
+   Ascendant Labs — Warm, Approachable Light Mode Design System
+   Theme: Warm Cream, Terracotta Coral & Soft Sage — Simple & Inviting
    ========================================================================== */
 
 :root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #ffffff;
-  --bg-subtle: #f1f5f9;
-  --bg-input: #ffffff;
+  --bg-primary: #FAF7F2;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FFFDF9;
+  --bg-subtle: #F3ECE2;
+  --bg-input: #FFFFFF;
 
-  --border-subtle: #e2e8f0;
-  --border-medium: #cbd5e1;
-  --border-focus: #4f46e5;
+  --border-subtle: #E8E1D5;
+  --border-medium: #D9D0C1;
+  --border-focus: #DF5A36;
 
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-inverse: #ffffff;
+  --text-primary: #2C2623;
+  --text-secondary: #5C544E;
+  --text-muted: #8C8278;
+  --text-inverse: #FFFFFF;
 
-  --accent-primary: #4f46e5;
-  --accent-primary-hover: #4338ca;
-  --accent-primary-light: #eef2ff;
-  --accent-success: #059669;
-  --accent-success-light: #ecfdf5;
-  --accent-warning: #d97706;
-  --accent-warning-light: #fffbeb;
-  --accent-danger: #dc2626;
+  --accent-primary: #DF5A36;
+  --accent-primary-hover: #C64A27;
+  --accent-primary-light: #FDF0EB;
+  --accent-secondary: #608F8F;
+  --accent-secondary-light: #EDF5F5;
+  --accent-success: #2E7D52;
+  --accent-success-light: #EDF7F1;
+  --accent-warning: #C07018;
+  --accent-warning-light: #FDF6EC;
+  --accent-danger: #C83E3E;
 
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
-  --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
-  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --transition-fast: all 0.15s ease;
+  --shadow-sm: 0 1px 3px rgba(44, 38, 35, 0.04);
+  --shadow-card: 0 2px 8px rgba(44, 38, 35, 0.05), 0 1px 2px rgba(44, 38, 35, 0.03);
+  --shadow-card-hover: 0 12px 30px rgba(44, 38, 35, 0.08), 0 4px 10px rgba(44, 38, 35, 0.04);
+  --shadow-modal: 0 25px 50px -12px rgba(44, 38, 35, 0.18);
+  --transition-fast: all 0.2s ease;
 }
 
 /* Reset & Box Sizing */
@@ -57,7 +59,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -65,11 +67,11 @@ body {
 .app-container {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 20px 28px 80px;
+  padding: 24px 28px 80px;
 }
 
 /* ==========================================================================
-   Header Section (Clean & Minimal)
+   Header Section (Clean, Warm & Minimal — Pure Typography, No Title Logo)
    ========================================================================== */
 .app-header {
   display: flex;
@@ -77,7 +79,7 @@ body {
   align-items: center;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 36px;
+  margin-bottom: 40px;
 }
 
 .brand-group {
@@ -86,32 +88,23 @@ body {
   gap: 12px;
 }
 
-.brand-logo-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--accent-primary);
-  border-radius: var(--radius-md);
+.brand-titles {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
+  flex-direction: column;
 }
 
 .brand-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
 }
 
-.brand-gradient {
-  color: var(--accent-primary);
-}
-
 .brand-tagline {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   font-weight: 500;
+  margin-top: 1px;
 }
 
 .header-status {
@@ -199,7 +192,7 @@ body {
 
 .search-bar-wrapper:focus-within {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  box-shadow: 0 0 0 3.5px rgba(223, 90, 54, 0.15);
 }
 
 .search-icon {
@@ -227,19 +220,21 @@ body {
   background: var(--accent-primary);
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 22px;
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  box-shadow: 0 2px 6px rgba(223, 90, 54, 0.25);
   transition: var(--transition-fast);
 }
 
 .search-submit-btn:hover {
   background: var(--accent-primary-hover);
+  box-shadow: 0 4px 12px rgba(223, 90, 54, 0.35);
 }
 
 .quick-chips {
@@ -251,7 +246,7 @@ body {
 }
 
 .chips-label {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -260,30 +255,32 @@ body {
   background: #ffffff;
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: var(--radius-full);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: var(--transition-fast);
 }
 
 .chip-btn:hover {
   background: var(--accent-primary-light);
-  border-color: #c7d2fe;
+  border-color: #FCD4C7;
   color: var(--accent-primary);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
-   Profiled PDP Dossier Card
+   Store Overview Card
    ========================================================================== */
 .pdp-dossier-card {
   background: #ffffff;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 18px 22px;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 26px;
+  box-shadow: var(--shadow-card);
 }
 
 .dossier-header {
@@ -294,44 +291,44 @@ body {
 }
 
 .dossier-tag {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--accent-primary);
   background: var(--accent-primary-light);
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: var(--radius-sm);
   display: inline-block;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .dossier-brand {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .dossier-domain {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
-  font-family: var(--font-mono);
   margin-left: 6px;
 }
 
 .dossier-cat-badge {
-  background: #f1f5f9;
+  background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: 0.78rem;
   font-weight: 600;
 }
 
 .dossier-desc {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  line-height: 1.5;
 }
 
 .dossier-vectors {
@@ -342,7 +339,7 @@ body {
 }
 
 .vectors-title {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
   font-weight: 700;
   text-transform: uppercase;
@@ -357,10 +354,10 @@ body {
 .vector-pill {
   background: #ffffff;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 2px 8px;
-  font-size: 0.72rem;
-  font-family: var(--font-mono);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
   color: var(--text-secondary);
 }
 
@@ -371,7 +368,7 @@ body {
 
 .vector-pill.clickable:hover {
   background: var(--accent-primary-light);
-  border-color: #c7d2fe;
+  border-color: #FCD4C7;
   color: var(--accent-primary);
 }
 
@@ -546,25 +543,25 @@ body {
 }
 
 .relevance-tag.brand-tag {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  border: 1px solid #FCD4C7;
 }
 
 .relevance-tag.comp-tag {
-  background: #f8fafc;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background: var(--accent-secondary-light);
+  color: var(--accent-secondary);
+  border: 1px solid #CBE0E0;
 }
 
 .view-ad-btn {
   background: #ffffff;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--text-primary);
-  padding: 3px 8px;
+  padding: 4px 10px;
   cursor: pointer;
   transition: var(--transition-fast);
 }
@@ -576,13 +573,13 @@ body {
 }
 
 .library-link {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--accent-primary);
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 3px;
-  font-family: var(--font-mono);
+  font-weight: 500;
 }
 
 .library-link:hover {
@@ -613,12 +610,12 @@ body {
   color: var(--text-muted);
 }
 
-/* Media Box */
+/* Media Box (4:5 Meta Feed Standard & Never Cut Off) */
 .card-media-box {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  background: #f1f5f9;
+  aspect-ratio: 4 / 5;
+  background: #090d16;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -626,12 +623,27 @@ body {
   cursor: pointer;
 }
 
+/* Ambient Blurred Glow for non-standard aspect ratios */
+.media-backdrop {
+  position: absolute;
+  inset: -15px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(25px) brightness(0.45);
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
 .card-media-box img,
 .card-media-box video {
+  position: relative;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  z-index: 1;
 }
 
 .video-badge {
@@ -740,10 +752,10 @@ body {
 
 .hook-archetype-pill {
   align-self: flex-start;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   background: var(--accent-primary-light);
-  border: 1px solid #c7d2fe;
+  border: 1px solid #FCD4C7;
   color: var(--accent-primary);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -985,20 +997,27 @@ body {
 }
 
 .modal-media-wrap {
+  position: relative;
   width: 100%;
-  max-height: 440px;
+  max-height: 540px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: #090d16;
+  border-radius: var(--radius-sm);
 }
 
 .modal-media-wrap img,
 .modal-media-wrap video {
+  position: relative;
   max-width: 100%;
-  max-height: 440px;
+  max-height: 540px;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: var(--radius-sm);
+  z-index: 1;
 }
 
 .modal-right-col {

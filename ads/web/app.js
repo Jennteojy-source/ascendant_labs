@@ -225,14 +225,14 @@ function renderProfileDossier(profile) {
   dossierBrandName.textContent = profile.brandName;
   dossierDomain.textContent = profile.domain ? `(${profile.domain})` : '';
   dossierCategory.textContent = profile.category;
-  dossierDesc.textContent = profile.description || `Core product: ${profile.coreProduct}. Solving: ${profile.primaryPainPoints.join(', ')}.`;
+  dossierDesc.textContent = profile.description || (profile.coreProduct ? `Key product: ${profile.coreProduct}.` : '');
 
   dossierVectorsList.innerHTML = '';
   (profile.suggestedVectors || []).forEach((vec) => {
     const pill = document.createElement('button');
     pill.className = 'vector-pill clickable';
-    pill.textContent = `[${vec.type}] ${vec.query}`;
-    pill.title = 'Click to focus search on this vector';
+    pill.textContent = vec.query;
+    pill.title = `Search ads for "${vec.query}"`;
     pill.addEventListener('click', () => {
       searchInput.value = vec.query;
       executeSearch(vec.query, 1);
@@ -275,7 +275,7 @@ function renderAdGrid(ads) {
     if (relType === 'DIRECT_BRAND') {
       relBadge = `<span class="relevance-tag brand-tag">Brand</span>`;
     } else if (relType === 'COMPETITOR') {
-      relBadge = `<span class="relevance-tag comp-tag">Competitor</span>`;
+      relBadge = `<span class="relevance-tag comp-tag">Similar</span>`;
     }
 
     card.innerHTML = `
@@ -298,19 +298,19 @@ function renderAdGrid(ads) {
         <div class="stat-item">
           <span class="stat-label">Duration</span>
           <span class="stat-value">
-            ${ad.stats.flightDays} day${ad.stats.flightDays === 1 ? '' : 's'} (${ad.stats.startDate})
+            ${ad.stats.flightDays} day${ad.stats.flightDays === 1 ? '' : 's'}
           </span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Countries</span>
+          <span class="stat-label">Regions</span>
           <span class="stat-value">
             ${(ad.stats.countries || []).join(', ') || 'Global'}
           </span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Spend Level</span>
+          <span class="stat-label">Reach</span>
           <span class="stat-value">
-            ${ad.stats.scaleTier.includes('High') ? 'High Scale' : (ad.stats.scaleTier.includes('Mid') ? 'Mid Scale' : 'Testing')}${ad.variantCount > 1 ? ` (${ad.variantCount} ads)` : ''}
+            ${ad.stats.scaleTier.includes('High') ? 'Top Performer' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}${ad.variantCount > 1 ? ` (${ad.variantCount} ads)` : ''}
           </span>
         </div>
       </div>
@@ -324,9 +324,9 @@ function renderAdGrid(ads) {
 
       <div class="card-footer">
         <a href="${ad.adLibraryUrl}" target="_blank" rel="noopener noreferrer" class="library-link">
-          Meta Ad Library ↗
+          Facebook Ad Library ↗
         </a>
-        <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Details</button>
+        <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Ad</button>
       </div>
     `;
 
@@ -359,7 +359,9 @@ function buildMediaHtml(adId, media, isSniffed = false) {
   }
 
   if (media.videoUrl) {
+    const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
     return `
+      ${backdrop}
       <span class="video-badge">▶ VIDEO</span>
       <video 
         id="video-${adId}"
@@ -381,6 +383,7 @@ function buildMediaHtml(adId, media, isSniffed = false) {
 
   if (media.thumbnailUrl) {
     return `
+      <div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>
       <img 
         src="${media.thumbnailUrl}" 
         alt="Meta Ad Creative" 
@@ -511,28 +514,30 @@ function openModal(ad) {
 
   modalStatsRow.innerHTML = `
     <div class="stat-item">
-      <span class="stat-label">Active Status</span>
+      <span class="stat-label">Status</span>
       <span class="stat-value ${ad.stats.isActive ? 'highlight-green' : ''}">
-        ${ad.stats.isActive ? '🟢 Active' : '⚪ Inactive'} (${ad.stats.flightDays} days)
+        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays} days)
       </span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Scale Tier</span>
-      <span class="stat-value highlight-amber">${ad.stats.scaleTier.split('(')[0]}</span>
+      <span class="stat-label">Popularity</span>
+      <span class="stat-value highlight-amber">${ad.stats.scaleTier.includes('High') ? 'Top Performer' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}</span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Primary Hook</span>
+      <span class="stat-label">Ad Style</span>
       <span class="stat-value">${ad.copy.primaryHook}</span>
     </div>
     <div class="stat-item">
-      <span class="stat-label">Countries</span>
+      <span class="stat-label">Regions</span>
       <span class="stat-value">${(ad.stats.countries || []).join(', ')}</span>
     </div>
   `;
 
   const media = state.resolvedMediaMap[ad.id] || ad.media;
   if (media && media.videoUrl) {
+    const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
     modalMediaWrap.innerHTML = `
+      ${backdrop}
       <video src="${media.videoUrl}" poster="${media.thumbnailUrl || ''}" controls autoplay playsinline referrerpolicy="no-referrer"></video>
     `;
     modalMediaActions.innerHTML = `
@@ -542,7 +547,8 @@ function openModal(ad) {
     `;
   } else if (media && media.thumbnailUrl) {
     modalMediaWrap.innerHTML = `
-      <img src="${media.thumbnailUrl}" alt="${ad.pageName}" referrerpolicy="no-referrer" />
+      <div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>
+      <img src="${media.thumbnailUrl}" alt="${ad.pageName}" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span>Meta Ad Snapshot</span></div>'" />
     `;
     modalMediaActions.innerHTML = `
       <a href="${media.thumbnailUrl}" target="_blank" download="ad_${ad.id}.jpg" class="export-btn">
@@ -551,7 +557,7 @@ function openModal(ad) {
     `;
   } else {
     modalMediaWrap.innerHTML = `
-      <div class="shimmer-placeholder"><span>Creative asset loading...</span></div>
+      <div class="shimmer-placeholder static-preview"><span>Ad Snapshot</span></div>
     `;
     modalMediaActions.innerHTML = '';
   }

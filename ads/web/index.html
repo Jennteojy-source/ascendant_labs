@@ -3,51 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ascendant Labs — Competitor Ad Intelligence & Meta Ad Search</title>
-  <meta name="description" content="Search and analyze competitor Meta ads by product URL or brand. Discover live scaling ads, watch video creatives, and inspect winning copy with Ascendant Labs." />
-  <meta property="og:title" content="Ascendant Labs — Competitor Ad Intelligence" />
-  <meta property="og:description" content="Search and analyze competitor Meta ads by product URL or brand. Discover live scaling ads and watch video creatives." />
+  <title>Ascendant Labs — Ad Ideas & Inspiration</title>
+  <meta name="description" content="Discover winning Facebook and Instagram ad ideas from popular stores and brands. Simple ad inspiration for everyday businesses." />
+  <meta property="og:title" content="Ascendant Labs — Ad Ideas & Inspiration" />
+  <meta property="og:description" content="Browse winning Facebook and Instagram ad ideas from popular stores and brands." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Ascendant Labs" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Ascendant Labs — Competitor Ad Intelligence" />
-  <meta name="twitter:description" content="Search and inspect winning competitor Meta ads by product URL or brand." />
-  <meta name="twitter:image" content="/assets/logos/ascendant_labs_profile_logo.png" />
-  <meta property="og:image" content="/assets/logos/ascendant_labs_profile_logo.png" />
+  <meta name="twitter:title" content="Ascendant Labs — Ad Ideas & Inspiration" />
+  <meta name="twitter:description" content="Browse winning Facebook and Instagram ad ideas from popular stores and brands." />
+  <meta name="twitter:image" content="/assets/logos/ascendant_labs_logo_warm.png" />
+  <meta property="og:image" content="/assets/logos/ascendant_labs_logo_warm.png" />
   <link rel="icon" type="image/svg+xml" href="/assets/logos/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logos/ascendant_labs_logo_icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logos/ascendant_labs_logo_warm.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/logos/ascendant_labs_logo_warm.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <!-- Main Application Wrapper -->
   <div class="app-container">
     
-    <!-- Navigation Header -->
+    <!-- Navigation Header (Clean typography, no page title logo) -->
     <header class="app-header">
       <div class="brand-group">
-        <div class="brand-logo-icon">
-          <img src="/assets/logos/ascendant_labs_logo_icon.png" alt="Ascendant Labs Logo" class="brand-logo-img" width="28" height="28" style="border-radius: 6px; object-fit: contain; box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);" />
-        </div>
         <div class="brand-titles">
           <h1 class="brand-name">Ascendant Labs</h1>
-          <p class="brand-tagline">Competitor Ad Intelligence</p>
+          <p class="brand-tagline">Simple Ad Inspiration</p>
         </div>
       </div>
-
-      <!-- Minimal clean header, no clutter -->
     </header>
 
     <!-- Hero Search Section -->
     <section class="hero-search-section">
       <div class="hero-content">
         <h2 class="hero-headline">
-          Find Competitor Meta Ads
+          See What Ads Other Brands Are Running
         </h2>
         <p class="hero-subhead">
-          Paste any product website URL to see live scaling ads and video creatives.
+          Paste any website link below to browse their live Facebook and Instagram ads, watch video ideas, and get inspired.
         </p>
 
         <!-- Direct Minimal Search Bar -->
@@ -63,21 +59,21 @@
               type="text" 
               id="searchInput" 
               class="search-input" 
-              placeholder="Paste product website URL (e.g. https://derila-ergo.com)..."
-              value="https://derila-ergo.com"
-              required
-              autocomplete="off"
+              placeholder="Enter any store or brand website (e.g. derila-ergo.com)..." 
+              value="https://derila-ergo.com" 
+              required 
+              autocomplete="off" 
             />
             <button type="submit" class="search-submit-btn" id="searchSubmitBtn">
-              <span class="btn-text">Search</span>
+              <span class="btn-text">Find Ads</span>
             </button>
           </div>
         </form>
 
         <!-- Quick Example Chips -->
         <div class="quick-chips">
-          <span class="chips-label">Examples:</span>
-          <button class="chip-btn" data-url="https://derila-ergo.com">Derila Pillow</button>
+          <span class="chips-label">Try an example:</span>
+          <button class="chip-btn" data-url="https://derila-ergo.com">Derila Pillows</button>
           <button class="chip-btn" data-url="https://nordvpn.com">NordVPN</button>
           <button class="chip-btn" data-url="https://prodentim.com">ProDentim</button>
           <button class="chip-btn" data-url="https://airhelp.com">AirHelp</button>
@@ -85,39 +81,37 @@
       </div>
     </section>
 
-    <!-- Product Overview Card (Visible after URL analysis) -->
+    <!-- Store Overview Card (Visible after URL analysis) -->
     <section class="pdp-dossier-card" id="pdpDossierCard" style="display: none;">
       <div class="dossier-header">
         <div class="dossier-title-wrap">
-          <span class="dossier-tag">PRODUCT FOUND</span>
+          <span class="dossier-tag">STORE OVERVIEW</span>
           <h3 class="dossier-brand" id="dossierBrandName">Brand</h3>
           <span class="dossier-domain" id="dossierDomain">domain.com</span>
         </div>
         <div class="dossier-cat-badge" id="dossierCategory">Category</div>
       </div>
       <div class="dossier-body">
-        <p class="dossier-desc" id="dossierDesc">Product summary...</p>
+        <p class="dossier-desc" id="dossierDesc">Store summary...</p>
         <div class="dossier-vectors">
-          <span class="vectors-title">Target Searches:</span>
+          <span class="vectors-title">Related Topics:</span>
           <div class="vectors-list" id="dossierVectorsList"></div>
         </div>
       </div>
     </section>
 
-
-
     <!-- Search Results Grid Section -->
     <main class="results-section" id="resultsSection">
       <div class="empty-state" id="emptyState">
-        <div class="empty-icon">🔍</div>
-        <h3>Ready to Explore Ads</h3>
-        <p>Enter any product link or brand name above to view active Meta ads and video previews.</p>
+        <div class="empty-icon">💡</div>
+        <h3>Discover What Ads Work</h3>
+        <p>Enter any website link above to browse active ads, watch video previews, and find new ideas for your business.</p>
       </div>
 
       <div class="loading-state" id="loadingState" style="display: none;">
         <div class="spinner"></div>
-        <h3 id="loadingTitle">Searching Meta Ads...</h3>
-        <p id="loadingSubhead">Finding active ads and finding top performers.</p>
+        <h3 id="loadingTitle">Looking up ads...</h3>
+        <p id="loadingSubhead">Finding live Facebook & Instagram ads and video previews.</p>
       </div>
 
       <!-- 10-Item Paginated Ad Card Grid -->
@@ -156,7 +150,7 @@
             <div class="modal-stats-grid" id="modalStatsRow"></div>
             <div class="modal-copy-block">
               <div class="copy-header-row">
-                <span class="copy-label">AD CREATIVE COPY</span>
+                <span class="copy-label">AD TEXT & MESSAGE</span>
                 <button class="copy-clipboard-btn" id="copyClipboardBtn">📋 Copy Text</button>
               </div>
               <h4 id="modalHeadline">Headline</h4>
@@ -164,12 +158,13 @@
             </div>
             <div class="modal-footer-actions">
               <a href="#" target="_blank" rel="noopener noreferrer" class="modal-library-btn" id="modalLibraryLink">
-                View on Meta Ad Library ↗
+                View on Facebook Ad Library ↗
               </a>
             </div>
           </div>
         </div>
       </div>
+    </div>   </div>
     </div>
 
   </div>
