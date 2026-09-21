@@ -153,22 +153,27 @@ async function profileWithAI(inputUrl, textContext = '') {
   const apiKey = process.env.GEMINI_FREE_API_KEY;
   if (!apiKey) return null;
 
-  const prompt = `You are an expert Meta Ad & Direct-Response Analyst.
-Target to analyze: "${inputUrl}"
-${textContext ? `Page context:\n"""${textContext.slice(0, 1500)}"""\n` : ''}
+  const prompt = `You are an elite Meta Ad & Direct-Response Intelligence Agent.
+Target URL to analyze: "${inputUrl}"
+${textContext ? `Page context / Scraped Copy:\n"""${textContext.slice(0, 2000)}"""\n` : ''}
 
-Extract and return ONLY a valid raw JSON object (no markdown, no backticks):
+Analyze this product or landing page. If it is an affiliate pre-lander, bridge page (e.g. on carrd.co, clickfunnels, leadpages), or review article, identify the ACTUAL core brand and offer being promoted (strip any campaign/lander suffixes like 01, vsl, offer, review).
+
+Return ONLY a valid raw JSON object (no markdown, no backticks):
 {
-  "brandName": "Official brand/product name",
-  "category": "Main consumer category or niche",
-  "coreProduct": "Core product sold",
+  "brandName": "Official canonical brand/offer name",
+  "pageType": "OFFICIAL_BRAND_STORE | AFFILIATE_PRELANDER | REVIEW_EDITORIAL | DIRECT_RESPONSE_VSL",
+  "category": "Consumer niche or market vertical",
+  "coreProduct": "Specific product name or mechanism",
   "primaryPainPoints": ["pain point 1", "pain point 2"],
   "keyBenefits": ["key benefit 1", "key benefit 2"],
+  "directCompetitors": ["known competitor brand 1", "known competitor brand 2"],
   "searchKeywords": ["keyword 1", "keyword 2"],
   "suggestedVectors": [
-    { "type": "BRAND", "query": "Brand Name" },
-    { "type": "PRODUCT", "query": "Brand + Product" },
-    { "type": "CATEGORY", "query": "Niche Query" }
+    { "type": "BRAND", "query": "Canonical Brand Name" },
+    { "type": "MECHANISM", "query": "Unique Mechanism or Product Angle" },
+    { "type": "PROBLEM", "query": "Customer Pain Point Hook" },
+    { "type": "COMPETITOR", "query": "Top Competitor Name or Alternative" }
   ]
 }`;
 
@@ -226,6 +231,7 @@ async function profilePDP(inputUrl) {
       url: cleanUrl,
       finalUrl,
       brandName: aiProfile.brandName,
+      pageType: aiProfile.pageType || 'OFFICIAL_BRAND_STORE',
       domain: rootDomain,
       title: rawTitle || aiProfile.brandName,
       description: description || `${aiProfile.brandName} - ${aiProfile.coreProduct}`,
@@ -233,6 +239,7 @@ async function profilePDP(inputUrl) {
       coreProduct: aiProfile.coreProduct || aiProfile.brandName,
       primaryPainPoints: aiProfile.primaryPainPoints || ['affordability', 'reliability'],
       keyBenefits: aiProfile.keyBenefits || ['proven results', 'guarantee'],
+      directCompetitors: aiProfile.directCompetitors || [],
       searchKeywords: aiProfile.searchKeywords || [aiProfile.brandName, rootDomain],
       suggestedVectors: [
         ...(aiProfile.suggestedVectors || []),

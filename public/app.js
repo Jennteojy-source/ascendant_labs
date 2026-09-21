@@ -19,6 +19,7 @@ const state = {
   totalPages: 1,
   rawRankedAds: [],       // All ads returned by server
   currentProfile: null,
+  currentFilter: 'ALL',   // 'ALL' | 'BRAND_AFFILIATE' | 'COMPETITOR'
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
 };
 
@@ -26,6 +27,7 @@ const state = {
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
 const searchSubmitBtn = document.getElementById('searchSubmitBtn');
+
 
 const pdpDossierCard = document.getElementById('pdpDossierCard');
 const dossierBrandName = document.getElementById('dossierBrandName');
@@ -204,9 +206,8 @@ async function executeSearch(targetInput, page = 1) {
     // Render PDP Overview if available
     renderProfileDossier(data.profile);
 
-    // Render Results directly without complex filter bar
     loadingState.style.display = 'none';
-    adGrid.style.display = 'grid';
+    adGrid.style.display = 'block';
 
     applyFiltersAndRender(1);
     fetchHealth();
@@ -227,7 +228,7 @@ async function executeSearch(targetInput, page = 1) {
 }
 
 /**
- * Direct Render & Pagination Function (No cluttered filter bar)
+ * Direct Render & Pagination Function (Clean Pinterest Board)
  */
 function applyFiltersAndRender(targetPage = 1) {
   state.currentPage = targetPage;
@@ -305,11 +306,13 @@ function renderAdGrid(ads) {
 
     const statusClass = ad.stats.isActive ? 'active' : 'inactive';
     const statusText = ad.stats.isActive ? 'Active' : 'Ended';
-    const relType = ad.ranking && ad.ranking.relevanceType;
+    const isCompetitor = ad.ranking?.relationship === 'COMPETITOR' || ad.ranking?.relevanceType === 'COMPETITOR';
     let relBadge = '';
-    if (relType === 'COMPETITOR') {
-      relBadge = `<span class="relevance-tag comp-tag">Similar</span>`;
+    if (isCompetitor) {
+      relBadge = `<span class="relevance-tag comp-tag">Competitor</span>`;
     }
+
+    const angleText = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook || 'Direct-Response';
 
     card.innerHTML = `
       <div class="card-header">
@@ -349,7 +352,7 @@ function renderAdGrid(ads) {
       </div>
 
       <div class="card-copy-content">
-        <span class="hook-archetype-pill">${ad.copy.primaryHook}</span>
+        <span class="hook-archetype-pill">${angleText}</span>
         ${ad.copy.headline ? `<h4 class="ad-headline">${ad.copy.headline}</h4>` : ''}
         <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body}</p>
         ${ad.copy.body.length > 110 ? `<button class="show-more-btn" onclick="toggleCopy('${ad.id}')">Read more</button>` : ''}

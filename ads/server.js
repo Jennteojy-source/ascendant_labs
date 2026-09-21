@@ -15,6 +15,7 @@ const { URL } = require('url');
 const { profilePDP } = require('./lib/pdp_profiler');
 const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
+const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const logger = require('./lib/gcp_logger');
 
@@ -209,6 +210,16 @@ const server = http.createServer(async (req, res) => {
           coreKeywords,
           targetDomain,
         });
+        const evalProfile = profile || {
+          brandName: targetBrand,
+          category: coreKeywords.slice(0, 2).join(' ') || 'Direct Response Offer',
+          coreProduct: targetBrand,
+          primaryPainPoints: [],
+          directCompetitors: [],
+        };
+
+        rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+
         logger.info('Competitor search request processed', {
           input: trimmedInput,
           isUrl,
@@ -252,6 +263,8 @@ const server = http.createServer(async (req, res) => {
 
       const activeCount = rankedAds.filter(a => a.stats.isActive).length;
       const highScaleCount = rankedAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;
+      const brandAffiliateCount = rankedAds.filter(a => a.ranking?.relationship === 'BRAND_AFFILIATE').length;
+      const competitorCount = rankedAds.filter(a => a.ranking?.relationship === 'COMPETITOR').length;
 
       return sendJson(res, 200, {
         profile,
@@ -261,6 +274,8 @@ const server = http.createServer(async (req, res) => {
           activeCount,
           inactiveCount: rankedAds.length - activeCount,
           highScaleCount,
+          brandAffiliateCount,
+          competitorCount,
         },
       });
     }
