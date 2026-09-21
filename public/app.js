@@ -55,21 +55,15 @@ const modalPageName = document.getElementById('modalPageName');
 const modalVerifiedBadge = document.getElementById('modalVerifiedBadge');
 const modalAdId = document.getElementById('modalAdId');
 const modalMediaWrap = document.getElementById('modalMediaWrap');
-const modalMediaActions = document.getElementById('modalMediaActions');
 const modalStatsRow = document.getElementById('modalStatsRow');
 const modalHeadline = document.getElementById('modalHeadline');
 const modalBodyText = document.getElementById('modalBodyText');
-const modalHookPill = document.getElementById('modalHookPill');
-const copyClipboardBtn = document.getElementById('copyClipboardBtn');
 const modalLibraryLink = document.getElementById('modalLibraryLink');
 
-// Destination & Action Elements
-const destinationIntelCard = document.getElementById('destinationIntelCard');
+// Destination Elements
 const modalDestUrlText = document.getElementById('modalDestUrlText');
 const modalVisitDestBtn = document.getElementById('modalVisitDestBtn');
 const modalVisitDestBtnText = document.getElementById('modalVisitDestBtnText');
-const modalCopyDestBtn = document.getElementById('modalCopyDestBtn');
-const modalDestStatusPill = document.getElementById('modalDestStatusPill');
 
 // Initialize Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -91,19 +85,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Modal interactions
-  modalCloseBtn.addEventListener('click', closeModal);
-  adModal.addEventListener('click', (e) => {
-    if (e.target === adModal) closeModal();
-  });
-
-  copyClipboardBtn.addEventListener('click', () => {
-    const headline = (modalHeadline && modalHeadline.style.display !== 'none') ? modalHeadline.textContent.trim() : '';
-    const body = modalBodyText ? modalBodyText.textContent.trim() : '';
-    const text = [headline, body].filter(Boolean).join('\n\n');
-    navigator.clipboard.writeText(text).then(() => {
-      copyClipboardBtn.textContent = '✅ Copied!';
-      setTimeout(() => { copyClipboardBtn.textContent = '📋 Copy Text'; }, 2000);
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+  if (adModal) {
+    adModal.addEventListener('click', (e) => {
+      if (e.target === adModal) closeModal();
     });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && adModal && adModal.style.display === 'flex') {
+      closeModal();
+    }
   });
 });
 
@@ -802,7 +793,7 @@ window.openModalById = function (adId) {
 function openModal(ad) {
   adModal.setAttribute('data-active-id', String(ad.id));
   
-  // 1. Header Information (Single source of brand name & ID)
+  // 1. Header Information
   if (modalBrandAvatar) {
     modalBrandAvatar.textContent = (ad.pageName || 'A').charAt(0).toUpperCase();
   }
@@ -821,7 +812,7 @@ function openModal(ad) {
     } catch (e) {}
   }
   if (!domain) {
-    domain = ad.copy.caption || ad.pageName || 'Website';
+    domain = ad.copy?.caption || ad.pageName || 'Website';
   }
 
   // 2. Intelligent Copy & Messaging Deduplication
@@ -829,11 +820,33 @@ function openModal(ad) {
   const rawBody = (ad.copy?.body || '').trim();
   const pageName = (ad.pageName || '').trim();
 
-  // Deduplicate: If headline is identical to body or brand name or is generic, hide headline
+  let cleanDomain = '';
+  if (destUrl) {
+    try {
+      cleanDomain = new URL(destUrl).hostname.replace(/^www\./, '');
+    } catch (e) {}
+  } else if (domain) {
+    cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+  }
+
+  const normHeadline = rawHeadline.toLowerCase().replace(/https?:\/\//, '').replace(/\/$/, '').trim();
+  const normBody = rawBody.toLowerCase().trim();
+  const normPage = pageName.toLowerCase().trim();
+  const normDomain = cleanDomain.toLowerCase().trim();
+
+  // Deduplicate:
+  // - If headline is generic placeholder ("no headline")
+  // - If headline is identical to body
+  // - If headline is identical to brand/page name
+  // - If headline is identical to domain or URL
+  // - If body contains headline or starts with headline
   const isDuplicateHeadline = !rawHeadline || 
-    rawHeadline.toLowerCase() === rawBody.toLowerCase() || 
-    rawHeadline.toLowerCase() === pageName.toLowerCase() ||
-    rawHeadline.toLowerCase() === 'no headline';
+    rawHeadline.toLowerCase() === 'no headline' ||
+    normHeadline === normBody ||
+    normHeadline === normPage ||
+    (normDomain && (normHeadline === normDomain || normHeadline.includes(normDomain))) ||
+    normBody.includes(normHeadline) ||
+    (normHeadline.length > 6 && normBody.startsWith(normHeadline.slice(0, 15)));
 
   if (!isDuplicateHeadline) {
     modalHeadline.textContent = rawHeadline;
@@ -846,159 +859,115 @@ function openModal(ad) {
   if (rawBody) {
     modalBodyText.textContent = rawBody;
     modalBodyText.style.display = 'block';
-  } else if (isDuplicateHeadline && rawHeadline && rawHeadline.toLowerCase() !== 'no headline') {
-    // If body was empty but headline held the message, show it as body
+  } else if (rawHeadline && !isDuplicateHeadline) {
     modalBodyText.textContent = rawHeadline;
     modalBodyText.style.display = 'block';
   } else {
-    modalBodyText.textContent = 'Creative visual copy without separate text caption.';
-    modalBodyText.style.display = 'block';
+    modalBodyText.textContent = '';
+    modalBodyText.style.display = 'none';
   }
 
-  if (modalHookPill) {
-    modalHookPill.textContent = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook || 'Direct-Response';
-  }
-
-  // 3. Unified Destination & Action Card
+  // 3. Simple & Clean Destination Link
   if (modalDestUrlText) {
-    const displayUrl = destUrl ? destUrl.replace(/^https?:\/\//, '') : (domain ? `${domain} (Direct link pending)` : 'Meta Ad Library');
+    let displayUrl = '';
+    if (destUrl) {
+      try {
+        const u = new URL(destUrl);
+        displayUrl = u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : '');
+      } catch (e) {
+        displayUrl = destUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
+      }
+    } else if (domain) {
+      displayUrl = domain;
+    } else {
+      displayUrl = 'Meta Ad Library';
+    }
+    if (displayUrl.length > 42) {
+      displayUrl = displayUrl.slice(0, 39) + '...';
+    }
     modalDestUrlText.textContent = displayUrl;
     modalDestUrlText.title = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
-  }
-
-  if (modalVisitDestBtnText) {
-    modalVisitDestBtnText.textContent = cta ? `Visit (${cta})` : 'Visit Site';
   }
 
   if (modalVisitDestBtn) {
     modalVisitDestBtn.href = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
   }
 
-  if (modalCopyDestBtn) {
-    modalCopyDestBtn.onclick = (e) => {
-      e.preventDefault();
-      const toCopy = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
-      copyToClipboard(toCopy, modalCopyDestBtn, '✅ Copied!');
-    };
+  if (modalVisitDestBtnText) {
+    modalVisitDestBtnText.textContent = cta || 'Visit Site';
   }
 
-  if (modalDestStatusPill) {
-    if (destUrl && (destUrl.includes('hop.clickbank.net') || destUrl.includes('aff_c') || destUrl.includes('affid') || destUrl.includes('hop='))) {
-      modalDestStatusPill.textContent = 'Affiliate Tracking Link';
-      modalDestStatusPill.className = 'dest-status-pill affiliate';
-    } else if (destUrl) {
-      modalDestStatusPill.textContent = 'Verified Landing Page';
-      modalDestStatusPill.className = 'dest-status-pill direct';
-    } else {
-      modalDestStatusPill.textContent = 'Display Domain';
-      modalDestStatusPill.className = 'dest-status-pill';
-    }
+  // 4. Campaign Stats & Details
+  const platforms = (ad.stats?.platforms || ['facebook', 'instagram'])
+    .map(p => {
+      const clean = p.toLowerCase().replace('_', ' ');
+      if (clean.includes('facebook')) return 'FB';
+      if (clean.includes('instagram')) return 'IG';
+      if (clean.includes('audience')) return 'Audience';
+      if (clean.includes('messenger')) return 'Messenger';
+      if (clean.includes('threads')) return 'Threads';
+      return clean.charAt(0).toUpperCase() + clean.slice(1);
+    })
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .join(', ');
+
+  const flightDays = ad.stats?.flightDays ?? 0;
+  const statusHtml = ad.stats?.isActive
+    ? `<span class="spec-status active">🟢 Active (${flightDays}d)</span>`
+    : `<span class="spec-status ended">⚪ Ended (${flightDays}d)</span>`;
+
+  const tierText = (ad.stats?.scaleTier || '').includes('High')
+    ? '🔥 Top Scaler'
+    : ((ad.stats?.scaleTier || '').includes('Mid') ? 'Active Run' : 'Standard');
+
+  if (modalStatsRow) {
+    modalStatsRow.innerHTML = `
+      <div class="modal-spec-chip">
+        <span class="spec-chip-label">Status</span>
+        <span class="spec-chip-val">${statusHtml}</span>
+      </div>
+      <div class="modal-spec-chip">
+        <span class="spec-chip-label">Longevity</span>
+        <span class="spec-chip-val">${tierText}</span>
+      </div>
+      <div class="modal-spec-chip">
+        <span class="spec-chip-label">Platforms</span>
+        <span class="spec-chip-val">${platforms || 'FB, IG'}</span>
+      </div>
+      <div class="modal-spec-chip">
+        <span class="spec-chip-label">Regions</span>
+        <span class="spec-chip-val">${(ad.stats?.countries || []).join(', ').toUpperCase() || 'Global'}</span>
+      </div>
+    `;
   }
 
-  // 4. Campaign Stats Grid
-  const platforms = (ad.stats.platforms || ['facebook', 'instagram']).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
-  modalStatsRow.innerHTML = `
-    <div class="stat-item">
-      <span class="stat-label">Campaign Status</span>
-      <span class="stat-value ${ad.stats.isActive ? 'highlight-green' : ''}">
-        ${ad.stats.isActive ? '🟢 Active' : '⚪ Ended'} (${ad.stats.flightDays}d)
-      </span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Scale & Longevity</span>
-      <span class="stat-value highlight-amber">${ad.stats.scaleTier.includes('High') ? 'Top Scaler' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Target Countries</span>
-      <span class="stat-value">${(ad.stats.countries || []).join(', ') || 'Global'}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Platforms</span>
-      <span class="stat-value">${platforms}</span>
-    </div>
-  `;
-
-  // 5. Media & Creative Asset Toolbar (Focused Studio Display)
+  // 5. Clean Media Showcase (No download buttons, no extra toolbars)
   if (media && media.videoUrl) {
     const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
     modalMediaWrap.innerHTML = `
       ${backdrop}
       <video src="${media.videoUrl}" poster="${media.thumbnailUrl || ''}" controls autoplay playsinline referrerpolicy="no-referrer"></video>
     `;
-    modalMediaActions.innerHTML = `
-      <div class="asset-toolbar-wrap">
-        <a href="${media.videoUrl}" target="_blank" download="creative_${ad.id}.mp4" class="asset-btn primary" title="Download High-Definition MP4 Video">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Save Video</span>
-          <span class="asset-pill-tag">HD MP4</span>
-        </a>
-        <button type="button" class="asset-btn secondary" onclick="copyAssetLink('${media.videoUrl}', this)" title="Copy Direct MP4 Stream Link">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-          </svg>
-          <span>Copy Stream URL</span>
-        </button>
-        <a href="${media.videoUrl}" target="_blank" rel="noopener noreferrer" class="asset-btn icon-only" title="Open Video in Full Browser Window">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <line x1="10" y1="14" x2="21" y2="3"></line>
-          </svg>
-        </a>
-      </div>
-    `;
   } else if (media && media.thumbnailUrl) {
     modalMediaWrap.innerHTML = `
       <div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>
       <img src="${media.thumbnailUrl}" alt="${ad.pageName}" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span>Meta Ad Snapshot</span></div>'" />
     `;
-    modalMediaActions.innerHTML = `
-      <div class="asset-toolbar-wrap">
-        <a href="${media.thumbnailUrl}" target="_blank" download="creative_${ad.id}.jpg" class="asset-btn primary" title="Download High-Resolution Image Creative">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Save Image</span>
-          <span class="asset-pill-tag">Original</span>
-        </a>
-        <button type="button" class="asset-btn secondary" onclick="copyAssetLink('${media.thumbnailUrl}', this)" title="Copy Direct Image CDN Link">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-          </svg>
-          <span>Copy Image URL</span>
-        </button>
-        <a href="${media.thumbnailUrl}" target="_blank" rel="noopener noreferrer" class="asset-btn icon-only" title="Open Image in Full Browser Window">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <line x1="10" y1="14" x2="21" y2="3"></line>
-          </svg>
-        </a>
-      </div>
-    `;
   } else {
     modalMediaWrap.innerHTML = `
       <div class="shimmer-placeholder static-preview"><span>Meta Ad Creative Preview</span></div>
     `;
-    modalMediaActions.innerHTML = '';
   }
 
   adModal.style.display = 'flex';
+  document.body.classList.add('modal-open');
 }
 
 function closeModal() {
   adModal.style.display = 'none';
   adModal.removeAttribute('data-active-id');
   modalMediaWrap.innerHTML = '';
-  modalMediaActions.innerHTML = '';
+  document.body.classList.remove('modal-open');
 }
 
 window.copyToClipboard = function (text, btnElement, successMsg = '✅ Copied!') {

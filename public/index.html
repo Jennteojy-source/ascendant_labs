@@ -64,20 +64,22 @@
         <!-- Direct Minimal Search Bar -->
         <form class="search-form" id="searchForm">
           <div class="search-bar-wrapper">
-            <div class="search-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+            <div class="search-input-field">
+              <div class="search-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                id="searchInput" 
+                class="search-input" 
+                placeholder="Search brands, products, or paste URL..." 
+                required 
+                autocomplete="off" 
+              />
             </div>
-            <input 
-              type="text" 
-              id="searchInput" 
-              class="search-input" 
-              placeholder="Paste a website URL or type a brand name..." 
-              required 
-              autocomplete="off" 
-            />
             <button type="submit" class="search-submit-btn" id="searchSubmitBtn">
               <span class="btn-text">Find Competitors</span>
             </button>
@@ -134,7 +136,7 @@
       </nav>
     </main>
 
-    <!-- Ad Copy Modal / Lightbox (Spacious 2-Column Split) -->
+    <!-- Ad Detail Modal / Clean Studio View -->
     <div class="modal-overlay" id="adModal" style="display: none;">
       <div class="modal-card split-layout">
         <div class="modal-header">
@@ -144,64 +146,60 @@
               <div class="modal-brand-row">
                 <span class="modal-page-name" id="modalPageName">Advertiser</span>
                 <span class="modal-verified-badge" id="modalVerifiedBadge" title="Verified Meta Advertiser">✓</span>
+                <span class="modal-ad-id" id="modalAdId">ID: 000000</span>
               </div>
-              <span class="modal-ad-id" id="modalAdId">ID: 000000</span>
             </div>
           </div>
-          <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">✕</button>
+          <div class="modal-header-actions">
+            <a href="#" target="_blank" rel="noopener noreferrer" class="modal-library-link" id="modalLibraryLink" title="View in Meta Ad Library">
+              <span>Ad Library</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+            </a>
+            <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">✕</button>
+          </div>
         </div>
         <div class="modal-split-body">
-          <!-- Left Column: Focused Studio Creative Showcase -->
+          <!-- Left Column: Clean Media Studio Canvas -->
           <div class="modal-left-col">
             <div class="modal-media-canvas">
               <div class="modal-media-wrap" id="modalMediaWrap"></div>
             </div>
-            <!-- Clean Creative Asset Toolbar -->
-            <div class="creative-asset-toolbar" id="modalMediaActions"></div>
           </div>
 
-          <!-- Right Column: Ad Copy, Destination, Stats & Actions -->
+          <!-- Right Column: Simple, Deduplicated Copy & Campaign Intel -->
           <div class="modal-right-col">
             <!-- 1. Ad Copy & Messaging Block -->
-            <div class="modal-copy-block">
-              <div class="copy-header-row">
-                <div class="copy-header-tags">
-                  <span class="copy-label">AD MESSAGING</span>
-                  <span class="creative-hook-pill" id="modalHookPill">Direct-Response</span>
-                </div>
-                <button class="copy-clipboard-btn" id="copyClipboardBtn" title="Copy Ad Text">📋 Copy Text</button>
-              </div>
+            <div class="modal-copy-section">
               <h4 class="modal-headline" id="modalHeadline"></h4>
               <p class="modal-body-text" id="modalBodyText"></p>
             </div>
 
-            <!-- 2. Destination & Action Card (Unified, Non-Duplicated) -->
-            <div class="destination-intel-card" id="destinationIntelCard">
-              <div class="destination-intel-header">
-                <span class="dest-label">DESTINATION LINK</span>
-                <span class="dest-status-pill" id="modalDestStatusPill">Verified Landing Page</span>
-              </div>
-              <div class="destination-url-box">
-                <span class="url-full-text" id="modalDestUrlText">destination.com</span>
-                <div class="destination-actions">
-                  <a href="#" target="_blank" rel="noopener noreferrer" class="dest-visit-btn" id="modalVisitDestBtn">
-                    <span id="modalVisitDestBtnText">Visit Site</span>
-                  </a>
-                  <button type="button" class="dest-copy-btn" id="modalCopyDestBtn" title="Copy Destination URL">
-                    📋 Copy
-                  </button>
+            <!-- 2. Clean Destination Link Row -->
+            <div class="modal-dest-section" id="modalDestSection">
+              <span class="modal-section-label">Destination</span>
+              <a href="#" target="_blank" rel="noopener noreferrer" class="modal-dest-row" id="modalVisitDestBtn">
+                <div class="modal-dest-info">
+                  <span class="modal-dest-icon">🌐</span>
+                  <span class="modal-dest-url" id="modalDestUrlText">destination.com</span>
                 </div>
-              </div>
+                <div class="modal-dest-cta-wrap">
+                  <span class="modal-dest-cta-pill" id="modalVisitDestBtnText">Visit Site</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="7" y1="17" x2="17" y2="7"></line>
+                    <polyline points="7 7 17 7 17 17"></polyline>
+                  </svg>
+                </div>
+              </a>
             </div>
 
-            <!-- 3. Campaign Flight & Scale Stats -->
-            <div class="modal-stats-grid" id="modalStatsRow"></div>
-
-            <!-- 4. Footer Meta Library Action -->
-            <div class="modal-footer-actions">
-              <a href="#" target="_blank" rel="noopener noreferrer" class="modal-library-btn" id="modalLibraryLink">
-                View on Facebook Ad Library ↗
-              </a>
+            <!-- 3. Campaign Specs -->
+            <div class="modal-specs-section">
+              <span class="modal-section-label">Campaign Details</span>
+              <div class="modal-specs-grid" id="modalStatsRow"></div>
             </div>
           </div>
         </div>
