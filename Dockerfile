@@ -22,9 +22,6 @@ RUN npx playwright install chromium
 COPY ads/ ./ads/
 COPY public/ ./public/
 
-# Copy functions environment if present
-COPY functions/.env* ./functions/
-
 # Expose standard Cloud Run port
 EXPOSE 8080
 
