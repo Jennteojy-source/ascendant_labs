@@ -137,21 +137,18 @@ function deduplicateAndRankAds(rawAds, options = {}) {
 
     // Reach / Impression Index
     const euReach = ad.eu_total_reach ? Number(ad.eu_total_reach) : null;
-    let scaleTier = 'Testing (<10k reach)';
-    let impressionScore = 8;
+    let scaleTier = 'Low Impression';
+    let impressionScore = 10;
 
-    if (euReach && euReach > 50000) {
-      scaleTier = 'High Scale (>50k reach)';
-      impressionScore = 30;
-    } else if (euReach && euReach >= 10000) {
-      scaleTier = 'Mid Scale (10k–50k reach)';
-      impressionScore = 20;
-    } else if (flightDays >= 30 || group.variantCount >= 5) {
-      scaleTier = 'High Scale (Multi-variant & 30d+ flight)';
-      impressionScore = 28;
-    } else if (flightDays >= 14) {
-      scaleTier = 'Mid Scale (Consistent scaling)';
-      impressionScore = 18;
+    if ((euReach && euReach >= 10000) || flightDays >= 21 || group.variantCount >= 4) {
+      scaleTier = 'High Impression';
+      impressionScore = 150;
+    } else if ((euReach && euReach >= 2000) || flightDays >= 7) {
+      scaleTier = 'Moderate Scale';
+      impressionScore = 60;
+    } else {
+      scaleTier = 'Low Impression';
+      impressionScore = 10;
     }
 
     // Copy and Hook Classification
@@ -174,11 +171,11 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const coreKeywords = (options.coreKeywords || []).map(k => String(k).toLowerCase().trim()).filter(Boolean);
     const targetDomain = (options.targetDomain || '').toLowerCase().trim();
 
-    const stopWords = new Set(['the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'new', 'top']);
+    const stopWords = new Set(['the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'new', 'top', 'vpn', 'app']);
     const meaningfulKeywords = coreKeywords.filter(k => k.length >= 1 && !stopWords.has(k));
 
     let relevanceType = 'UNRELATED';
-    let relevanceScore = 5;
+    let relevanceScore = 0;
 
     let brandInPage = false;
     let brandInCopy = false;
@@ -212,31 +209,39 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         relevanceType = 'AFFILIATE_PARTNER';
         relevanceScore = 85;
       }
-    } else if (keywordMatches >= 2) {
-      relevanceType = 'RELATED_CREATIVE';
-      relevanceScore = 35;
     } else {
+      // Discard unrelated ads completely
       relevanceType = 'UNRELATED';
       relevanceScore = 0;
+      continue;
     }
 
     // Dual-Metric Ranking Formula:
-    // Rank = (FlightDays ^ 1.15) * ActiveWeight + ImpressionScore + CopyScore + VariantScaleBonus + RelevanceScore
-    const activeWeight = isActive ? 1.35 : 1.0;
-    const longevityComponent = Math.pow(flightDays, 1.15) * activeWeight;
-    const variantBonus = Math.min(18, (group.variantCount - 1) * 3);
-    const rawRankScore = longevityComponent + impressionScore + copyScore + variantBonus + relevanceScore;
+    // Active ads get top priority (+500 points).
+    // High impression & scale gets up to +150 points.
+    // Longevity adds up to +150 points.
+    // Result: Active high-impression winning ads dominate top ranks.
+    const activeBonus = isActive ? 500 : 0;
+    const flightScore = Math.min(150, flightDays * 3.5);
+    const variantBonus = Math.min(40, (group.variantCount - 1) * 8);
+    const rawRankScore = activeBonus + impressionScore + flightScore + copyScore + variantBonus + (relevanceScore * 2);
     const rankScore = Math.max(0, Math.round(rawRankScore));
 
     // Grade assignment
     let grade = 'C';
-    if (rankScore >= 120 || (flightDays >= 40 && isActive && relevanceScore > 0)) grade = 'Top Scaler (High Spend)';
-    else if (rankScore >= 70 || (flightDays >= 20 && isActive && relevanceScore > 0)) grade = 'Proven Winner';
-    else if (rankScore >= 35) grade = 'Active Tester';
-    else grade = 'Standard';
+    if (rankScore >= 500 && scaleTier === 'High Impression') grade = 'Top Scaler (High Impression)';
+    else if (rankScore >= 500) grade = 'Active Winner';
+    else if (isActive) grade = 'Active Tester';
+    else grade = 'Ended';
 
-    // Countries served
-    const countries = ad.languages && ad.languages.length > 0 ? ad.languages : targetCountries;
+    // Countries served: strictly use target countries or ad's target locations, NOT language
+    let countries = Array.isArray(targetCountries) && targetCountries.length > 0 ? targetCountries : ['US', 'GB', 'CA', 'AU'];
+    if (Array.isArray(ad.target_locations) && ad.target_locations.length > 0) {
+      countries = ad.target_locations.map(l => l.country_code || l.name || l).filter(Boolean);
+    } else if (Array.isArray(ad.target_countries) && ad.target_countries.length > 0) {
+      countries = ad.target_countries;
+    }
+    const languages = Array.isArray(ad.languages) && ad.languages.length > 0 ? ad.languages : ['en'];
 
     // Baseline destination URL & display domain extraction
     let displayDomain = caption || '';
@@ -282,11 +287,12 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         startDate: startFormatted,
         endDate: endFormatted,
         scaleTier,
+        impressionTier: scaleTier,
         euReach,
         euTotalReach: euReach,
         impressions: ad.impressions || null,
         spend: ad.spend || null,
-        languages: ad.languages || ['en'],
+        languages: languages,
         countries,
         platforms: ad.publisher_platforms || ['facebook', 'instagram'],
       },

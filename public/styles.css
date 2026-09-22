@@ -2510,3 +2510,118 @@ body.modal-open {
   }
 }
 
+/* ==========================================================================
+   Impression Tier Badges (High vs Low Impression)
+   ========================================================================== */
+.impression-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.impression-badge.high-imp {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.impression-badge.mid-imp {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.impression-badge.low-imp {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* ==========================================================================
+   In-Card Variant Carousel (Flip directly on the grid — no modal)
+   ========================================================================== */
+.card-variant-carousel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  min-height: 38px;
+}
+
+.variant-carousel-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.variant-nav-arrow {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  padding: 0;
+}
+
+.variant-nav-arrow:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+.variant-step-counter {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.variant-step-counter b {
+  color: var(--accent-primary);
+  font-weight: 800;
+}
+
+.variant-single-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  background: #ffffff;
+  border: 1px solid rgba(226, 91, 53, 0.3);
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.card-copy-btn:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #ffffff;
+}
+

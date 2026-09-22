@@ -274,6 +274,21 @@ function renderAdGrid(ads) {
       relBadge = `<span class="relevance-tag affiliate-tag">Product Ad</span>`;
     }
 
+    // Country Flag Mapper
+    const countryFlagMap = {
+      US: '🇺🇸 US', GB: '🇬🇧 UK', CA: '🇨🇦 CA', AU: '🇦🇺 AU', NZ: '🇳🇿 NZ',
+      DE: '🇩🇪 DE', FR: '🇫🇷 FR', IT: '🇮🇹 IT', ES: '🇪🇸 ES', NL: '🇳🇱 NL',
+      SE: '🇸🇪 SE', NO: '🇳🇴 NO', DK: '🇩🇰 DK', FI: '🇫🇮 FI', IE: '🇮🇪 IE',
+      CH: '🇨🇭 CH', AT: '🇦🇹 AT', BE: '🇧🇪 BE', PL: '🇵🇱 PL', SG: '🇸🇬 SG',
+      JP: '🇯🇵 JP', KR: '🇰🇷 KR', BR: '🇧🇷 BR', MX: '🇲🇽 MX'
+    };
+
+    // Format countries where ad is posted
+    const rawCountries = (ad.stats?.countries || []).filter(c => c && typeof c === 'string' && c.length <= 3 && c.toUpperCase() !== 'EN');
+    const formattedCountries = rawCountries.length > 0
+      ? rawCountries.map(c => countryFlagMap[c.toUpperCase()] || c.toUpperCase()).join(', ')
+      : '🇺🇸 US, 🇬🇧 UK, 🇨🇦 CA, 🇦🇺 AU';
+
     // Format platform chips from raw Meta data
     const rawPlatforms = (ad.stats?.platforms && ad.stats.platforms.length > 0)
       ? ad.stats.platforms
@@ -296,16 +311,23 @@ function renderAdGrid(ads) {
       .map(name => `<span class="platform-chip platform-${name.toLowerCase().replace(/\s+/g, '-')}">${name}</span>`)
       .join('');
 
-    // Format start date from raw Meta data
+    // Format start date
     const startDate = ad.stats?.startDate
       ? new Date(ad.stats.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : '';
 
-    // Format regions
-    const regions = (ad.stats?.countries || []).filter(Boolean);
-    const reachText = regions.length > 0 ? regions.slice(0, 3).join(', ') : 'Global';
+    // Impression Tier Badge (High Impression vs Low Impression)
+    const impTier = (ad.stats?.impressionTier || ad.stats?.scaleTier || '').toLowerCase();
+    let impressionBadge = '';
+    if (impTier.includes('high') || (ad.stats?.euTotalReach && ad.stats.euTotalReach >= 10000) || ad.stats?.flightDays >= 21) {
+      impressionBadge = `<span class="impression-badge high-imp" title="High Impression / Scaled Winning Ad">🔥 High Impression</span>`;
+    } else if (impTier.includes('low') || ad.stats?.flightDays <= 5) {
+      impressionBadge = `<span class="impression-badge low-imp" title="Low impression testing ad">📉 Low Impression</span>`;
+    } else {
+      impressionBadge = `<span class="impression-badge mid-imp" title="Active scaling ad">⚡ Moderate Scale</span>`;
+    }
 
-    // Format EU Reach & scale tier (ONLY display when available and > 0)
+    // Format EU Reach (ONLY display when available and > 0)
     const rawEuReach = ad.stats?.euTotalReach || ad.stats?.euReach;
     const hasEuReach = rawEuReach && !isNaN(rawEuReach) && Number(rawEuReach) > 0;
     const euReachFormatted = hasEuReach
@@ -315,15 +337,21 @@ function renderAdGrid(ads) {
     const variantCount = (ad.variants && ad.variants.length > 0) ? ad.variants.length : (ad.variantCount || 1);
     const linkDesc = ad.copy?.description || '';
 
+    // Initialize active variant index
+    ad.activeVariantIndex = 0;
+
     card.innerHTML = `
       <div class="card-header">
         <div class="advertiser-info">
           <span class="advertiser-name" title="${ad.pageName}">${ad.pageName}</span>
           ${relBadge}
         </div>
-        <div class="card-status-badge ${statusClass}">
-          <span class="status-dot"></span>
-          ${statusText}
+        <div style="display: flex; align-items: center; gap: 6px;">
+          ${impressionBadge}
+          <div class="card-status-badge ${statusClass}">
+            <span class="status-dot"></span>
+            ${statusText}
+          </div>
         </div>
       </div>
 
@@ -354,9 +382,9 @@ function renderAdGrid(ads) {
             <span class="stat-value">${startDate || 'Recent'}</span>
           </div>
         `}
-        <div class="stat-item">
-          <span class="stat-label">Regions</span>
-          <span class="stat-value">${reachText}</span>
+        <div class="stat-item" title="Countries where ad is actively posted">
+          <span class="stat-label">Target Countries</span>
+          <span class="stat-value" style="font-size: 0.76rem; font-weight: 600;">${formattedCountries}</span>
         </div>
       </div>
 
@@ -365,26 +393,33 @@ function renderAdGrid(ads) {
         <div class="platform-chips-wrap">
           ${platformPillsHtml}
         </div>
-        ${variantCount > 1 ? `<span class="variant-count-pill" onclick="event.stopPropagation(); openVariantsModal('${ad.id}')" role="button" title="View all tested copy variants">✨ ${variantCount} variants</span>` : ''}
+      </div>
+
+      <!-- In-Card Variant Carousel Controller (Flips directly on the grid — no modal) -->
+      <div class="card-variant-carousel-bar">
+        ${variantCount > 1 ? `
+          <div class="variant-carousel-nav">
+            <button type="button" class="variant-nav-arrow" onclick="event.stopPropagation(); flipCardVariant('${ad.id}', -1)" title="Previous copy variant" aria-label="Previous variant">‹</button>
+            <span class="variant-step-counter" id="var-counter-${ad.id}">
+              Variant <b>1</b> of ${variantCount}
+            </span>
+            <button type="button" class="variant-nav-arrow" onclick="event.stopPropagation(); flipCardVariant('${ad.id}', 1)" title="Next copy variant" aria-label="Next variant">›</button>
+          </div>
+        ` : `
+          <span class="variant-single-label">Tested Copy</span>
+        `}
+        <button type="button" class="card-copy-btn" id="copy-btn-${ad.id}" onclick="event.stopPropagation(); copyActiveVariantCopy('${ad.id}', this)" title="Copy headline & body to clipboard">
+          📋 Copy Copy
+        </button>
       </div>
 
       <div class="card-copy-content">
-        ${ad.copy.headline ? `<h4 class="ad-headline">${ad.copy.headline}</h4>` : ''}
-        <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body}</p>
-        ${linkDesc ? `<p class="ad-desc-snippet" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; font-style:italic;">${linkDesc}</p>` : ''}
+        <h4 class="ad-headline" id="headline-${ad.id}" style="${ad.copy.headline ? '' : 'display:none;'}">${ad.copy.headline || ''}</h4>
+        <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body || ''}</p>
+        <p class="ad-desc-snippet" id="desc-snippet-${ad.id}" style="${linkDesc ? '' : 'display:none;'}">${linkDesc || ''}</p>
         ${ad.copy.body.length > 110 ? `<button class="show-more-btn" onclick="event.stopPropagation(); toggleCopy('${ad.id}')">Read more</button>` : ''}
       </div>
-
-      <div class="card-footer">
-        <button type="button" class="view-variants-action-btn ${variantCount > 1 ? 'has-multi-variants' : ''}" onclick="event.stopPropagation(); openVariantsModal('${ad.id}')">
-          ${variantCount > 1 ? `✨ View All ${variantCount} Variants` : `🔍 Inspect Creative & Copy`}
-        </button>
-      </div>
     `;
-
-    // Clicking anywhere on card opens in-app variant inspector
-    card.style.cursor = 'pointer';
-    card.onclick = () => openVariantsModal(ad.id);
 
     // Card hover plays video
     card.addEventListener('mouseenter', () => {
@@ -721,6 +756,58 @@ window.toggleAudio = function (adId) {
       if (overlay) overlay.style.display = 'none';
     }
   }
+};
+
+/**
+ * Flip between tested variants directly on the card (Grid carousel)
+ */
+window.flipCardVariant = function (adId, direction) {
+  const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
+  if (!ad || !ad.variants || ad.variants.length <= 1) return;
+
+  ad.activeVariantIndex = ad.activeVariantIndex || 0;
+  const total = ad.variants.length;
+  ad.activeVariantIndex = (ad.activeVariantIndex + direction + total) % total;
+  const v = ad.variants[ad.activeVariantIndex];
+
+  // Update headline with subtle fade
+  const headlineEl = document.getElementById(`headline-${adId}`);
+  if (headlineEl) {
+    headlineEl.textContent = v.headline || '';
+    headlineEl.style.display = v.headline ? 'block' : 'none';
+  }
+
+  // Update body text
+  const bodyEl = document.getElementById(`body-text-${adId}`);
+  if (bodyEl) {
+    bodyEl.textContent = v.body || '';
+  }
+
+  // Update description snippet
+  const descEl = document.getElementById(`desc-snippet-${adId}`);
+  if (descEl) {
+    descEl.textContent = v.description || '';
+    descEl.style.display = v.description ? 'block' : 'none';
+  }
+
+  // Update counter badge
+  const counterEl = document.getElementById(`var-counter-${adId}`);
+  if (counterEl) {
+    counterEl.innerHTML = `Variant <b>${ad.activeVariantIndex + 1}</b> of ${total}`;
+  }
+};
+
+/**
+ * Copy currently active variant headline and body
+ */
+window.copyActiveVariantCopy = function (adId, btn) {
+  const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
+  if (!ad) return;
+
+  const idx = ad.activeVariantIndex || 0;
+  const v = (ad.variants && ad.variants[idx]) || { headline: ad.copy?.headline, body: ad.copy?.body };
+  const text = [v.headline, v.body].filter(Boolean).join('\n\n');
+  copyToClipboard(text, btn, '✅ Copied Copy!');
 };
 
 /**

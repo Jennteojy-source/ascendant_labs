@@ -181,7 +181,7 @@ const server = http.createServer(async (req, res) => {
           status,
           mediaType,
           limitPerVector: 50,
-          enableAgenticLoop: true,
+          enableAgenticLoop: false,
         });
 
         logger.info('Stage 2 — Agentic Ads Library search complete', {

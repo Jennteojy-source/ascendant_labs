@@ -199,25 +199,48 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
           relevanceScore = 88;
         }
       } else {
-        relationship = 'AFFILIATE_PARTNER';
-        relevanceScore = 60;
+        relationship = 'UNRELATED';
+        relevanceScore = 0;
       }
     }
 
     // Filter out unrelated / noise ads when higher-confidence product ads are present
-    if (relationship === 'UNRELATED' || (relevanceScore !== null && relevanceScore < 30)) {
+    if (relationship === 'UNRELATED' || (relevanceScore !== null && relevanceScore < 40)) {
       continue;
     }
 
     const flightDays = ad.stats?.flightDays || 1;
     const isActive = ad.stats?.isActive !== false;
     const variantCount = ad.variantCount || 1;
+    const euReach = ad.stats?.euTotalReach ? Number(ad.stats.euTotalReach) : 0;
 
-    // Reciprocal Rank Fusion: Longevity * ActiveWeight + AI Semantic Score + Variant Scaling Bonus
-    const activeMultiplier = isActive ? 1.35 : 1.0;
-    const longevityScore = Math.pow(flightDays, 1.12) * activeMultiplier;
-    const variantBonus = Math.min(20, (variantCount - 1) * 3);
-    const totalScore = Math.round(longevityScore + (relevanceScore * 1.1) + variantBonus);
+    // Active ads get top priority (+500 points).
+    // High impression ads get up to +150 points.
+    // Longevity adds up to +150 points.
+    const activeBonus = isActive ? 500 : 0;
+    let impressionScore = 10;
+    let impressionTier = 'Low Impression';
+
+    if (euReach >= 10000 || flightDays >= 21 || variantCount >= 4) {
+      impressionTier = 'High Impression';
+      impressionScore = 150;
+    } else if (euReach >= 2000 || flightDays >= 7) {
+      impressionTier = 'Moderate Scale';
+      impressionScore = 60;
+    } else {
+      impressionTier = 'Low Impression';
+      impressionScore = 10;
+    }
+
+    const flightScore = Math.min(150, flightDays * 3.5);
+    const variantBonus = Math.min(40, (variantCount - 1) * 8);
+    const totalScore = Math.round(activeBonus + impressionScore + flightScore + variantBonus + (relevanceScore * 2));
+
+    // Update stats with refined impressionTier
+    if (ad.stats) {
+      ad.stats.scaleTier = impressionTier;
+      ad.stats.impressionTier = impressionTier;
+    }
 
     rerankedList.push({
       ...ad,
