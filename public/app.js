@@ -305,14 +305,14 @@ function renderAdGrid(ads) {
     const regions = (ad.stats?.countries || []).filter(Boolean);
     const reachText = regions.length > 0 ? regions.slice(0, 3).join(', ') : 'Global';
 
-    // Format EU Reach & scale tier
+    // Format EU Reach & scale tier (ONLY display when available and > 0)
     const rawEuReach = ad.stats?.euTotalReach || ad.stats?.euReach;
-    const euReachFormatted = (rawEuReach && !isNaN(rawEuReach))
-      ? (rawEuReach >= 1000 ? `${(rawEuReach / 1000).toFixed(1)}K` : String(rawEuReach))
+    const hasEuReach = rawEuReach && !isNaN(rawEuReach) && Number(rawEuReach) > 0;
+    const euReachFormatted = hasEuReach
+      ? (Number(rawEuReach) >= 1000 ? `${(Number(rawEuReach) / 1000).toFixed(1)}K` : String(rawEuReach))
       : null;
 
     const variantCount = (ad.variants && ad.variants.length > 0) ? ad.variants.length : (ad.variantCount || 1);
-    const creativeHook = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook;
     const linkDesc = ad.copy?.description || '';
 
     card.innerHTML = `
@@ -336,12 +336,6 @@ function renderAdGrid(ads) {
         <span class="card-dest-cta">${ad.ctaText || 'Learn More'} ↗</span>
       </div>
 
-      ${creativeHook ? `
-        <div class="card-hook-row">
-          <span class="card-hook-chip" title="Direct-Response Creative Angle">🎯 ${creativeHook}</span>
-        </div>
-      ` : ''}
-
       <div class="card-stats-strip">
         <div class="stat-item">
           <span class="stat-label">Duration</span>
@@ -350,7 +344,7 @@ function renderAdGrid(ads) {
           </span>
         </div>
         ${euReachFormatted ? `
-          <div class="stat-item" title="Verified European Union Total Audience Reach from Meta">
+          <div class="stat-item" title="Official EU Verified Audience Reach returned by Meta">
             <span class="stat-label">EU Reach</span>
             <span class="stat-value">🇪🇺 ${euReachFormatted}</span>
           </div>
@@ -361,8 +355,8 @@ function renderAdGrid(ads) {
           </div>
         `}
         <div class="stat-item">
-          <span class="stat-label">Scale</span>
-          <span class="stat-value">${ad.stats.scaleTier ? ad.stats.scaleTier.split(' ')[0] : 'Active'}</span>
+          <span class="stat-label">Regions</span>
+          <span class="stat-value">${reachText}</span>
         </div>
       </div>
 
@@ -931,8 +925,8 @@ function renderModalContent(ad, activeIdx = 0) {
   }
 
   const rawEuReach = currentVariant.euTotalReach || ad.stats?.euTotalReach;
-  const euReachText = rawEuReach ? `🇪🇺 ${Number(rawEuReach).toLocaleString()} Verified EU Users` : 'Global Audience Reach';
-  const hookAngle = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook || 'Direct Response Offer';
+  const hasEuReach = rawEuReach && !isNaN(rawEuReach) && Number(rawEuReach) > 0;
+  const euReachText = hasEuReach ? `🇪🇺 ${Number(rawEuReach).toLocaleString()} EU Users` : null;
   const destUrl = ad.destinationUrl || (ad.displayDomain ? `https://${ad.displayDomain}` : '');
 
   bodyEl.innerHTML = `
@@ -961,10 +955,17 @@ function renderModalContent(ad, activeIdx = 0) {
               <span class="meta-stat-label">Flight Duration</span>
               <span class="meta-stat-val">${ad.stats?.flightDays || 1} Days Active</span>
             </div>
-            <div class="meta-stat-cell">
-              <span class="meta-stat-label">EU Reach</span>
-              <span class="meta-stat-val" style="color: #1d4ed8;">${euReachText}</span>
-            </div>
+            ${euReachText ? `
+              <div class="meta-stat-cell">
+                <span class="meta-stat-label">EU Reach</span>
+                <span class="meta-stat-val" style="color: #1d4ed8;">${euReachText}</span>
+              </div>
+            ` : `
+              <div class="meta-stat-cell">
+                <span class="meta-stat-label">Regions</span>
+                <span class="meta-stat-val">${(ad.stats?.countries || []).join(', ') || 'Global'}</span>
+              </div>
+            `}
             <div class="meta-stat-cell">
               <span class="meta-stat-label">Scale Tier</span>
               <span class="meta-stat-val">${ad.stats?.scaleTier ? ad.stats.scaleTier.split('(')[0].trim() : 'Active'}</span>
@@ -980,13 +981,6 @@ function renderModalContent(ad, activeIdx = 0) {
       <!-- Right Column: Interactive Variant Explorer & Copy Inspector -->
       <div class="modal-right-col">
         ${variantTabsHtml}
-
-        <!-- Marketing Hook & Psychology Badge -->
-        <div style="background: #fdfaf6; border: 1px solid #fcd4c7; border-radius: var(--radius-md); padding: 10px 14px;">
-          <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-primary);">Creative Angle & Hook</span>
-          <p style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;">🎯 ${hookAngle}</p>
-          ${ad.aiAnalysis?.aiInsight ? `<p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">${ad.aiAnalysis.aiInsight}</p>` : ''}
-        </div>
 
         <!-- Headline Box -->
         ${currentVariant.headline ? `
