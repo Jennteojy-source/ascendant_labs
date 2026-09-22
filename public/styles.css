@@ -54,15 +54,26 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  width: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* Layout Container */
@@ -238,6 +249,30 @@ body {
 
 .search-input::placeholder {
   color: var(--text-muted);
+}
+
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.82rem;
+  margin-right: 6px;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+  touch-action: manipulation;
+}
+
+.search-clear-btn:hover,
+.search-clear-btn:active {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 .search-submit-btn {
@@ -905,6 +940,87 @@ body {
   color: var(--text-secondary);
 }
 
+/* Card Platforms Row (Dedicated clean platform tags & variant badges) */
+.card-platforms-row {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+}
+
+.platform-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.platform-chip.platform-facebook {
+  color: #1877F2;
+  border-color: #dbeafe;
+  background: #eff6ff;
+}
+
+.platform-chip.platform-instagram {
+  color: #c13584;
+  border-color: #fce7f3;
+  background: #fdf2f8;
+}
+
+.platform-chip.platform-audience-network {
+  color: #475569;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.platform-chip.platform-messenger {
+  color: #0084FF;
+  border-color: #dbeafe;
+  background: #eff6ff;
+}
+
+.platform-chip.platform-whatsapp {
+  color: #128C7E;
+  border-color: #d1fae5;
+  background: #ecfdf5;
+}
+
+.platform-chip.platform-threads {
+  color: #1e293b;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.variant-count-pill {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--accent-primary-light);
+  border: 1px solid #FCD4C7;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
 .ad-headline {
   font-size: 0.88rem;
   font-weight: 700;
@@ -1071,29 +1187,49 @@ body {
 }
 
 .empty-suggestions {
-  margin-top: 24px;
+  margin-top: 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  width: 100%;
+}
+
+.suggestions-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.suggestions-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 520px;
 }
 
 .suggestion-chip {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: #334155;
-  padding: 6px 14px;
-  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  box-shadow: 0 1px 3px rgba(44, 38, 35, 0.04);
 }
 
-.suggestion-chip:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-  color: #0f172a;
+.suggestion-chip:hover,
+.suggestion-chip:active {
+  background: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
   transform: translateY(-1px);
 }
 
@@ -1700,41 +1836,69 @@ body.modal-open {
     padding: 11px 14px;
   }
 
+  .advertiser-info {
+    flex: 1;
+    min-width: 0;
+    margin-right: 8px;
+  }
+
   .advertiser-name {
-    font-size: 0.88rem;
+    font-size: 0.9rem;
   }
 
   .card-media-box {
     min-height: 170px;
   }
 
-  /* Touch-friendly Destination Strip */
+  /* Touch-friendly Destination Strip (44px HIG target) */
   .card-destination-strip {
-    padding: 10px 14px;
-    min-height: 42px;
-    font-size: 0.76rem;
+    padding: 11px 14px;
+    min-height: 44px;
+    font-size: 0.78rem;
+    touch-action: manipulation;
   }
 
   .card-dest-domain {
-    max-width: 60%;
+    max-width: 65%;
   }
 
   .card-dest-cta {
-    padding: 4px 10px;
-    font-size: 0.72rem;
+    padding: 5px 12px;
+    font-size: 0.74rem;
+    font-weight: 700;
   }
 
+  /* Mobile Balanced 3-Column Stats Strip */
   .card-stats-strip {
-    padding: 8px 12px;
-    gap: 6px;
+    padding: 10px 14px;
+    gap: 8px;
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 
   .card-stats-strip .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
   }
 
   .card-stats-strip .stat-value {
-    font-size: 0.74rem;
+    font-size: 0.76rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Mobile Dedicated Platforms Row */
+  .card-platforms-row {
+    padding: 8px 14px;
+  }
+
+  .platform-chip {
+    padding: 2px 7px;
+    font-size: 0.66rem;
+  }
+
+  .variant-count-pill {
+    font-size: 0.66rem;
+    padding: 2px 7px;
   }
 
   .card-copy-content {
@@ -1751,23 +1915,87 @@ body.modal-open {
   }
 
   .card-footer {
-    padding: 10px 14px;
+    padding: 12px 14px;
   }
 
   .view-ad-btn {
-    padding: 12px;
-    font-size: 0.88rem;
-    min-height: 44px; /* Touch target */
-    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    min-height: 48px; /* 48px mobile touch target */
+    border-radius: var(--radius-md);
+    touch-action: manipulation;
   }
 
-  /* Mobile Sound Toggle Button */
+  /* Mobile Sound Toggle Button (44px touch target) */
   .sound-toggle-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 1.05rem;
-    bottom: 10px;
-    right: 10px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+    bottom: 12px;
+    right: 12px;
+    touch-action: manipulation;
+  }
+
+  /* Mobile Search Clear Button */
+  .search-clear-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  /* Mobile Pagination (44px touch targets) */
+  .pagination-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 0 4px;
+  }
+
+  .page-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    touch-action: manipulation;
+  }
+
+  .page-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .page-num {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    touch-action: manipulation;
+  }
+
+  /* Mobile Tactile Active Press Feedback */
+  .search-submit-btn:active,
+  .view-ad-btn:active,
+  .page-btn:active:not(:disabled),
+  .page-num:active,
+  .suggestion-chip:active {
+    transform: scale(0.97);
+  }
+
+  .sound-toggle-btn:active {
+    transform: scale(0.92);
+  }
+
+  .card-destination-strip:active {
+    background: #eef2f6;
   }
 
   /* Mobile Modal Studio: Native iOS/Android Bottom Sheet */
@@ -2005,26 +2233,33 @@ body.modal-open {
 /* Very Small Mobile Screens (<= 380px) */
 @media (max-width: 380px) {
   .app-container {
-    padding: 0 10px;
+    padding: 0 8px;
   }
   .hero-headline {
-    font-size: 1.4rem;
-  }
-  .modal-page-name {
-    max-width: 90px;
-  }
-  .modal-ad-id {
-    display: none;
-  }
-  .modal-library-link span {
-    display: none;
-  }
-  .modal-specs-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    font-size: 1.35rem;
   }
   .card-stats-strip {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr) !important;
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  .card-stats-strip .stat-label {
+    font-size: 0.58rem;
+  }
+  .card-stats-strip .stat-value {
+    font-size: 0.7rem;
+  }
+  .card-platforms-row {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+  .platform-chip {
+    padding: 1px 5px;
+    font-size: 0.62rem;
+  }
+  .variant-count-pill {
+    font-size: 0.62rem;
+    padding: 1px 6px;
   }
 }
 

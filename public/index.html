@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Ascendant Labs — Ad Ideas & Inspiration</title>
   <meta name="description" content="Discover winning Facebook and Instagram ad ideas from popular stores and brands. Simple ad inspiration for everyday businesses." />
+  <meta name="theme-color" content="#FAF7F2" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="format-detection" content="telephone=no" />
   <meta property="og:title" content="Ascendant Labs — Ad Ideas & Inspiration" />
   <meta property="og:description" content="Browse winning Facebook and Instagram ad ideas from popular stores and brands." />
   <meta property="og:type" content="website" />
@@ -59,7 +63,7 @@
           Find Competitor Meta Ads
         </h2>
         <p class="hero-subhead">
-          Enter any product or website URL to discover live competitor ads, winning copy hooks, and video creatives.
+          Enter any brand or product name to discover live competitor ads, winning copy hooks, and video creatives.
         </p>
 
         <!-- Direct Minimal Search Bar -->
@@ -76,10 +80,16 @@
                 type="text" 
                 id="searchInput" 
                 class="search-input" 
-                placeholder="Search brands, products, or paste URL..." 
+                placeholder="Search any brand or product name..." 
                 required 
-                autocomplete="off" 
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                enterkeyhint="search"
+                inputmode="search"
               />
+              <button type="button" class="search-clear-btn" id="searchClearBtn" aria-label="Clear search query" style="display: none;">✕</button>
             </div>
             <button type="submit" class="search-submit-btn" id="searchSubmitBtn">
               <span class="btn-text">Find Competitors</span>
@@ -89,31 +99,22 @@
       </div>
     </section>
 
-    <!-- Store Overview Card (Visible after URL analysis) -->
-    <section class="pdp-dossier-card" id="pdpDossierCard" style="display: none;">
-      <div class="dossier-header">
-        <div class="dossier-title-wrap">
-          <span class="dossier-tag">STORE OVERVIEW</span>
-          <h3 class="dossier-brand" id="dossierBrandName">Brand</h3>
-          <span class="dossier-domain" id="dossierDomain">domain.com</span>
-        </div>
-        <div class="dossier-cat-badge" id="dossierCategory">Category</div>
-      </div>
-      <div class="dossier-body">
-        <p class="dossier-desc" id="dossierDesc">Store summary...</p>
-        <div class="dossier-vectors">
-          <span class="vectors-title">Related Topics:</span>
-          <div class="vectors-list" id="dossierVectorsList"></div>
-        </div>
-      </div>
-    </section>
-
     <!-- Search Results Grid Section -->
     <main class="results-section" id="resultsSection">
       <div class="empty-state" id="emptyState">
         <div class="empty-icon">💡</div>
         <h3>Discover What Ads Work</h3>
-        <p>Enter any website link above to browse active ads, watch video previews, and find new ideas for your business.</p>
+        <p>Search any brand or product name above to browse active ads, watch video previews, and find new ideas for your business.</p>
+        <div class="empty-suggestions">
+          <span class="suggestions-label">Popular Searches:</span>
+          <div class="suggestions-chips-wrap">
+            <button type="button" class="suggestion-chip" onclick="executeQuickSearch('Derila')">Derila</button>
+            <button type="button" class="suggestion-chip" onclick="executeQuickSearch('NordVPN')">NordVPN</button>
+            <button type="button" class="suggestion-chip" onclick="executeQuickSearch('Ridge Wallet')">Ridge Wallet</button>
+            <button type="button" class="suggestion-chip" onclick="executeQuickSearch('Ergonomic Pillow')">Ergonomic Pillow</button>
+            <button type="button" class="suggestion-chip" onclick="executeQuickSearch('Running Shoes')">Running Shoes</button>
+          </div>
+        </div>
       </div>
 
       <div class="loading-state" id="loadingState" style="display: none;">

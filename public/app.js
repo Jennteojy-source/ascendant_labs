@@ -27,14 +27,7 @@ const state = {
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
 const searchSubmitBtn = document.getElementById('searchSubmitBtn');
-
-
-const pdpDossierCard = document.getElementById('pdpDossierCard');
-const dossierBrandName = document.getElementById('dossierBrandName');
-const dossierDomain = document.getElementById('dossierDomain');
-const dossierCategory = document.getElementById('dossierCategory');
-const dossierDesc = document.getElementById('dossierDesc');
-const dossierVectorsList = document.getElementById('dossierVectorsList');
+const searchClearBtn = document.getElementById('searchClearBtn');
 
 const emptyState = document.getElementById('emptyState');
 const loadingState = document.getElementById('loadingState');
@@ -47,16 +40,42 @@ const prevPageBtn = document.getElementById('prevPageBtn');
 const nextPageBtn = document.getElementById('nextPageBtn');
 const pageNumbersList = document.getElementById('pageNumbersList');
 
-
+// Quick Search from Suggestion Chips
+window.executeQuickSearch = function (query) {
+  if (!query) return;
+  if (searchInput) {
+    searchInput.value = query;
+    searchInput.blur(); // Dismiss mobile keyboard
+  }
+  if (searchClearBtn) {
+    searchClearBtn.style.display = 'flex';
+  }
+  executeSearch(query, 1);
+};
 
 // Initialize Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   fetchHealth();
 
+  if (searchClearBtn && searchInput) {
+    searchInput.addEventListener('input', () => {
+      searchClearBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
+    });
+
+    searchClearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchClearBtn.style.display = 'none';
+      searchInput.focus();
+    });
+  }
+
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const val = searchInput.value.trim();
-    if (val) executeSearch(val, 1);
+    if (val) {
+      searchInput.blur(); // Close mobile soft keyboard so results are immediately visible
+      executeSearch(val, 1);
+    }
   });
 
   // Pagination navigation
@@ -67,8 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
   nextPageBtn.addEventListener('click', () => {
     if (state.currentPage < state.totalPages) changePage(state.currentPage + 1);
   });
-
-
 });
 
 async function fetchHealth() {
@@ -78,39 +95,26 @@ async function fetchHealth() {
 }
 
 /**
- * Execute Search Pipeline against Backend
+ * Execute Search Pipeline against Backend (4-Stage AI Pipeline)
  */
 async function executeSearch(targetInput, page = 1) {
   state.currentInput = targetInput;
   state.currentPage = page;
 
-  state.searchMode = state.searchMode || 'auto';
-
   // UI state transitions — hide stale content from previous search
   emptyState.style.display = 'none';
   adGrid.style.display = 'none';
   paginationNav.style.display = 'none';
-  pdpDossierCard.style.display = 'none';
   loadingState.style.display = 'block';
   searchSubmitBtn.disabled = true;
 
-  const isUrl = /^https?:\/\//i.test(targetInput) || targetInput.includes('.com') || targetInput.includes('.io') || targetInput.includes('.co');
-
-  // Build rich loading progress UI
-  const steps = isUrl
-    ? [
-        { label: 'Reading website...', delay: 0 },
-        { label: 'Identifying brand & products...', delay: 3000 },
-        { label: 'Searching Meta Ad Library...', delay: 7000 },
-        { label: 'Ranking competitor ads...', delay: 12000 },
-        { label: 'Loading ad previews...', delay: 18000 },
-      ]
-    : [
-        { label: 'Searching Meta Ad Library...', delay: 0 },
-        { label: 'Finding active campaigns...', delay: 3000 },
-        { label: 'Ranking results...', delay: 8000 },
-        { label: 'Loading ad previews...', delay: 14000 },
-      ];
+  // Unified 4-stage loading progress matching the backend pipeline
+  const steps = [
+    { label: 'Analyzing your query with AI...', delay: 0 },
+    { label: 'Searching Meta Ad Library...', delay: 2000 },
+    { label: 'AI ranking & filtering results...', delay: 6000 },
+    { label: 'Loading ad previews...', delay: 12000 },
+  ];
 
   loadingState.innerHTML = `
     <div class="spinner"></div>
@@ -169,12 +173,11 @@ async function executeSearch(targetInput, page = 1) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         input: targetInput,
-        searchType: state.searchMode || 'auto',
         countries: ['US', 'GB', 'CA', 'AU'],
-        status: 'ALL', // fetch all so client-side filters can toggle instantaneously
+        status: 'ALL',
         mediaType: 'ALL',
         page: 1,
-        pageSize: 100, // retrieve full pool for client-side filtering and instant navigation
+        pageSize: 100,
         useCache: true,
       }),
     });
@@ -182,11 +185,8 @@ async function executeSearch(targetInput, page = 1) {
     const data = await response.json();
     if (data.error) throw new Error(data.error);
 
-    state.currentProfile = data.profile;
+    state.currentProfile = data.queryProfile;
     state.rawRankedAds = data.paginated.items;
-
-    // Render PDP Overview if available
-    renderProfileDossier(data.profile);
 
     loadingState.style.display = 'none';
     adGrid.style.display = 'grid';
@@ -231,35 +231,7 @@ function applyFiltersAndRender(targetPage = 1) {
 
 
 
-/**
- * Render Profile Dossier Card
- */
-function renderProfileDossier(profile) {
-  if (!profile) {
-    pdpDossierCard.style.display = 'none';
-    return;
-  }
 
-  dossierBrandName.textContent = profile.brandName;
-  dossierDomain.textContent = profile.domain ? `(${profile.domain})` : '';
-  dossierCategory.textContent = profile.category;
-  dossierDesc.textContent = profile.description || (profile.coreProduct ? `Key product: ${profile.coreProduct}.` : '');
-
-  dossierVectorsList.innerHTML = '';
-  (profile.suggestedVectors || []).forEach((vec) => {
-    const pill = document.createElement('button');
-    pill.className = 'vector-pill clickable';
-    pill.textContent = vec.query;
-    pill.title = `Search ads for "${vec.query}"`;
-    pill.addEventListener('click', () => {
-      searchInput.value = vec.query;
-      executeSearch(vec.query, 1);
-    });
-    dossierVectorsList.appendChild(pill);
-  });
-
-  pdpDossierCard.style.display = 'block';
-}
 
 /**
  * Render Ad Cards into Grid
@@ -273,7 +245,7 @@ function renderAdGrid(ads) {
       <div class="empty-state">
         <div class="empty-icon">🔍</div>
         <h3>No Ads Found for "${query}"</h3>
-        <p>Try searching for a broader product term, a popular brand name, or a direct website domain.</p>
+        <p>Try a broader product term or a popular brand name like "NordVPN" or "Ridge Wallet".</p>
         <div class="empty-suggestions">
           <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Popular Searches:</span>
           <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
@@ -306,23 +278,36 @@ function renderAdGrid(ads) {
       relBadge = `<span class="relevance-tag comp-tag">Competitor</span>`;
     }
 
-    // Build platforms string from raw Meta data
-    const platforms = (ad.stats?.platforms || ['facebook', 'instagram'])
+    // Format platform chips from raw Meta data
+    const rawPlatforms = (ad.stats?.platforms && ad.stats.platforms.length > 0)
+      ? ad.stats.platforms
+      : ['facebook', 'instagram'];
+
+    const platformItems = rawPlatforms
       .map(p => {
-        const clean = p.toLowerCase().replace('_', ' ');
+        const clean = String(p).toLowerCase().replace(/_/g, ' ');
         if (clean.includes('facebook')) return 'Facebook';
         if (clean.includes('instagram')) return 'Instagram';
         if (clean.includes('audience')) return 'Audience Network';
         if (clean.includes('messenger')) return 'Messenger';
+        if (clean.includes('whatsapp')) return 'WhatsApp';
+        if (clean.includes('threads')) return 'Threads';
         return clean.charAt(0).toUpperCase() + clean.slice(1);
       })
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .join(', ');
+      .filter((v, i, a) => a.indexOf(v) === i);
+
+    const platformPillsHtml = platformItems
+      .map(name => `<span class="platform-chip platform-${name.toLowerCase().replace(/\s+/g, '-')}">${name}</span>`)
+      .join('');
 
     // Format start date from raw Meta data
     const startDate = ad.stats?.startDate
       ? new Date(ad.stats.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : '';
+
+    // Format regions
+    const regions = (ad.stats?.countries || []).filter(Boolean);
+    const reachText = regions.length > 0 ? regions.slice(0, 3).join(', ') : 'Global';
 
     card.innerHTML = `
       <div class="card-header">
@@ -340,7 +325,7 @@ function renderAdGrid(ads) {
         ${mediaHtml}
       </div>
 
-      <div class="card-destination-strip" id="card-dest-${ad.id}" onclick="event.stopPropagation(); window.openOutboundUrl('${ad.id}')" title="Visit landing page (opens in new tab)">
+      <div class="card-destination-strip" id="card-dest-${ad.id}" onclick="event.stopPropagation(); window.openOutboundUrl('${ad.id}')" title="Visit landing page (opens in new tab)" role="button" tabindex="0">
         <span class="card-dest-domain" title="${ad.destinationUrl || ad.displayDomain || ''}">🌐 ${ad.displayDomain || 'Website'}</span>
         <span class="card-dest-cta">${ad.ctaText || 'Learn More'} ↗</span>
       </div>
@@ -353,18 +338,22 @@ function renderAdGrid(ads) {
           </span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Platforms</span>
-          <span class="stat-value">${platforms}</span>
+          <span class="stat-label">Started</span>
+          <span class="stat-value">${startDate || 'Recent'}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Regions</span>
-          <span class="stat-value">
-            ${(ad.stats.countries || []).join(', ') || 'Global'}
-          </span>
+          <span class="stat-label">Reach</span>
+          <span class="stat-value">${reachText}</span>
         </div>
       </div>
 
-      ${startDate ? `<div class="card-meta-row"><span class="meta-label">Started:</span> <span class="meta-value">${startDate}</span>${ad.variantCount > 1 ? ` · <span class="meta-value">${ad.variantCount} ad variants</span>` : ''}</div>` : ''}
+      <div class="card-platforms-row">
+        <span class="meta-label">Platforms:</span>
+        <div class="platform-chips-wrap">
+          ${platformPillsHtml}
+        </div>
+        ${ad.variantCount > 1 ? `<span class="variant-count-pill">${ad.variantCount} variants</span>` : ''}
+      </div>
 
       <div class="card-copy-content">
         ${ad.copy.headline ? `<h4 class="ad-headline">${ad.copy.headline}</h4>` : ''}
@@ -448,16 +437,17 @@ function buildMediaHtml(adId, media, isSniffed = false) {
         ${posterAttr}
         referrerpolicy="no-referrer"
         playsinline
+        webkit-playsinline
         muted
         loop
-        preload="auto"
+        preload="metadata"
         onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')"
-        onerror="if (this.getAttribute('poster')) { this.outerHTML = '<img src=\\'' + this.getAttribute('poster') + '\\' alt=\\'Meta Ad Creative\\' referrerpolicy=\\'no-referrer\\' />'; }"
+        onerror="if (this.getAttribute('poster')) { this.outerHTML = '<img src=\\'' + this.getAttribute('poster') + '\\' alt=\\'Meta Ad Creative\\' referrerpolicy=\\'no-referrer\\' loading=\\'lazy\\' />'; }"
       ></video>
-      <div class="video-play-overlay" id="play-overlay-${adId}" onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')">
+      <div class="video-play-overlay" id="play-overlay-${adId}" onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')" role="button" aria-label="Play video">
         <span class="play-overlay-icon">▶</span>
       </div>
-      <button class="sound-toggle-btn" id="sound-btn-${adId}" onclick="event.stopPropagation(); window.toggleAudio('${adId}')" title="Unmute Video Audio">
+      <button class="sound-toggle-btn" id="sound-btn-${adId}" onclick="event.stopPropagation(); window.toggleAudio('${adId}')" title="Unmute Video Audio" aria-label="Toggle audio">
         🔇
       </button>
     `;
@@ -766,7 +756,12 @@ function renderPagination() {
 
 function changePage(newPage) {
   applyFiltersAndRender(newPage);
-  window.scrollTo({ top: 380, behavior: 'smooth' });
+  const targetEl = document.getElementById('resultsSection') || document.getElementById('adGrid');
+  if (targetEl) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 

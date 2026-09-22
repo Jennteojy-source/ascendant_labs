@@ -13,6 +13,7 @@ const path = require('path');
 const { URL } = require('url');
 
 const { profilePDP } = require('./lib/pdp_profiler');
+const { expandQueryWithAI } = require('./lib/ai_query_expander');
 const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
@@ -136,8 +137,6 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const {
         input,
-        searchType = 'auto',
-        vectors,
         countries = ['US', 'GB', 'CA', 'AU'],
         status = 'ACTIVE',
         mediaType = 'ALL',
@@ -146,61 +145,36 @@ const server = http.createServer(async (req, res) => {
         useCache = true,
       } = body;
 
-      if (!input && (!vectors || vectors.length === 0)) {
-        return sendJson(res, 400, { error: 'Missing "input" or "vectors" parameter' });
+      if (!input) {
+        return sendJson(res, 400, { error: 'Missing "input" parameter' });
       }
 
-      const cacheKey = `${input || 'vectors'}::${countries.sort().join(',')}::${status}::${mediaType}`;
+      const trimmedInput = (input || '').trim();
+      const cacheKey = `${trimmedInput}::${countries.sort().join(',')}::${status}::${mediaType}`;
       let rankedAds = null;
-      let profile = null;
+      let queryProfile = null;
 
       // Check in-memory query cache
       if (useCache && searchCache.has(cacheKey)) {
         const cached = searchCache.get(cacheKey);
         rankedAds = cached.rankedAds;
-        profile = cached.profile;
+        queryProfile = cached.queryProfile;
       } else {
-        const trimmedInput = (input || '').trim();
-        const isUrl = /^https?:\/\//i.test(trimmedInput) || (trimmedInput && (trimmedInput.includes('.com') || trimmedInput.includes('.io') || trimmedInput.includes('.co') || trimmedInput.includes('.net') || trimmedInput.includes('.org') || trimmedInput.includes('/')));
+        // ─── Stage 1: AI Query Expansion ───────────────────────────
+        queryProfile = await expandQueryWithAI(trimmedInput);
 
-        let searchVectors = vectors ? [...vectors] : [];
-        let targetBrand = '';
-        let coreKeywords = [];
-        let targetDomain = '';
+        const searchVectors = queryProfile.searchVectors;
+        const targetBrand = queryProfile.brandName;
+        const coreKeywords = [queryProfile.coreProduct, ...(queryProfile.competitors || [])];
 
-        if ((searchType === 'url' || isUrl) && searchVectors.length === 0) {
-          profile = await profilePDP(trimmedInput);
-          searchVectors = profile.suggestedVectors;
-          targetBrand = profile.brandName;
-          coreKeywords = [profile.coreProduct, ...(profile.searchKeywords || [])];
-          targetDomain = profile.domain;
-        } else if (searchVectors.length === 0) {
-          const lower = trimmedInput.toLowerCase();
-          if (lower === 'x' || lower === 'twitter') {
-            targetBrand = 'X';
-            coreKeywords = ['x', 'x.com'];
-            searchVectors = [
-              { type: 'BRAND', query: 'x.com' },
-              { type: 'BRAND', query: 'X Corp' },
-              { type: 'PRODUCT', query: 'x' },
-            ];
-          } else {
-            const words = trimmedInput.split(/\s+/).filter((w) => w.length >= 1);
-            targetBrand = trimmedInput;
-            coreKeywords = words;
+        logger.info('Stage 1 — AI Query Expansion complete', {
+          input: trimmedInput,
+          brandName: targetBrand,
+          vectorCount: searchVectors.length,
+          source: queryProfile.source,
+        });
 
-            searchVectors = [
-              { type: 'BRAND', query: trimmedInput },
-              { type: 'PRODUCT', query: trimmedInput },
-            ];
-
-            // For common single product nouns, add e-commerce qualifying vector
-            if (words.length === 1 && trimmedInput.length >= 3) {
-              searchVectors.push({ type: 'CATEGORY', query: `${trimmedInput} 50% off` });
-            }
-          }
-        }
-
+        // ─── Stage 2: Agentic Facebook Ads Library Search ─────────
         const searchRes = await findComparables({
           vectors: searchVectors,
           countries,
@@ -210,34 +184,40 @@ const server = http.createServer(async (req, res) => {
           enableAgenticLoop: true,
         });
 
+        logger.info('Stage 2 — Agentic Ads Library search complete', {
+          totalRawAds: searchRes.totalRawAds,
+          discoveredCompetitors: searchRes.discoveredCompetitors,
+        });
+
+        // ─── Stage 3: AI Ranking & Filtering ──────────────────────
         rankedAds = deduplicateAndRankAds(searchRes.ads, {
           countries,
           targetBrand,
           coreKeywords,
-          targetDomain,
+          targetDomain: '',
         });
-        const evalProfile = profile || {
+
+        const evalProfile = {
           brandName: targetBrand,
-          category: coreKeywords.slice(0, 2).join(' ') || 'Direct Response Offer',
-          coreProduct: targetBrand,
-          primaryPainPoints: [],
-          directCompetitors: [],
+          category: queryProfile.category || 'Direct Response Offer',
+          coreProduct: queryProfile.coreProduct || targetBrand,
+          primaryPainPoints: queryProfile.painPoints || [],
+          directCompetitors: queryProfile.competitors || [],
         };
 
         rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
 
-        logger.info('Competitor search request processed', {
+        logger.info('Stage 3 — AI ranking complete', {
           input: trimmedInput,
-          isUrl,
           targetBrand,
           totalAdsFound: rankedAds.length,
           activeCount: rankedAds.filter(a => a.stats.isActive).length,
         });
 
-        searchCache.set(cacheKey, { rankedAds, profile, timestamp: Date.now() });
+        searchCache.set(cacheKey, { rankedAds, queryProfile, timestamp: Date.now() });
       }
 
-      // Hydrate with any media already cached in Firestore / disk / memory & perform visual media deduplication
+      // ─── Stage 4: Deterministic Rendering (Hydrate + Paginate) ──
       const allAdIds = (rankedAds || []).map(a => String(a.id));
       const mediaCache = await getCachedMediaBatch(allAdIds);
       const uniqueVisualAds = [];
@@ -259,7 +239,6 @@ const server = http.createServer(async (req, res) => {
           if (mediaKey) {
             const advMediaId = `${(item.pageName || '').toLowerCase()}:::${mediaKey}`;
             if (seenMediaPerAdvertiser.has(advMediaId)) {
-              // Collapse identical creative for same advertiser
               const existing = uniqueVisualAds.find(a => `${(a.pageName || '').toLowerCase()}:::${(a.media?.videoUrl || a.media?.thumbnailUrl)}` === advMediaId);
               if (existing) {
                 existing.variantCount = (existing.variantCount || 1) + 1;
@@ -274,8 +253,7 @@ const server = http.createServer(async (req, res) => {
         uniqueVisualAds.push(item);
       }
 
-      // GCP Compute Pre-Warming: Pre-sniff top above-the-fold uncached ads on Cloud Run before returning
-      // Guarantees that the first ads the user sees render their video/images INSTANTLY without shimmer.
+      // GCP Compute Pre-Warming: Pre-sniff top above-the-fold uncached ads
       const topAdsToPrewarm = uniqueVisualAds
         .slice(0, 3)
         .filter((a) => !a.media?.videoUrl && !a.media?.thumbnailUrl);
@@ -317,8 +295,7 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // Background Pre-Warming on GCP: Asynchronously resolve next 5 ads on Page 1 into Firestore
-      // So when the user scrolls down, subsequent cards load in ~10ms from cache!
+      // Background Pre-Warming: Asynchronously resolve next 5 ads
       const backgroundAdsToPrewarm = uniqueVisualAds
         .slice(3, 8)
         .filter((a) => !a.media?.videoUrl && !a.media?.thumbnailUrl);
@@ -337,11 +314,11 @@ const server = http.createServer(async (req, res) => {
       const brandAffiliateCount = rankedAds.filter(a => a.ranking?.relationship === 'BRAND_AFFILIATE').length;
       const competitorCount = rankedAds.filter(a => a.ranking?.relationship === 'COMPETITOR').length;
 
-      // Log query, profile, and results to Firestore search_history table asynchronously
+      // Log query and results to Firestore search_history table asynchronously
       logSearchSession({
         query: input,
-        searchType,
-        profile,
+        searchType: 'ai_expanded',
+        profile: queryProfile,
         ads: uniqueVisualAds,
         totalFound: rankedAds.length,
         latencyMs: Date.now() - searchStartTime,
@@ -350,7 +327,7 @@ const server = http.createServer(async (req, res) => {
       }).catch(err => console.warn('[Server] Log search notice:', err.message));
 
       return sendJson(res, 200, {
-        profile,
+        queryProfile,
         paginated,
         stats: {
           totalUniqueCreatives: rankedAds.length,
