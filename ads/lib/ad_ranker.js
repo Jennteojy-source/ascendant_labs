@@ -140,14 +140,17 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const stopWords = new Set(['the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'new', 'top']);
     const meaningfulKeywords = coreKeywords.filter(k => k.length >= 1 && !stopWords.has(k));
 
-    let relevanceType = 'NICHE_AD';
-    let relevanceScore = 10; // Baseline candidate relevance from Meta search hit
+    let relevanceType = 'UNRELATED';
+    let relevanceScore = 5;
 
-    let brandMatched = false;
+    let brandInPage = false;
+    let brandInCopy = false;
+
     if (targetBrand && targetBrand.length >= 1) {
       const escaped = targetBrand.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
       const brandRegex = new RegExp(`\\b${escaped}\\b`, 'i');
-      brandMatched = brandRegex.test(combinedContent) || (ad.page_name && brandRegex.test(ad.page_name));
+      brandInPage = !!(ad.page_name && brandRegex.test(ad.page_name));
+      brandInCopy = brandRegex.test(combinedContent);
     }
     const domainMatched = targetDomain && targetDomain.length > 2 && combinedContent.includes(targetDomain);
 
@@ -159,12 +162,25 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       }
     }
 
-    if (brandMatched || domainMatched) {
-      relevanceType = 'DIRECT_BRAND';
-      relevanceScore = 90;
-    } else if (keywordMatches >= 1 || (meaningfulKeywords.length > 0 && combinedContent.includes(meaningfulKeywords[0]))) {
-      relevanceType = 'COMPETITOR';
-      relevanceScore = Math.min(70, 30 + keywordMatches * 15);
+    const isReviewAdvertorial = /\b(review|reviewed|vs|tested|ratings?|top \d|best \d|scam|legit|hands-on|discount code|promo code|coupon|worth it)\b/i.test(combinedContent);
+
+    if (brandInPage) {
+      relevanceType = 'OFFICIAL_BRAND';
+      relevanceScore = 100;
+    } else if (brandInCopy || domainMatched) {
+      if (isReviewAdvertorial) {
+        relevanceType = 'REVIEW_EDITORIAL';
+        relevanceScore = 90;
+      } else {
+        relevanceType = 'AFFILIATE_PARTNER';
+        relevanceScore = 85;
+      }
+    } else if (keywordMatches >= 2) {
+      relevanceType = 'RELATED_CREATIVE';
+      relevanceScore = 35;
+    } else {
+      relevanceType = 'UNRELATED';
+      relevanceScore = 0;
     }
 
     // Dual-Metric Ranking Formula:

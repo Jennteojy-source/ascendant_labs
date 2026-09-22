@@ -95,32 +95,36 @@ async function evaluateBatchWithAI(targetProfile, adsBatch) {
     body: ((ad.ad_creative_bodies && ad.ad_creative_bodies[0]) || ad.copy?.body || '').slice(0, 220),
   }));
 
-  const prompt = `You are a World-Class Direct Response Meta Ad Strategist and Evaluation Judge.
-Target Offer to Analyze:
+  const prompt = `You are a World-Class Direct Response Meta Ad Creative Strategist and Product Ad Judge.
+Target Product to Analyze:
 - Canonical Brand: "${targetProfile.brandName}"
 - Core Product / Mechanism: "${targetProfile.coreProduct || ''}"
 - Category: "${targetProfile.category || ''}"
-- Primary Pain Points: ${(targetProfile.primaryPainPoints || []).join(', ')}
-- Known Competitors: ${(targetProfile.directCompetitors || []).join(', ')}
 
 Candidate Ads:
 ${JSON.stringify(promptAds, null, 2)}
 
 Task:
-Evaluate each ad for its relevance to this market and offer.
+Your goal is to locate and verify ALL AD CREATIVES RUNNING FOR THIS EXACT PRODUCT OR BRAND.
+Evaluate each candidate ad to determine its relationship to "${targetProfile.brandName}":
 - "relationship":
-  - "BRAND_AFFILIATE": The ad is run by the brand or by an affiliate/review page actively promoting "${targetProfile.brandName}".
-  - "COMPETITOR": The ad promotes a rival product/brand solving the same customer pain points.
-  - "NOISE": Completely irrelevant ad, spam, unrelated apps/games, or completely unrelated products.
-- "relevanceScore": Integer from 0 (noise) to 100 (exact brand match or premier competitor).
-- "creativeAngle": 2-4 word marketing archetype (e.g. "Doctor Authority Hook", "Microbiome Comparison", "UGC Transformation", "Social Proof Habit", "Direct Problem-Solution").
-- "aiInsight": 1 punchy sentence explaining the direct-response angle and why this ad converts.
+  - "OFFICIAL_BRAND": Published by the brand's official page (e.g. page name contains "${targetProfile.brandName}").
+  - "AFFILIATE_PARTNER": Published by a third-party media buyer, affiliate, deals page, or partner actively selling/promoting "${targetProfile.brandName}".
+  - "REVIEW_EDITORIAL": Published by a review site, magazine, comparison blog, or advertorial explicitly featuring/recommending "${targetProfile.brandName}".
+  - "UNRELATED": An ad promoting a completely different product, a rival competitor brand, or unrelated noise.
+- "relevanceScore": Integer from 0 to 100:
+  - 95-100: Official brand ad
+  - 85-94: Affiliate or partner promoting this exact product
+  - 75-84: Review, advertorial, or unboxing featuring this exact product
+  - 0-30: Promotes an unrelated product or competitor
+- "creativeAngle": 2-4 word marketing archetype (e.g. "Doctor Authority Hook", "UGC Unboxing", "50% Flash Sale", "Before/After Routine", "Founder Story", "Direct Problem-Solution").
+- "aiInsight": 1 punchy sentence explaining the creative strategy and hook used for this product.
 
 Return ONLY a valid raw JSON array (no markdown, no backticks):
 [
   {
     "id": "ad_id",
-    "relationship": "BRAND_AFFILIATE" | "COMPETITOR" | "NOISE",
+    "relationship": "OFFICIAL_BRAND" | "AFFILIATE_PARTNER" | "REVIEW_EDITORIAL" | "UNRELATED",
     "relevanceScore": 95,
     "creativeAngle": "Creative Angle",
     "aiInsight": "1 sentence marketing strategy insight."
@@ -186,21 +190,36 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
     if (!aiEval) {
       const targetBrandLower = (targetProfile.brandName || '').toLowerCase();
       const text = `${ad.pageName || ad.page_name || ''} ${(ad.copy?.headline || '')} ${(ad.copy?.body || '')}`.toLowerCase();
-      if (targetBrandLower && text.includes(targetBrandLower)) {
-        relationship = 'BRAND_AFFILIATE';
-        relevanceScore = 85;
-        creativeAngle = 'Direct Offer Promotion';
-        aiInsight = `Active creative promoting ${targetProfile.brandName}.`;
+      const isPageBrand = (ad.pageName || ad.page_name || '').toLowerCase().includes(targetBrandLower);
+      const isReview = /\b(review|reviewed|vs|tested|ratings?|hands-on|discount|coupon)\b/i.test(text);
+
+      if (isPageBrand) {
+        relationship = 'OFFICIAL_BRAND';
+        relevanceScore = 95;
+        creativeAngle = 'Official Brand Offer';
+        aiInsight = `Official brand creative for ${targetProfile.brandName}.`;
+      } else if (targetBrandLower && text.includes(targetBrandLower)) {
+        if (isReview) {
+          relationship = 'REVIEW_EDITORIAL';
+          relevanceScore = 85;
+          creativeAngle = 'Editorial / Review Hook';
+          aiInsight = `Advertorial review promoting ${targetProfile.brandName}.`;
+        } else {
+          relationship = 'AFFILIATE_PARTNER';
+          relevanceScore = 88;
+          creativeAngle = 'Affiliate Partner Offer';
+          aiInsight = `Partner creative driving traffic to ${targetProfile.brandName}.`;
+        }
       } else {
-        relationship = 'COMPETITOR';
-        relevanceScore = 55;
-        creativeAngle = 'Market Alternative';
-        aiInsight = `Competitor ad solving adjacent ${targetProfile.category || 'consumer'} pain points.`;
+        relationship = 'AFFILIATE_PARTNER';
+        relevanceScore = 60;
+        creativeAngle = 'Category Angle';
+        aiInsight = `Creative addressing ${targetProfile.category || 'target customer'} demand.`;
       }
     }
 
-    // Filter out noise
-    if (relationship === 'NOISE' || (relevanceScore !== null && relevanceScore < 25)) {
+    // Filter out unrelated / noise ads when higher-confidence product ads are present
+    if (relationship === 'UNRELATED' || (relevanceScore !== null && relevanceScore < 30)) {
       continue;
     }
 
@@ -221,12 +240,12 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
         rankScore: totalScore,
         relevanceScore,
         relationship,
-        relevanceType: relationship === 'BRAND_AFFILIATE' ? 'DIRECT_BRAND' : 'COMPETITOR',
+        relevanceType: relationship,
       },
       aiAnalysis: {
         relationship,
         creativeAngle: creativeAngle || 'Direct-Response Hook',
-        aiInsight: aiInsight || `High-performing ad targeting ${targetProfile.category || 'customer demand'}.`,
+        aiInsight: aiInsight || `Active ad creative for ${targetProfile.brandName}.`,
       },
     });
   }

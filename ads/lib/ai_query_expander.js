@@ -97,45 +97,44 @@ async function expandQueryWithAI(userQuery) {
     return buildFallbackExpansion(trimmed);
   }
 
-  const prompt = `You are an elite Meta Ads Library search strategist. Your job is to take a user's search input and expand it into the optimal set of search terms to find relevant ads in the Facebook/Meta Ad Library.
+  const prompt = `You are an elite Meta Ads Library creative intelligence strategist. Your job is to take a user's search input for a SPECIFIC PRODUCT OR BRAND and expand it into the optimal set of search term permutations to locate ALL active ads running for this product in the Meta Ad Library (including official brand pages, affiliate media buyers, advertorials, and review campaigns).
 
 User Input: "${trimmed}"
 
-The user is searching for competitor ads and ad inspiration. They may have typed:
-- A brand name (e.g. "Derila", "NordVPN", "Ridge Wallet")
-- A product category (e.g. "memory foam pillow", "running shoes")
-- A generic keyword (e.g. "weight loss", "dog training")
-- A URL or domain (e.g. "derila-ergo.com" — extract the brand name from it)
+IMPORTANT OBJECTIVE:
+The user wants to find ALL CREATIVES FOR THIS EXACT PRODUCT/BRAND. 
+Do NOT search for rival competitor brands (e.g. if the user searches "Derila", DO NOT include Emma Sleep or Tempur-Pedic; if they search "NordVPN", DO NOT include Surfshark or ExpressVPN).
 
 Your task:
-1. Identify the canonical brand or product being searched
-2. Generate 3-6 optimized search terms that will find the most relevant ads in Meta Ads Library
-3. Identify known competitors in this space
-4. Identify customer pain points this product/brand addresses
+1. Identify the canonical brand or product name being searched.
+2. Generate 4-6 high-impact search term permutations to capture every ad for this product:
+   - "EXACT_BRAND": The exact brand or product name
+   - "PRODUCT_NAME": Brand + specific core product type/model (e.g. "Derila Pillow", "Ridge Carbon Wallet")
+   - "PAGE_VARIATION": Likely Meta Page name variations (e.g. "Derila Official", "GetDerila", "NordVPN Deals")
+   - "SPELLING_PERMUTATION": Alternate spacing, common spelling variations, or product nicknames
+   - "AFFILIATE_ANGLE": Search terms used by affiliates, media buyers, or advertorials promoting this product (e.g. "Derila review", "Derila discount")
+   - "DOMAIN_HANDLE": Likely primary domain or handle (e.g. "derila.com", "getderila.com")
+3. Extract the product's primary hooks and angles.
 
 Return ONLY a valid raw JSON object (no markdown, no backticks):
 {
-  "brandName": "The canonical brand or product name",
-  "category": "Market vertical or niche (e.g. Sleep & Wellness, Cybersecurity, EDC Accessories)",
-  "coreProduct": "Specific product name or type",
+  "brandName": "Canonical Brand or Product Name",
+  "category": "Market niche (e.g. Sleep & Ergonomics, Cybersecurity, Smart Wallets)",
+  "coreProduct": "Specific product name or mechanism",
+  "productKeywords": ["keyword1", "keyword2", "keyword3"],
   "searchVectors": [
-    { "type": "BRAND", "query": "exact brand name" },
-    { "type": "PRODUCT", "query": "brand + product type" },
-    { "type": "COMPETITOR", "query": "top competitor brand name" },
-    { "type": "PROBLEM", "query": "pain point hook that ads in this niche use" }
+    { "type": "EXACT_BRAND", "query": "exact brand name" },
+    { "type": "PRODUCT_NAME", "query": "brand + product" },
+    { "type": "PAGE_VARIATION", "query": "likely advertiser page name" },
+    { "type": "SPELLING_PERMUTATION", "query": "spelling or spacing variation" },
+    { "type": "AFFILIATE_ANGLE", "query": "brand + review or advertorial hook" }
   ],
-  "competitors": ["competitor1", "competitor2", "competitor3"],
   "painPoints": ["pain point 1", "pain point 2"]
 }
 
 Rules:
-- searchVectors should have 3-6 entries, each with a "type" and "query" field
-- Always include at least one BRAND vector and one COMPETITOR vector
-- BRAND queries should be the exact brand/product name (short, precise)
-- COMPETITOR queries should be actual known competitor brand names
-- PROBLEM queries should be short pain-point phrases that appear in ads
-- If the input looks like a URL or domain, extract the brand name from it
-- Keep query strings concise (1-4 words max) for best Meta Ads Library results`;
+- STRICT: NO RIVAL COMPETITOR BRANDS. Every search vector MUST contain the target brand or product name.
+- Keep queries concise (1-4 words max) for optimal Meta Ads Library Graph API matching.`;
 
   try {
     const raw = await callGemini(apiKey, prompt);
@@ -148,8 +147,8 @@ Rules:
         brandName: parsed.brandName,
         category: parsed.category || 'Direct Response',
         coreProduct: parsed.coreProduct || parsed.brandName,
+        productKeywords: Array.isArray(parsed.productKeywords) ? parsed.productKeywords : [parsed.coreProduct || parsed.brandName],
         searchVectors: parsed.searchVectors.filter(v => v && v.query && v.type),
-        competitors: Array.isArray(parsed.competitors) ? parsed.competitors : [],
         painPoints: Array.isArray(parsed.painPoints) ? parsed.painPoints : [],
         source: 'ai',
       };
@@ -196,26 +195,21 @@ function buildFallbackExpansion(input) {
   const words = effectiveName.split(/\s+/).filter(w => w.length >= 1);
 
   const searchVectors = [
-    { type: 'BRAND', query: effectiveName },
-    { type: 'PRODUCT', query: effectiveName },
+    { type: 'EXACT_BRAND', query: effectiveName },
+    { type: 'PAGE_VARIATION', query: `${effectiveName} Official` },
+    { type: 'AFFILIATE_ANGLE', query: `${effectiveName} review` },
   ];
 
-  // For multi-word queries, add individual significant words as category vectors
-  if (words.length > 1) {
-    searchVectors.push({ type: 'CATEGORY', query: `${effectiveName} review` });
-  }
-
-  // For single-word brand names, add a qualifying vector
   if (words.length === 1 && effectiveName.length >= 3) {
-    searchVectors.push({ type: 'CATEGORY', query: `${effectiveName} 50% off` });
+    searchVectors.push({ type: 'PRODUCT_NAME', query: `${effectiveName} offer` });
   }
 
   return {
     brandName: effectiveName,
     category: 'Direct Response',
     coreProduct: effectiveName,
+    productKeywords: [effectiveName],
     searchVectors,
-    competitors: [],
     painPoints: [],
     source: 'fallback',
   };

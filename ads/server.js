@@ -202,7 +202,7 @@ const server = http.createServer(async (req, res) => {
           category: queryProfile.category || 'Direct Response Offer',
           coreProduct: queryProfile.coreProduct || targetBrand,
           primaryPainPoints: queryProfile.painPoints || [],
-          directCompetitors: queryProfile.competitors || [],
+          productKeywords: queryProfile.productKeywords || [targetBrand],
         };
 
         rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
@@ -311,8 +311,9 @@ const server = http.createServer(async (req, res) => {
 
       const activeCount = rankedAds.filter(a => a.stats.isActive).length;
       const highScaleCount = rankedAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;
-      const brandAffiliateCount = rankedAds.filter(a => a.ranking?.relationship === 'BRAND_AFFILIATE').length;
-      const competitorCount = rankedAds.filter(a => a.ranking?.relationship === 'COMPETITOR').length;
+      const officialBrandCount = rankedAds.filter(a => a.ranking?.relationship === 'OFFICIAL_BRAND' || a.ranking?.relevanceType === 'OFFICIAL_BRAND').length;
+      const affiliatePartnerCount = rankedAds.filter(a => a.ranking?.relationship === 'AFFILIATE_PARTNER' || a.ranking?.relevanceType === 'AFFILIATE_PARTNER').length;
+      const reviewEditorialCount = rankedAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
 
       // Log query and results to Firestore search_history table asynchronously
       logSearchSession({
@@ -334,8 +335,9 @@ const server = http.createServer(async (req, res) => {
           activeCount,
           inactiveCount: rankedAds.length - activeCount,
           highScaleCount,
-          brandAffiliateCount,
-          competitorCount,
+          officialBrandCount,
+          affiliatePartnerCount,
+          reviewEditorialCount,
         },
       });
     }

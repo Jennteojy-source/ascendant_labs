@@ -245,17 +245,7 @@ function renderAdGrid(ads) {
       <div class="empty-state">
         <div class="empty-icon">🔍</div>
         <h3>No Ads Found for "${query}"</h3>
-        <p>Try a broader product term or a popular brand name like "NordVPN" or "Ridge Wallet".</p>
-        <div class="empty-suggestions">
-          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Popular Searches:</span>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
-            <button type="button" class="suggestion-chip" onclick="searchInput.value='Derila'; executeSearch('Derila', 1);">Derila</button>
-            <button type="button" class="suggestion-chip" onclick="searchInput.value='NordVPN'; executeSearch('NordVPN', 1);">NordVPN</button>
-            <button type="button" class="suggestion-chip" onclick="searchInput.value='Ridge Wallet'; executeSearch('Ridge Wallet', 1);">Ridge Wallet</button>
-            <button type="button" class="suggestion-chip" onclick="searchInput.value='Ergonomic Pillow'; executeSearch('Ergonomic Pillow', 1);">Ergonomic Pillow</button>
-            <button type="button" class="suggestion-chip" onclick="searchInput.value='Running Shoes'; executeSearch('Running Shoes', 1);">Running Shoes</button>
-          </div>
-        </div>
+        <p>Try a broader product term or another brand name.</p>
       </div>
     `;
     return;
@@ -271,11 +261,17 @@ function renderAdGrid(ads) {
     const mediaHtml = buildMediaHtml(ad.id, cachedMedia);
 
     const statusClass = ad.stats.isActive ? 'active' : 'inactive';
-    const statusText = ad.stats.isActive ? 'Active' : 'Ended';
-    const isCompetitor = ad.ranking?.relationship === 'COMPETITOR' || ad.ranking?.relevanceType === 'COMPETITOR';
+    const statusText = ad.stats.isActive ? 'Active' : 'Inactive';
+    const rel = ad.ranking?.relationship || ad.ranking?.relevanceType;
     let relBadge = '';
-    if (isCompetitor) {
-      relBadge = `<span class="relevance-tag comp-tag">Competitor</span>`;
+    if (rel === 'OFFICIAL_BRAND' || rel === 'DIRECT_BRAND') {
+      relBadge = `<span class="relevance-tag official-tag">Official Brand</span>`;
+    } else if (rel === 'REVIEW_EDITORIAL') {
+      relBadge = `<span class="relevance-tag review-tag">Review / Editorial</span>`;
+    } else if (rel === 'AFFILIATE_PARTNER' || rel === 'BRAND_AFFILIATE') {
+      relBadge = `<span class="relevance-tag affiliate-tag">Affiliate / Partner</span>`;
+    } else if (rel && rel !== 'UNRELATED') {
+      relBadge = `<span class="relevance-tag affiliate-tag">Product Ad</span>`;
     }
 
     // Format platform chips from raw Meta data

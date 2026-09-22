@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Ascendant Labs — Ad Ideas & Inspiration</title>
-  <meta name="description" content="Discover winning Facebook and Instagram ad ideas from popular stores and brands. Simple ad inspiration for everyday businesses." />
+  <title>Ascendant Labs — Creative Ad Library for Any Product</title>
+  <meta name="description" content="Find all active video creatives, hooks, angles, and landing pages running for any product or brand across Meta." />
   <meta name="theme-color" content="#FAF7F2" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="format-detection" content="telephone=no" />
-  <meta property="og:title" content="Ascendant Labs — Ad Ideas & Inspiration" />
-  <meta property="og:description" content="Browse winning Facebook and Instagram ad ideas from popular stores and brands." />
+  <meta property="og:title" content="Ascendant Labs — Creative Ad Library for Any Product" />
+  <meta property="og:description" content="Find all active video creatives, hooks, angles, and landing pages running for any product or brand across Meta." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Ascendant Labs" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Ascendant Labs — Ad Ideas & Inspiration" />
-  <meta name="twitter:description" content="Browse winning Facebook and Instagram ad ideas from popular stores and brands." />
+  <meta name="twitter:title" content="Ascendant Labs — Creative Ad Library for Any Product" />
+  <meta name="twitter:description" content="Find all active video creatives, hooks, angles, and landing pages running for any product or brand across Meta." />
   <meta name="twitter:image" content="/assets/logos/ascendant_labs_logo_warm.png" />
   <meta property="og:image" content="/assets/logos/ascendant_labs_logo_warm.png" />
   <link rel="icon" type="image/svg+xml" href="/assets/logos/favicon.svg" />
@@ -29,41 +29,39 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "Ascendant Labs",
-    "url": "https://ascendantlabs.co",
-    "description": "Discover live competitor Facebook and Instagram ads, winning copy angles, and video creatives.",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "All"
-  }
-  </script>
 </head>
 <body>
-  <!-- Main Application Wrapper -->
+  <!-- Clean App Shell with Native Viewport Resilience -->
   <div class="app-container">
     
-    <!-- Navigation Header (Clean typography, no page title logo) -->
+    <!-- Top Modern Minimal Header -->
     <header class="app-header">
-      <div class="brand-group">
-        <img src="/assets/logos/ascendant_labs_logo_warm.png" alt="Ascendant Labs" class="brand-logo" />
-        <div class="brand-titles">
-          <h1 class="brand-name">Ascendant Labs</h1>
-          <p class="brand-tagline">Simple Ad Inspiration</p>
+      <div class="header-inner">
+        <a href="/" class="brand-badge" aria-label="Ascendant Labs Home">
+          <img src="/assets/logos/ascendant_labs_logo_warm.png" alt="Ascendant Labs Logo" class="brand-logo" />
+          <div class="brand-text">
+            <span class="brand-title">Ascendant Labs</span>
+            <span class="brand-sub">Ad Ideas &amp; Inspiration</span>
+          </div>
+        </a>
+
+        <div class="header-actions">
+          <div class="status-indicator online" id="statusIndicator">
+            <span class="status-dot"></span>
+            <span class="status-label">Meta Ad Library Live</span>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Hero Search Section -->
+    <!-- Clean Hero Search Area -->
     <section class="hero-search-section">
       <div class="hero-content">
         <h2 class="hero-headline">
-          Find Competitor Meta Ads
+          Creative Ad Library for Any Product
         </h2>
         <p class="hero-subhead">
-          Enter any brand or product name to discover live competitor ads, winning copy hooks, and video creatives.
+          Enter any product or brand name to locate all active video creatives, hooks, and angles running across official pages, affiliates, and reviews.
         </p>
 
         <!-- Direct Minimal Search Bar -->
@@ -80,7 +78,7 @@
                 type="text" 
                 id="searchInput" 
                 class="search-input" 
-                placeholder="Search any brand or product name..." 
+                placeholder="Enter product or brand name (e.g. Derila, NordVPN)..." 
                 required 
                 autocomplete="off"
                 autocorrect="off"
@@ -92,7 +90,7 @@
               <button type="button" class="search-clear-btn" id="searchClearBtn" aria-label="Clear search query" style="display: none;">✕</button>
             </div>
             <button type="submit" class="search-submit-btn" id="searchSubmitBtn">
-              <span class="btn-text">Find Competitors</span>
+              <span class="btn-text">Find Creatives</span>
             </button>
           </div>
         </form>
@@ -103,8 +101,8 @@
     <main class="results-section" id="resultsSection">
       <div class="empty-state" id="emptyState">
         <div class="empty-icon">💡</div>
-        <h3>Discover What Ads Work</h3>
-        <p>Search any brand or product name above to browse active ads, watch video previews, and find new ideas for your business.</p>
+        <h3>Locate Every Ad for Any Product</h3>
+        <p>Enter any product, brand, or store name above to see all active video ads, copy hooks, and media buyer creatives running across Meta.</p>
         <div class="empty-suggestions">
           <span class="suggestions-label">Popular Searches:</span>
           <div class="suggestions-chips-wrap">

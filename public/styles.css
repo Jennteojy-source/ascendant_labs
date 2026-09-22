@@ -84,79 +84,100 @@ body {
 }
 
 /* ==========================================================================
-   Header Section (Clean, Warm & Minimal — Pure Typography, No Title Logo)
+   Header Section (Clean, Warm & Minimal)
    ========================================================================== */
 .app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 20px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 20px;
 }
 
-.brand-group {
+.header-inner {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-badge {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.brand-badge:hover {
+  opacity: 0.9;
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
-.brand-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand-titles {
+.brand-text {
   display: flex;
   flex-direction: column;
 }
 
-.brand-name {
-  font-size: 1.4rem;
+.brand-title {
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--text-primary);
+  line-height: 1.15;
 }
 
-.brand-tagline {
-  font-size: 0.82rem;
-  color: var(--text-muted);
+.brand-sub {
+  font-size: 0.8rem;
   font-weight: 500;
+  color: var(--text-muted);
   margin-top: 1px;
 }
 
-.header-status {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
-.status-pill {
+.status-indicator {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  background: var(--accent-success-light);
+  padding: 4px 11px;
+  background: #ecfdf5;
   border: 1px solid #a7f3d0;
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  color: var(--accent-success);
+  font-size: 0.74rem;
   font-weight: 600;
+  color: #065f46;
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background-color: var(--accent-success);
+  background-color: #10b981;
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
 }
 
 .cache-badge {
@@ -580,6 +601,24 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
+}
+
+.relevance-tag.official-tag {
+  background: #EBF5FF;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+
+.relevance-tag.affiliate-tag {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.relevance-tag.review-tag {
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
 }
 
 .relevance-tag.brand-tag {
@@ -1753,15 +1792,31 @@ body.modal-open {
   }
   
   .app-header {
-    padding: 14px 0 10px;
+    padding: 12px 0 12px;
   }
 
+  .brand-badge {
+    gap: 9px;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-title,
   .brand-name {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
   }
 
+  .brand-sub,
   .brand-tagline {
-    font-size: 0.76rem;
+    font-size: 0.72rem;
+  }
+
+  .status-indicator {
+    padding: 3px 8px;
+    font-size: 0.7rem;
   }
 
   .hero-search-section {
