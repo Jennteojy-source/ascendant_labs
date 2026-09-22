@@ -305,6 +305,16 @@ function renderAdGrid(ads) {
     const regions = (ad.stats?.countries || []).filter(Boolean);
     const reachText = regions.length > 0 ? regions.slice(0, 3).join(', ') : 'Global';
 
+    // Format EU Reach & scale tier
+    const rawEuReach = ad.stats?.euTotalReach || ad.stats?.euReach;
+    const euReachFormatted = (rawEuReach && !isNaN(rawEuReach))
+      ? (rawEuReach >= 1000 ? `${(rawEuReach / 1000).toFixed(1)}K` : String(rawEuReach))
+      : null;
+
+    const variantCount = (ad.variants && ad.variants.length > 0) ? ad.variants.length : (ad.variantCount || 1);
+    const creativeHook = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook;
+    const linkDesc = ad.copy?.description || '';
+
     card.innerHTML = `
       <div class="card-header">
         <div class="advertiser-info">
@@ -326,6 +336,12 @@ function renderAdGrid(ads) {
         <span class="card-dest-cta">${ad.ctaText || 'Learn More'} ↗</span>
       </div>
 
+      ${creativeHook ? `
+        <div class="card-hook-row">
+          <span class="card-hook-chip" title="Direct-Response Creative Angle">🎯 ${creativeHook}</span>
+        </div>
+      ` : ''}
+
       <div class="card-stats-strip">
         <div class="stat-item">
           <span class="stat-label">Duration</span>
@@ -333,13 +349,20 @@ function renderAdGrid(ads) {
             ${ad.stats.flightDays} day${ad.stats.flightDays === 1 ? '' : 's'}
           </span>
         </div>
+        ${euReachFormatted ? `
+          <div class="stat-item" title="Verified European Union Total Audience Reach from Meta">
+            <span class="stat-label">EU Reach</span>
+            <span class="stat-value">🇪🇺 ${euReachFormatted}</span>
+          </div>
+        ` : `
+          <div class="stat-item">
+            <span class="stat-label">Started</span>
+            <span class="stat-value">${startDate || 'Recent'}</span>
+          </div>
+        `}
         <div class="stat-item">
-          <span class="stat-label">Started</span>
-          <span class="stat-value">${startDate || 'Recent'}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Reach</span>
-          <span class="stat-value">${reachText}</span>
+          <span class="stat-label">Scale</span>
+          <span class="stat-value">${ad.stats.scaleTier ? ad.stats.scaleTier.split(' ')[0] : 'Active'}</span>
         </div>
       </div>
 
@@ -348,21 +371,26 @@ function renderAdGrid(ads) {
         <div class="platform-chips-wrap">
           ${platformPillsHtml}
         </div>
-        ${ad.variantCount > 1 ? `<span class="variant-count-pill">${ad.variantCount} variants</span>` : ''}
+        ${variantCount > 1 ? `<span class="variant-count-pill" onclick="event.stopPropagation(); openVariantsModal('${ad.id}')" role="button" title="View all tested copy variants">✨ ${variantCount} variants</span>` : ''}
       </div>
 
       <div class="card-copy-content">
         ${ad.copy.headline ? `<h4 class="ad-headline">${ad.copy.headline}</h4>` : ''}
         <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body}</p>
-        ${ad.copy.body.length > 110 ? `<button class="show-more-btn" onclick="toggleCopy('${ad.id}')">Read more</button>` : ''}
+        ${linkDesc ? `<p class="ad-desc-snippet" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; font-style:italic;">${linkDesc}</p>` : ''}
+        ${ad.copy.body.length > 110 ? `<button class="show-more-btn" onclick="event.stopPropagation(); toggleCopy('${ad.id}')">Read more</button>` : ''}
       </div>
 
       <div class="card-footer">
-        <a href="${ad.adLibraryUrl || '#'}" target="_blank" rel="noopener noreferrer" class="view-ad-btn" onclick="event.stopPropagation()">
-          View in Ad Library ↗
-        </a>
+        <button type="button" class="view-variants-action-btn ${variantCount > 1 ? 'has-multi-variants' : ''}" onclick="event.stopPropagation(); openVariantsModal('${ad.id}')">
+          ${variantCount > 1 ? `✨ View All ${variantCount} Variants` : `🔍 Inspect Creative & Copy`}
+        </button>
       </div>
     `;
+
+    // Clicking anywhere on card opens in-app variant inspector
+    card.style.cursor = 'pointer';
+    card.onclick = () => openVariantsModal(ad.id);
 
     // Card hover plays video
     card.addEventListener('mouseenter', () => {
@@ -776,3 +804,228 @@ window.copyAssetLink = function (url, btnElement) {
   if (!url) return;
   copyToClipboard(url, btnElement, '✅ Copied Link!');
 };
+
+/**
+ * Interactive In-App Variant Explorer & Creative Inspector Modal
+ */
+window.openVariantsModal = function (adId) {
+  const ad = (state.rawRankedAds || []).find(a => String(a.id) === String(adId))
+          || (state.currentAds || []).find(a => String(a.id) === String(adId));
+  if (!ad) return;
+
+  const modal = document.getElementById('variantsModal');
+  const advertiserEl = document.getElementById('modalAdvertiser');
+  const avatarEl = document.getElementById('modalBrandAvatar');
+  const badgeEl = document.getElementById('modalRelBadge');
+  const metaSubEl = document.getElementById('modalMetaSub');
+
+  if (!modal) return;
+
+  const pageName = ad.pageName || 'Advertiser';
+  if (advertiserEl) advertiserEl.textContent = pageName;
+  if (avatarEl) avatarEl.textContent = pageName.charAt(0).toUpperCase();
+
+  const rel = ad.ranking?.relationship || ad.ranking?.relevanceType;
+  let relBadge = '';
+  if (rel === 'OFFICIAL_BRAND' || rel === 'DIRECT_BRAND') {
+    relBadge = `<span class="relevance-tag official-tag">Official Brand</span>`;
+  } else if (rel === 'REVIEW_EDITORIAL') {
+    relBadge = `<span class="relevance-tag review-tag">Review / Editorial</span>`;
+  } else if (rel === 'AFFILIATE_PARTNER' || rel === 'BRAND_AFFILIATE') {
+    relBadge = `<span class="relevance-tag affiliate-tag">Affiliate / Partner</span>`;
+  } else {
+    relBadge = `<span class="relevance-tag affiliate-tag">Product Ad</span>`;
+  }
+  if (badgeEl) badgeEl.innerHTML = relBadge;
+
+  const flightDays = ad.stats?.flightDays || 1;
+  const statusStr = ad.stats?.isActive ? `Active for ${flightDays} days` : `Ran for ${flightDays} days`;
+  if (metaSubEl) metaSubEl.textContent = `Meta Ad ID: ${ad.id} • ${statusStr}`;
+
+  window._currentModalAd = ad;
+  window._currentVariantIdx = 0;
+
+  renderModalContent(ad, 0);
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeVariantsModal = function (e) {
+  if (e && e.target && e.target.id !== 'variantsModal' && !e.target.classList.contains('modal-close-btn')) {
+    return;
+  }
+  const modal = document.getElementById('variantsModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+  const v = modal ? modal.querySelector('video') : null;
+  if (v) v.pause();
+};
+
+window.switchModalVariant = function (idx) {
+  if (!window._currentModalAd) return;
+  window._currentVariantIdx = idx;
+  renderModalContent(window._currentModalAd, idx);
+};
+
+function renderModalContent(ad, activeIdx = 0) {
+  const bodyEl = document.getElementById('modalBody');
+  if (!bodyEl) return;
+
+  const variants = (ad.variants && ad.variants.length > 0) ? ad.variants : [{
+    index: 1,
+    headline: ad.copy?.headline || '',
+    body: ad.copy?.body || '',
+    description: ad.copy?.description || '',
+    caption: ad.displayDomain || ad.copy?.caption || '',
+    startDate: ad.stats?.startDate || null,
+    euTotalReach: ad.stats?.euTotalReach || null,
+  }];
+
+  const currentVariant = variants[activeIdx] || variants[0];
+  const cachedMedia = state.resolvedMediaMap[ad.id] || ad.media;
+
+  // Media HTML for Modal Left Col
+  let mediaHtml = '';
+  if (cachedMedia && cachedMedia.videoUrl) {
+    mediaHtml = `
+      <div class="modal-media-wrap">
+        <video src="${cachedMedia.videoUrl}" poster="${cachedMedia.thumbnailUrl || ''}" controls playsinline autoplay loop></video>
+      </div>
+    `;
+  } else if (cachedMedia && cachedMedia.thumbnailUrl) {
+    mediaHtml = `
+      <div class="modal-media-wrap">
+        <img src="${cachedMedia.thumbnailUrl}" alt="${ad.pageName} Ad Creative" loading="lazy" />
+      </div>
+    `;
+  } else {
+    mediaHtml = `
+      <div class="modal-media-wrap" style="padding: 40px; text-align: center; color: var(--text-muted);">
+        <div style="font-size: 2.5rem; margin-bottom: 8px;">🎬</div>
+        <p style="font-size: 0.85rem;">Media preview loading or static creative</p>
+      </div>
+    `;
+  }
+
+  // Build Variant Tabs
+  let variantTabsHtml = '';
+  if (variants.length > 1) {
+    const tabsList = variants.map((v, i) => `
+      <button type="button" class="variant-tab-chip ${i === activeIdx ? 'active' : ''}" onclick="switchModalVariant(${i})">
+        Variant ${i + 1}
+      </button>
+    `).join('');
+
+    variantTabsHtml = `
+      <div class="variant-tabs-container">
+        <div class="variant-tabs-header">
+          <span class="variant-tabs-label">Tested Copy Variations (${variants.length})</span>
+          <span style="font-size: 0.72rem; color: var(--accent-primary); font-weight: 700;">Viewing #${activeIdx + 1}</span>
+        </div>
+        <div class="variant-tabs-scroll">
+          ${tabsList}
+        </div>
+      </div>
+    `;
+  }
+
+  const rawEuReach = currentVariant.euTotalReach || ad.stats?.euTotalReach;
+  const euReachText = rawEuReach ? `🇪🇺 ${Number(rawEuReach).toLocaleString()} Verified EU Users` : 'Global Audience Reach';
+  const hookAngle = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook || 'Direct Response Offer';
+  const destUrl = ad.destinationUrl || (ad.displayDomain ? `https://${ad.displayDomain}` : '');
+
+  bodyEl.innerHTML = `
+    <div class="modal-split-body">
+      <!-- Left Column: Visual Media Preview & Direct Landing Page -->
+      <div class="modal-left-col">
+        <div class="modal-media-canvas" style="display: flex; flex-direction: column; width: 100%; gap: 14px;">
+          ${mediaHtml}
+          ${destUrl ? `
+            <a href="${destUrl}" target="_blank" rel="noopener noreferrer" class="modal-dest-row" title="Open product sales page">
+              <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                <span style="font-size: 1rem;">🌐</span>
+                <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                  ${ad.displayDomain || 'Visit Product Website'}
+                </span>
+              </div>
+              <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent-primary);">
+                ${ad.ctaText || 'Shop Now'} ↗
+              </span>
+            </a>
+          ` : ''}
+
+          <!-- Verified Meta Stats Table -->
+          <div class="meta-stats-grid">
+            <div class="meta-stat-cell">
+              <span class="meta-stat-label">Flight Duration</span>
+              <span class="meta-stat-val">${ad.stats?.flightDays || 1} Days Active</span>
+            </div>
+            <div class="meta-stat-cell">
+              <span class="meta-stat-label">EU Reach</span>
+              <span class="meta-stat-val" style="color: #1d4ed8;">${euReachText}</span>
+            </div>
+            <div class="meta-stat-cell">
+              <span class="meta-stat-label">Scale Tier</span>
+              <span class="meta-stat-val">${ad.stats?.scaleTier ? ad.stats.scaleTier.split('(')[0].trim() : 'Active'}</span>
+            </div>
+            <div class="meta-stat-cell">
+              <span class="meta-stat-label">Launch Date</span>
+              <span class="meta-stat-val">${currentVariant.startDate || ad.stats?.startDate || 'Recent'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Variant Explorer & Copy Inspector -->
+      <div class="modal-right-col">
+        ${variantTabsHtml}
+
+        <!-- Marketing Hook & Psychology Badge -->
+        <div style="background: #fdfaf6; border: 1px solid #fcd4c7; border-radius: var(--radius-md); padding: 10px 14px;">
+          <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-primary);">Creative Angle & Hook</span>
+          <p style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;">🎯 ${hookAngle}</p>
+          ${ad.aiAnalysis?.aiInsight ? `<p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">${ad.aiAnalysis.aiInsight}</p>` : ''}
+        </div>
+
+        <!-- Headline Box -->
+        ${currentVariant.headline ? `
+          <div class="modal-copy-section">
+            <div class="copy-box-header">
+              <span class="modal-section-label">Ad Headline</span>
+              <button type="button" class="copy-action-btn" onclick="copyToClipboard('${currentVariant.headline.replace(/'/g, "\\'")}', this)">📋 Copy</button>
+            </div>
+            <h4 class="modal-headline">${currentVariant.headline}</h4>
+          </div>
+        ` : ''}
+
+        <!-- Primary Body Copy Box -->
+        <div class="modal-copy-section">
+          <div class="copy-box-header">
+            <span class="modal-section-label">Primary Ad Copy</span>
+            <button type="button" class="copy-action-btn" onclick="copyToClipboard('${(currentVariant.body || '').replace(/'/g, "\\'").replace(/\n/g, '\\n')}', this)">📋 Copy Body</button>
+          </div>
+          <div class="modal-body-text">${currentVariant.body || 'No text copy'}</div>
+        </div>
+
+        <!-- Secondary Link Description Box -->
+        ${currentVariant.description ? `
+          <div class="modal-copy-section">
+            <div class="copy-box-header">
+              <span class="modal-section-label">Link Subtitle / Description</span>
+              <button type="button" class="copy-action-btn" onclick="copyToClipboard('${currentVariant.description.replace(/'/g, "\\'")}', this)">📋 Copy</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">${currentVariant.description}</p>
+          </div>
+        ` : ''}
+
+        <!-- Outbound Product Landing Page Button -->
+        <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+          <button type="button" class="view-ad-btn" style="background: var(--accent-primary); color: #ffffff; border-color: var(--accent-primary);" onclick="window.openOutboundUrl('${ad.id}')">
+            Visit Product Sales Page (${ad.displayDomain || 'Store'}) ↗
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}

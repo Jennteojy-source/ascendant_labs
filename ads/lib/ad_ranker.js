@@ -61,10 +61,12 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         primaryAd: ad,
         allAdIds: [ad.id],
         variantCount: 1,
+        allAds: [ad],
       });
     } else {
       const group = creativeGroups.get(hash);
       group.allAdIds.push(ad.id);
+      group.allAds.push(ad);
       group.variantCount++;
 
       // Pick the ad with the earliest start time to reflect full creative longevity
@@ -82,6 +84,41 @@ function deduplicateAndRankAds(rawAds, options = {}) {
   for (const [, group] of creativeGroups.entries()) {
     const ad = group.primaryAd;
     const now = Date.now();
+
+    // Compile all unique creative variants across group ads
+    const variants = [];
+    const seenCopy = new Set();
+    for (const a of group.allAds) {
+      const bodies = a.ad_creative_bodies && a.ad_creative_bodies.length > 0 ? a.ad_creative_bodies : [''];
+      const titles = a.ad_creative_link_titles && a.ad_creative_link_titles.length > 0 ? a.ad_creative_link_titles : [''];
+      const descriptions = a.ad_creative_link_descriptions && a.ad_creative_link_descriptions.length > 0 ? a.ad_creative_link_descriptions : [''];
+      const captions = a.ad_creative_link_captions && a.ad_creative_link_captions.length > 0 ? a.ad_creative_link_captions : [''];
+
+      const maxCombos = Math.max(bodies.length, titles.length, descriptions.length, captions.length);
+      for (let i = 0; i < maxCombos; i++) {
+        const vBody = bodies[i] || bodies[0] || '';
+        const vTitle = titles[i] || titles[0] || '';
+        const vDesc = descriptions[i] || descriptions[0] || '';
+        const vCap = captions[i] || captions[0] || '';
+
+        const vKey = `${vTitle}:::${vBody.slice(0, 100)}`;
+        if (!seenCopy.has(vKey)) {
+          seenCopy.add(vKey);
+          variants.push({
+            id: a.id,
+            index: variants.length + 1,
+            headline: vTitle,
+            body: vBody,
+            description: vDesc,
+            caption: vCap,
+            startDate: a.ad_delivery_start_time ? new Date(a.ad_delivery_start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+            endDate: a.ad_delivery_stop_time ? new Date(a.ad_delivery_stop_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present',
+            euTotalReach: a.eu_total_reach ? Number(a.eu_total_reach) : null,
+            platforms: a.publisher_platforms || ['facebook', 'instagram'],
+          });
+        }
+      }
+    }
 
     // Flight Timeline
     const startDateRaw = ad.ad_delivery_start_time || ad.ad_creation_time;
@@ -235,7 +272,8 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       destinationUrl,
       displayDomain,
       ctaText,
-      variantCount: group.variantCount,
+      variantCount: Math.max(group.variantCount, variants.length),
+      variants,
       associatedAdIds: group.allAdIds,
       stats: {
         isActive,
@@ -245,6 +283,10 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         endDate: endFormatted,
         scaleTier,
         euReach,
+        euTotalReach: euReach,
+        impressions: ad.impressions || null,
+        spend: ad.spend || null,
+        languages: ad.languages || ['en'],
         countries,
         platforms: ad.publisher_platforms || ['facebook', 'instagram'],
       },
@@ -252,6 +294,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         headline,
         body,
         caption,
+        description: (ad.ad_creative_link_descriptions && ad.ad_creative_link_descriptions[0]) || '',
         primaryHook,
         triggers,
       },

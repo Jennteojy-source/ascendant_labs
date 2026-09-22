@@ -138,6 +138,28 @@
 
 
 
+    <!-- Interactive In-App Variant Explorer & Creative Inspector Modal -->
+    <div class="modal-overlay" id="variantsModal" style="display: none;" onclick="closeVariantsModal(event)">
+      <div class="modal-card variant-inspector-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-titles">
+            <div class="modal-brand-avatar" id="modalBrandAvatar">A</div>
+            <div class="modal-brand-info">
+              <div class="modal-brand-row">
+                <span class="modal-page-name" id="modalAdvertiser">Advertiser</span>
+                <span id="modalRelBadge"></span>
+              </div>
+              <span class="modal-meta-sub" id="modalMetaSub">Meta Ad Intelligence</span>
+            </div>
+          </div>
+          <button type="button" class="modal-close-btn" onclick="closeVariantsModal()" aria-label="Close modal">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <!-- Dynamic variant tabs, copy inspector, and media preview -->
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="/app.js"></script>
