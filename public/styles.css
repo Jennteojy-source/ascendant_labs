@@ -1972,6 +1972,24 @@ body.modal-open {
     font-size: 0.76rem;
   }
 
+  /* Mobile Loading State: compact so progress fits above fold */
+  .loading-state {
+    padding: 24px 16px;
+  }
+
+  .loading-progress {
+    margin-top: 16px;
+  }
+
+  .loading-step {
+    padding: 6px 0;
+    font-size: 0.82rem;
+  }
+
+  .loading-elapsed {
+    margin-top: 10px;
+  }
+
   /* Empty state mobile suggestions */
   .empty-state {
     padding: 32px 16px;

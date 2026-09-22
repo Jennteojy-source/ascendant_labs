@@ -127,6 +127,11 @@ async function executeSearch(targetInput, page = 1) {
     <div class="loading-elapsed" id="loadingElapsed">0s</div>
   `;
 
+  // Scroll loading UI into view on mobile so progress is fully visible
+  requestAnimationFrame(() => {
+    loadingState.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   // Animate through steps on timers
   const stepTimers = [];
   const searchStartTime = Date.now();
