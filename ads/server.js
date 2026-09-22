@@ -241,8 +241,36 @@ const server = http.createServer(async (req, res) => {
         uniqueVisualAds.push(item);
       }
 
-      // Visible cards request media through /api/sniff-page. Avoid speculative browser
-      // work here: it competes with visible previews and can outlive this request.
+      // Resolve media for top uncached Page 1 ads so search response arrives pre-hydrated with creatives
+      const topAdsToPrewarm = uniqueVisualAds
+        .slice(0, 4)
+        .filter(a => !a.media?.videoUrl && !a.media?.thumbnailUrl);
+
+      if (topAdsToPrewarm.length > 0) {
+        try {
+          const resolvedMedia = await Promise.race([
+            sniffPageMedia(topAdsToPrewarm),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Prewarm timeout')), 3500)),
+          ]);
+          if (resolvedMedia) {
+            for (const [adId, media] of Object.entries(resolvedMedia)) {
+              const matchedAd = uniqueVisualAds.find(a => String(a.id) === String(adId));
+              if (matchedAd && media && media.mediaType !== 'unknown') {
+                matchedAd.media = media;
+                if (media.destinationUrl) {
+                  matchedAd.destinationUrl = media.destinationUrl;
+                  try {
+                    matchedAd.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
+                  } catch (e) {}
+                }
+                if (media.ctaText) matchedAd.ctaText = media.ctaText;
+              }
+            }
+          }
+        } catch (e) {
+          // Soft timeout, client sniffer completes it smoothly
+        }
+      }
 
       // Paginate
       const paginated = paginateAds(uniqueVisualAds, page, pageSize);

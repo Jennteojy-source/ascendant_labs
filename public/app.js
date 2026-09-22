@@ -11,6 +11,217 @@
  * - Export full competitor dossiers as CSV spreadsheet or JSON dataset
  */
 
+// ─── AdMedia Component (DOM-based Safe Renderer with Carousel & Shimmer) ───
+window.AdMedia = window.AdMedia || (() => {
+  const instances = new WeakMap();
+  const url = value => {
+    try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
+    catch { return null; }
+  };
+  const sources = values => [...new Set(values.map(url).filter(Boolean))];
+  function render(container, options) {
+    if (!container) return;
+    instances.get(container)?.();
+    const { media, onRefresh } = options;
+    const creatives = (media?.creatives?.length ? media.creatives : media ? [media] : [])
+      .filter(c => c.videoUrl || c.thumbnailUrl || c.videoSources?.length || c.imageSources?.length);
+    const index = Math.max(0, Math.min(options.index || 0, creatives.length - 1));
+    const creative = creatives[index];
+    let disposed = false;
+    let timer;
+    let observer;
+    let player;
+    let refreshing = false;
+    const cleanup = () => {
+      disposed = true;
+      clearTimeout(timer);
+      observer?.disconnect();
+      if (player) { player.pause(); player.removeAttribute('src'); player.load(); }
+    };
+    instances.set(container, cleanup);
+    container.replaceChildren();
+    const viewer = document.createElement('div');
+    viewer.className = 'creative-viewer';
+    container.append(viewer);
+    const stage = document.createElement('div');
+    stage.className = 'creative-stage';
+    viewer.append(stage);
+    const message = document.createElement('div');
+    message.className = 'media-status';
+    message.setAttribute('role', 'status');
+    viewer.append(message);
+
+    function status(text, retry = false) {
+      message.replaceChildren();
+      const label = document.createElement('span');
+      label.textContent = text;
+      message.append(label);
+      message.hidden = !text;
+      if (retry && onRefresh) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.textContent = 'Retry preview';
+        button.onclick = event => { event.stopPropagation(); refresh(true); };
+        message.append(button);
+      }
+    }
+    function dimensions(width, height) {
+      if (width > 0 && height > 0) stage.style.aspectRatio = `${width} / ${height}`;
+    }
+    async function refresh(manual = false) {
+      if (disposed || refreshing || !onRefresh) return;
+      refreshing = true;
+      status('Refreshing preview…');
+      let updated;
+      try { updated = await onRefresh(manual); } catch { /* Keep the surviving poster. */ }
+      if (disposed || !container.isConnected) return;
+      refreshing = false;
+      if (updated?.status === 'ready') render(container, { ...options, media: updated, index });
+      else status('Preview unavailable. You can retry.', true);
+    }
+    function failed(text) {
+      clearTimeout(timer);
+      status(text, true);
+      refresh(false);
+    }
+    if (!creative) {
+      stage.classList.add('media-empty');
+      if (!media) {
+        stage.classList.add('is-loading');
+        stage.innerHTML = '<div class="media-empty-spinner"></div><span>Finding creative…</span>';
+      } else {
+        stage.classList.remove('is-loading');
+        stage.textContent = media.status === 'blocked' ? 'Meta could not provide this preview.' : 'Preview unavailable';
+        status('No preview available.', true);
+      }
+      return;
+    }
+    dimensions(creative.width, creative.height);
+    if (creatives.length > 1) {
+      const nav = document.createElement('div'); nav.className = 'media-navigation';
+      for (const [direction, label] of [[-1, 'Previous creative'], [1, 'Next creative']]) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.textContent = direction < 0 ? '‹' : '›';
+        button.setAttribute('aria-label', label);
+        button.onclick = event => {
+          event.stopPropagation();
+          const next = (index + direction + creatives.length) % creatives.length;
+          options.onIndexChange?.(next);
+          render(container, { ...options, index: next });
+        };
+        nav.append(button);
+        if (direction < 0) {
+          const counter = document.createElement('span');
+          counter.textContent = `Creative ${index + 1} of ${creatives.length}`;
+          nav.append(counter);
+        }
+      }
+      viewer.append(nav);
+    }
+    const videos = sources([creative.videoUrl, ...(creative.videoSources || [])]);
+    const images = sources([creative.thumbnailUrl, ...(creative.imageSources || [])]);
+    function showImage(asFallback = false) {
+      if (!images.length) {
+        stage.classList.remove('is-loading');
+        stage.replaceChildren();
+        stage.classList.add('media-empty');
+        stage.textContent = 'Preview unavailable';
+        return;
+      }
+      stage.classList.add('is-loading');
+      const image = document.createElement('img');
+      image.alt = `Ad creative ${index + 1}`;
+      image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
+      let sourceIndex = 0;
+      image.onload = () => {
+        clearTimeout(timer);
+        stage.classList.remove('is-loading');
+        image.classList.add('media-ready');
+        dimensions(image.naturalWidth, image.naturalHeight);
+        if (!asFallback) {
+          status(creative.mediaType === 'video' ? 'Video stream paused; showing poster.' : '', creative.mediaType === 'video');
+          if (creative.mediaType === 'video') refresh(false);
+        }
+      };
+      image.onerror = () => {
+        if (disposed) return;
+        if (++sourceIndex < images.length) image.src = images[sourceIndex];
+        else {
+          stage.classList.remove('is-loading');
+          image.remove();
+          stage.classList.add('media-empty');
+          stage.textContent = 'Image unavailable';
+          failed('Could not load this image.');
+        }
+      };
+      stage.replaceChildren(image);
+      image.src = images[0];
+      timer = setTimeout(() => {
+        if (!disposed && !image.complete) {
+          stage.classList.remove('is-loading');
+          failed('Image is taking too long to load.');
+        }
+      }, 25000);
+    }
+    function activate() {
+      if (disposed) return;
+      observer?.disconnect();
+      if (!videos.length) { showImage(); return; }
+      stage.classList.add('is-loading');
+      player = document.createElement('video');
+      player.controls = true; player.playsInline = true; player.muted = true;
+      player.loop = true; player.preload = 'metadata';
+      player.setAttribute('aria-label', `Ad video ${index + 1}`);
+      if (images[0]) player.poster = images[0];
+      let sourceIndex = 0;
+      const onReady = () => {
+        clearTimeout(timer);
+        stage.classList.remove('is-loading');
+        player.classList.add('media-ready');
+        dimensions(player.videoWidth, player.videoHeight);
+        status('');
+      };
+      player.onloadedmetadata = onReady;
+      player.oncanplay = onReady;
+      player.onplay = () => {
+        document.querySelectorAll('.creative-viewer video').forEach(other => { if (other !== player) other.pause(); });
+      };
+      player.onerror = () => {
+        if (disposed) return;
+        clearTimeout(timer);
+        stage.classList.remove('is-loading');
+        if (++sourceIndex < videos.length) { player.src = videos[sourceIndex]; player.load(); }
+        else { showImage(true); failed('Video unavailable; showing its poster when available.'); }
+      };
+      stage.replaceChildren(player);
+      player.src = videos[0];
+      timer = setTimeout(() => {
+        if (!disposed && player.readyState === 0) {
+          stage.classList.remove('is-loading');
+          showImage(true);
+          failed('Video is taking too long to load.');
+        }
+      }, 25000);
+      if (images.length) {
+        const probe = new Image();
+        let posterIndex = 0;
+        probe.onerror = () => {
+          if (disposed) return;
+          if (++posterIndex < images.length) { player.poster = images[posterIndex]; probe.src = images[posterIndex]; }
+          else { player.removeAttribute('poster'); failed('Poster unavailable; the video may still play.'); }
+        };
+        probe.src = images[0];
+      }
+    }
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) activate(); }, { rootMargin: '250px' });
+      observer.observe(container);
+    } else activate();
+  }
+  function dispose(container) { instances.get(container)?.(); instances.delete(container); }
+  return { render, dispose };
+})();
+const AdMedia = window.AdMedia;
+
 // Application State
 const state = {
   currentInput: '',
@@ -112,15 +323,15 @@ async function executeSearch(targetInput, page = 1) {
   // Unified 4-stage loading progress matching the backend pipeline
   const steps = [
     { label: 'Analyzing your query with AI...', delay: 0 },
-    { label: 'Searching Meta Ad Library...', delay: 2000 },
-    { label: 'AI ranking & filtering results...', delay: 6000 },
-    { label: 'Loading ad previews...', delay: 12000 },
+    { label: 'Searching Meta Ad Library...', delay: 1800 },
+    { label: 'Ranking & filtering winning ads...', delay: 4200 },
+    { label: 'Rendering ad creatives & video previews...', delay: 6500 },
   ];
 
   loadingState.innerHTML = `
     <div class="spinner"></div>
     <h3 id="loadingTitle">${steps[0].label}</h3>
-    <p id="loadingSubhead">This may take a moment.</p>
+    <p id="loadingSubhead">Extracting live Facebook & Instagram ad intelligence.</p>
     <div class="loading-progress" id="loadingProgress">
       ${steps.map((s, i) => `
         <div class="loading-step ${i === 0 ? 'active' : ''}" id="loadStep${i}">
@@ -137,7 +348,6 @@ async function executeSearch(targetInput, page = 1) {
     loadingState.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  // Animate through steps on timers
   const stepTimers = [];
   const searchStartTime = Date.now();
   const elapsedInterval = setInterval(() => {
@@ -145,27 +355,30 @@ async function executeSearch(targetInput, page = 1) {
     if (el) el.textContent = `${Math.floor((Date.now() - searchStartTime) / 1000)}s`;
   }, 1000);
 
+  function setActiveStep(stepIndex) {
+    for (let j = 0; j < steps.length; j++) {
+      const stepEl = document.getElementById(`loadStep${j}`);
+      if (!stepEl) continue;
+      if (j < stepIndex) {
+        stepEl.classList.remove('active');
+        stepEl.classList.add('done');
+        stepEl.querySelector('.step-icon').textContent = '✓';
+      } else if (j === stepIndex) {
+        stepEl.classList.remove('done');
+        stepEl.classList.add('active');
+        stepEl.querySelector('.step-icon').textContent = '●';
+        const title = document.getElementById('loadingTitle');
+        if (title) title.textContent = steps[j].label;
+      } else {
+        stepEl.classList.remove('active', 'done');
+        stepEl.querySelector('.step-icon').textContent = '○';
+      }
+    }
+  }
+
   steps.forEach((s, i) => {
     if (i === 0) return;
-    stepTimers.push(setTimeout(() => {
-      // Mark previous as done
-      for (let j = 0; j < i; j++) {
-        const prev = document.getElementById(`loadStep${j}`);
-        if (prev) {
-          prev.classList.remove('active');
-          prev.classList.add('done');
-          prev.querySelector('.step-icon').textContent = '✓';
-        }
-      }
-      // Mark current as active
-      const curr = document.getElementById(`loadStep${i}`);
-      if (curr) {
-        curr.classList.add('active');
-        curr.querySelector('.step-icon').textContent = '●';
-      }
-      const title = document.getElementById('loadingTitle');
-      if (title) title.textContent = s.label;
-    }, s.delay));
+    stepTimers.push(setTimeout(() => setActiveStep(i), s.delay));
   });
 
   try {
@@ -189,6 +402,49 @@ async function executeSearch(targetInput, page = 1) {
     state.currentProfile = data.queryProfile;
     state.rawRankedAds = data.paginated.items;
 
+    // Transition loading step explicitly to Rendering Creatives
+    setActiveStep(3);
+    const subhead = document.getElementById('loadingSubhead');
+    if (subhead) subhead.textContent = 'Buffering high-resolution video and creative previews for instant display...';
+
+    // Populate any media already resolved by backend
+    for (const ad of state.rawRankedAds || []) {
+      if (ad.media && ad.media.mediaType !== 'unknown') {
+        state.resolvedMediaMap[String(ad.id)] = ad.media;
+      }
+    }
+
+    // Pre-resolve media for top ads on Page 1 before revealing grid so they display IMMEDIATELY
+    const topPageAds = (state.rawRankedAds || []).slice(0, 6);
+    const uncachedTopAds = topPageAds.filter(a => !state.resolvedMediaMap[String(a.id)]);
+
+    if (uncachedTopAds.length > 0) {
+      try {
+        const sniffRes = await fetch('/api/sniff-page', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ads: uncachedTopAds.map(a => ({ id: String(a.id), adSnapshotUrl: a.adSnapshotUrl || null })),
+          }),
+          signal: AbortSignal.timeout(6500),
+        });
+        if (sniffRes.ok) {
+          const sniffData = await sniffRes.json();
+          if (sniffData.mediaMap) {
+            Object.assign(state.resolvedMediaMap, sniffData.mediaMap);
+            for (const item of state.rawRankedAds) {
+              if (sniffData.mediaMap[String(item.id)]) {
+                item.media = sniffData.mediaMap[String(item.id)];
+              }
+            }
+          }
+        }
+      } catch (sniffErr) {
+        console.warn('[Search] Pre-render media sniff yielded to display:', sniffErr.message);
+      }
+    }
+
+    // Now reveal the ad grid — creatives are already resolved and display instantly!
     loadingState.style.display = 'none';
     adGrid.style.display = 'grid';
 
