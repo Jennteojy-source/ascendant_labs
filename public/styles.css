@@ -914,6 +914,19 @@ body {
   animation: fadeInMedia 0.3s ease-out forwards;
 }
 
+/* Preserve the whole creative, including portrait videos and carousel images. */
+.creative-viewer { width: 100%; background: #0f172a; color: #e2e8f0; }
+.creative-stage { width: 100%; aspect-ratio: 1 / 1; position: relative; }
+.creative-stage img,
+.creative-stage video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.media-empty { min-height: 180px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
+.media-status { padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 0.8rem; }
+.media-status[hidden] { display: none; }
+.media-navigation { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; font-size: 0.8rem; }
+.media-status button,
+.media-navigation button { color: #fff; background: #334155; border: 1px solid #64748b; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.media-navigation button { font-size: 1.2rem; }
+
 @keyframes fadeInMedia {
   from {
     opacity: 0;
@@ -2625,3 +2638,8 @@ body.modal-open {
   color: #ffffff;
 }
 
+/* The shared modal player owns its dimensions; do not clip carousel controls. */
+#modalMediaBox { max-height: none; }
+#modalMediaBox .creative-stage { height: min(55vh, 520px); aspect-ratio: auto !important; }
+#modalMediaBox .creative-stage img,
+#modalMediaBox .creative-stage video { width: 100%; height: 100%; max-height: none; border-radius: 0; }

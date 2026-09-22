@@ -1,353 +1,179 @@
-/**
- * Paginated Lightweight Media Sniffer (V3 Precision High-Res & Video Extraction)
- * Ascendant Labs / Agentic Meta Ad Search Engine
- * 
- * Features:
- * - Direct DOM evaluation: extracts exact high-res creative images (>150px) and video posters.
- * - Zero Avatar Fallback: strictly filters out 60x60 advertiser profile pictures and avatars.
- * - Intercepts MP4 video streams and auto-triggers playback in headless Chromium.
- * - Persistent disk & in-memory cache for instant 0ms subsequent loads.
- */
-
+/** Ad-specific creative extraction with bounded concurrency and refreshes. */
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
+const cache = require('./firestore_cache');
+const { mediaResult, extractStructuredMedia, inspectAdDocument, destinationUrl } = require('./media_resolver');
 
-const { getCachedMediaBatch, saveMediaBatch, isUrlExpired, isAvatarUrl } = require('./firestore_cache');
-
-function loadEnv() {
-  const envPath = path.resolve(__dirname, '../../functions/.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach((line) => {
-      const match = line.match(/^([^=]+)=(.*)$/);
-      if (match && !process.env[match[1].trim()]) {
-        process.env[match[1].trim()] = match[2].trim();
-      }
-    });
+const envPath = path.resolve(__dirname, '../../functions/.env');
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match && !process.env[match[1].trim()]) process.env[match[1].trim()] = match[2].trim();
   }
 }
-loadEnv();
 
-const USER_TOKEN =
-  process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
-
-function loadCache() {
-  const { memoryCache } = require('./firestore_cache');
-  const obj = {};
-  for (const [k, v] of memoryCache.entries()) {
-    obj[k] = v;
-  }
-  return obj;
-}
-
-let sharedBrowser = null;
-
+let browserPromise;
 async function getBrowser() {
-  if (!sharedBrowser || !sharedBrowser.isConnected()) {
-    sharedBrowser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-infobars',
-        '--window-size=1280,800',
-      ],
-    });
+  if (!browserPromise) {
+    browserPromise = chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
+      .then(browser => {
+        browser.on('disconnected', () => { browserPromise = null; });
+        return browser;
+      }).catch(error => { browserPromise = null; throw error; });
   }
-  return sharedBrowser;
+  return browserPromise;
 }
 
-/**
- * Sniff media for a single ad snapshot URL with anti-bot stealth & fast exit
- */
-async function sniffSingleAd(browser, adId, snapshotUrl) {
-  let targetUrl = snapshotUrl;
-  if (!targetUrl && adId && USER_TOKEN) {
-    targetUrl = `https://www.facebook.com/ads/archive/render_ad/?id=${adId}&access_token=${USER_TOKEN}`;
+function snapshotTarget(adId, supplied) {
+  if (!/^\d{1,40}$/.test(String(adId))) return null;
+  if (supplied) {
+    try {
+      const url = new URL(supplied);
+      if (url.protocol !== 'https:' || !['facebook.com', 'www.facebook.com', 'm.facebook.com'].includes(url.hostname)
+          || url.username || url.password || url.port
+          || !/^\/ads\/(library\/?|archive\/render_ad\/?)$/.test(url.pathname)
+          || url.searchParams.get('id') !== String(adId)) return null;
+      return url.href;
+    } catch { return null; }
   }
+  const token = process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
+  const url = new URL(token ? 'https://www.facebook.com/ads/archive/render_ad/' : 'https://www.facebook.com/ads/library/');
+  url.searchParams.set('id', adId);
+  if (token) url.searchParams.set('access_token', token);
+  return url.href;
+}
 
-  if (!targetUrl) {
-    return { thumbnailUrl: null, videoUrl: null, mediaType: 'unknown' };
-  }
-
-  let context = null;
-  let page = null;
-  const networkVideos = [];
-  const networkImages = [];
-  let domData = { domVideos: [], domImages: [], domLinks: [], domButtons: [] };
-
+async function sniffSingleAd(browser, adId, supplied) {
+  const target = snapshotTarget(adId, supplied);
+  if (!target) return mediaResult([], null, 'invalid_request');
+  const context = await browser.newContext({ viewport: { width: 1000, height: 900 }, locale: 'en-US' });
+  const page = await context.newPage();
+  let structured = mediaResult([], 'structured');
+  let best = mediaResult([], 'dom');
+  const failedUrls = new Set();
+  const reads = new Set();
+  let responseReads = 0;
+  const quality = media => media.creatives.reduce((score, c) => score + 100 + (c.videoUrl ? 10 : 0) + c.videoSources.length + c.imageSources.length, 0);
+  const inspectJSON = raw => {
+    try {
+      const parsed = JSON.parse(raw.replace(/^for\s*\(;;\);\s*/, ''));
+      const found = extractStructuredMedia(parsed, adId);
+      if (quality(found) > quality(structured)) structured = found;
+    } catch { /* Not a supported JSON envelope; never execute page scripts. */ }
+  };
   try {
-    context = await browser.newContext({
-      userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-      viewport: { width: 900, height: 1200 },
-      extraHTTPHeaders: {
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"macOS"',
-      },
-    });
-
-    // Stealth: Mask navigator.webdriver flag
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    });
-
-    page = await context.newPage();
-
-    // 1. Abort non-essential network bloat (fonts, analytics, tracking pixels)
-    await page.route('**/*', (route) => {
-      const rType = route.request().resourceType();
-      const url = route.request().url();
-      if (
-        rType === 'font' ||
-        url.includes('google-analytics') ||
-        url.includes('hsts-pixel')
-      ) {
-        return route.abort();
-      }
+    await page.route('**/*', route => {
+      const request = route.request();
+      const url = new URL(request.url());
+      if (request.isNavigationRequest() && (url.protocol !== 'https:'
+          || !(url.hostname === 'facebook.com' || url.hostname.endsWith('.facebook.com')))) return route.abort();
+      if (request.resourceType() === 'font') return route.abort();
       return route.continue();
     });
-
-    // 2. Intercept CDN packets
-    page.on('response', (res) => {
-      const url = res.url();
-      const ct = (res.headers()['content-type'] || '').toLowerCase();
-
-      // Catch MP4 video stream
-      if (ct.startsWith('video/') || url.includes('.mp4')) {
-        if (!networkVideos.includes(url)) {
-          networkVideos.push(url);
-        }
-      }
-      // Catch high-res creative images
-      else if (
-        ct.startsWith('image/') &&
-        (url.includes('scontent') || url.includes('fbcdn.net')) &&
-        !url.includes('hsts-pixel') &&
-        !url.includes('rsrc.php')
-      ) {
-        if (!isAvatarUrl(url) && !networkImages.includes(url)) {
-          networkImages.push(url);
-        }
-      }
+    page.on('response', response => {
+      if (response.status() >= 400) failedUrls.add(response.url());
+      const headers = response.headers();
+      if (!response.ok() || !/application\/json/.test(headers['content-type'] || '') || responseReads >= 12
+          || Number(headers['content-length'] || 0) > 2000000) return;
+      responseReads++;
+      const read = response.text().then(raw => { if (raw.length < 2000000) inspectJSON(raw); }).catch(() => {});
+      reads.add(read);
+      read.finally(() => reads.delete(read));
     });
-
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 7500 });
-
-    // Try to trigger video play if a video element is present
-    await page.evaluate(() => {
-      const vids = document.querySelectorAll('video');
-      vids.forEach((v) => {
-        v.muted = true;
-        v.play().catch(() => {});
-      });
-    }).catch(() => {});
-
-    // Fast-exit polling: Check every 60ms, cap at 2000ms
-    const start = Date.now();
-    while (Date.now() - start < 2000) {
-      domData = await page.evaluate(() => {
-        const vids = Array.from(document.querySelectorAll('video'))
-          .map((v) => ({
-            src: v.src || (v.querySelector('source') ? v.querySelector('source').src : ''),
-            poster: v.getAttribute('poster') || '',
-          }))
-          .filter((v) => (v.src && v.src.startsWith('http')) || (v.poster && v.poster.startsWith('http')));
-
-        const imgs = Array.from(document.querySelectorAll('img'))
-          .filter((i) => {
-            const w = i.naturalWidth || i.width || 0;
-            const h = i.naturalHeight || i.height || 0;
-            const src = i.src || '';
-            const isAvatar =
-              /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\./i.test(src) ||
-              i.classList.contains('_8nqq');
-            return ((w >= 150 && h >= 150) || (w === 0 && h === 0 && (src.includes('scontent') || src.includes('fbcdn.net')))) && !isAvatar && !src.includes('rsrc.php') && !src.includes('hsts-pixel');
-          })
-          .map((i) => i.src);
-
-        // Also extract CSS background images on creative containers
-        const bgImgs = Array.from(document.querySelectorAll('div[style*="background-image"], i[style*="background-image"]'))
-          .map((el) => {
-            const style = el.getAttribute('style') || '';
-            const m = style.match(/background-image:\s*url\(['"]?(https?:\/\/[^'"\)]+)['"]?\)/i);
-            return m ? m[1] : null;
-          })
-          .filter((src) => {
-            if (!src) return false;
-            const isAvatar = /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\./i.test(src);
-            return !isAvatar && !src.includes('rsrc.php') && !src.includes('hsts-pixel') && (src.includes('fbcdn.net') || src.includes('scontent'));
-          });
-
-        const allImages = [...imgs, ...bgImgs];
-
-        // Extract outbound destination links
-        const links = Array.from(document.querySelectorAll('a'))
-          .map((a) => a.href)
-          .filter((h) => Boolean(h) && (h.includes('l.facebook.com/l.php') || (!h.includes('facebook.com') && (h.startsWith('http://') || h.startsWith('https://')))));
-
-        // Extract CTA buttons or role="button" elements
-        const buttons = Array.from(document.querySelectorAll('div[role="button"], a[role="button"], button'))
-          .map((b) => (b.innerText || '').trim())
-          .filter(Boolean);
-
-        return { domVideos: vids, domImages: allImages, domLinks: links, domButtons: buttons };
-      }).catch(() => ({ domVideos: [], domImages: [], domLinks: [], domButtons: [] }));
-
-      // Fast exit as soon as creative media arrives and destination info is captured
-      const hasMedia =
-        domData.domVideos.length > 0 ||
-        domData.domImages.length > 0 ||
-        networkVideos.length > 0 ||
-        networkImages.length > 0;
-      const hasMeta = domData.domLinks.length > 0 || domData.domButtons.length > 0;
-
-      if (hasMedia && (hasMeta || Date.now() - start > 1000)) {
-        break;
+    const navigation = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 12000 });
+    if (navigation && [401, 403, 429].includes(navigation.status())) return mediaResult([], null, 'blocked');
+    if (/\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())) return mediaResult([], null, 'blocked');
+    const started = Date.now();
+    let signature = '';
+    let stableSince = started;
+    while (Date.now() - started < 8000) {
+      for (const frame of page.frames()) {
+        const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
+        if (!data) continue;
+        data.json.forEach(inspectJSON);
+        const found = mediaResult(data.items.map(item => ({ ...item,
+          destinationUrl: (data.links || []).map(destinationUrl).find(Boolean), ctaText: data.cta })), 'dom');
+        if (found.creatives.length && (found.videoUrl || !best.videoUrl)) best = found;
       }
-      await page.waitForTimeout(60);
+      const candidate = structured.creatives.length ? structured : best;
+      const next = JSON.stringify(candidate.creatives);
+      if (next !== signature) { signature = next; stableSince = Date.now(); }
+      // Give lazy posters/video sources time to settle instead of exiting on the first image.
+      const posterOnly = candidate.creatives.some(c => c.mediaType === 'video' && !c.videoUrl);
+      if (candidate.creatives.length && Date.now() - stableSince >= 750
+          && Date.now() - started >= (posterOnly ? 4000 : 1500)) break;
+      await page.waitForTimeout(250);
     }
-  } catch (err) {
-    // Graceful timeout
+    const selected = structured.creatives.length ? structured : best;
+    return mediaResult(selected.creatives.map(c => ({ ...c,
+      videoUrl: failedUrls.has(c.videoUrl) ? null : c.videoUrl,
+      videoSources: c.videoSources.filter(url => !failedUrls.has(url)),
+      thumbnailUrl: failedUrls.has(c.thumbnailUrl) ? null : c.thumbnailUrl,
+      imageSources: c.imageSources.filter(url => !failedUrls.has(url)),
+    })), selected.source);
+  } catch {
+    return mediaResult([], null, 'retryable_failure');
   } finally {
-    if (page) await page.close().catch(() => {});
-    if (context) await context.close().catch(() => {});
+    await context.close().catch(() => {});
+    await Promise.allSettled([...reads]);
   }
+}
 
-  // Resolve best video and thumbnail
-  let videoUrl = null;
-  let thumbnailUrl = null;
-
-  // 1. Check DOM video
-  if (domData.domVideos && domData.domVideos.length > 0) {
-    const v = domData.domVideos[0];
-    if (v.src && v.src.startsWith('http')) videoUrl = v.src;
-    if (v.poster && v.poster.startsWith('http') && !isAvatarUrl(v.poster)) thumbnailUrl = v.poster;
+// One pool per process across prewarming, simultaneous users, and refresh requests.
+// Multiple Cloud Run instances still need a shared upstream budget at deployment level.
+function createMediaSniffer(deps) {
+  const inFlight = new Map();
+  const recent = new Map();
+  const waiters = [];
+  const limit = Math.max(1, Math.min(4, deps.concurrency || 2));
+  let active = 0;
+  async function acquire() {
+    if (active >= limit) await new Promise(resolve => waiters.push(resolve));
+    else active++;
   }
-
-  // 2. Fallback to network video
-  if (!videoUrl && networkVideos.length > 0) {
-    videoUrl = networkVideos[0];
+  function release() {
+    if (waiters.length) waiters.shift()();
+    else active--;
   }
-
-  // 3. Thumbnail resolution (never fall back to avatar)
-  if (!thumbnailUrl) {
-    if (domData.domImages && domData.domImages.length > 0) {
-      thumbnailUrl = domData.domImages[0];
-    } else if (networkImages.length > 0) {
-      thumbnailUrl = networkImages[0];
-    }
-  }
-
-  // 4. Resolve Destination URL & CTA
-  let destinationUrl = null;
-  let ctaText = null;
-
-  if (domData.domLinks && domData.domLinks.length > 0) {
-    for (const link of domData.domLinks) {
-      if (link.includes('l.facebook.com/l.php')) {
-        try {
-          const parsed = new URL(link);
-          const u = parsed.searchParams.get('u');
-          if (u) {
-            destinationUrl = decodeURIComponent(u);
-            break;
-          }
-        } catch (e) {}
-      } else if (!link.includes('facebook.com') && !link.includes('fbcdn.net')) {
-        destinationUrl = link;
-        break;
+  return async function sniffPageMedia(adsBatch = [], { forceRefresh = false } = {}) {
+    const ads = [...new Map(adsBatch.filter(a => a && /^\d{1,40}$/.test(String(a.id)))
+      .slice(0, 10).map(a => [String(a.id), a])).values()];
+    const cached = forceRefresh ? {} : await deps.getCachedMediaBatch(ads.map(a => String(a.id)));
+    const results = {};
+    await Promise.all(ads.map(async ad => {
+      const id = String(ad.id);
+      if (cached[id]) { results[id] = cached[id]; return; }
+      if (!inFlight.has(id)) {
+        const previous = recent.get(id);
+        if (previous && Date.now() - previous.at < 30000 && (!forceRefresh || previous.forced)) {
+          results[id] = previous.value; return;
+        }
+        const job = (async () => {
+          await acquire();
+          try {
+            const browser = await deps.getBrowser();
+            const value = await deps.sniffSingleAd(browser, id, ad.adSnapshotUrl);
+            if (value.status === 'ready') await deps.saveMediaBatch({ [id]: value });
+            recent.set(id, { at: Date.now(), value, forced: forceRefresh });
+            return value;
+          } catch {
+            const value = mediaResult([], null, 'retryable_failure');
+            recent.set(id, { at: Date.now(), value, forced: forceRefresh });
+            return value;
+          } finally { release(); }
+        })();
+        inFlight.set(id, job);
+        job.finally(() => inFlight.delete(id));
       }
-    }
-  }
-
-  if (domData.domButtons && domData.domButtons.length > 0) {
-    const ctaRegex = /^(Shop [Nn]ow|Learn [Mm]ore|Order [Nn]ow|Get [Oo]ffer|Sign [Uu]p|Download|Book [Nn]ow|Apply [Nn]ow|Contact [Uu]s|Watch [Mm]ore|Subscribe|Get [Qq]uote|Buy [Nn]ow|Claim [Oo]ffer|Visit [Ww]ebsite|Play [Gg]ame)$/i;
-    for (const btnText of domData.domButtons) {
-      const match = btnText.match(ctaRegex);
-      if (match) {
-        ctaText = match[0];
-        break;
-      }
-    }
-  }
-
-  const mediaType = videoUrl ? 'video' : thumbnailUrl ? 'image' : 'unknown';
-
-  return {
-    thumbnailUrl,
-    videoUrl,
-    mediaType,
-    destinationUrl,
-    ctaText,
+      results[id] = await inFlight.get(id);
+    }));
+    for (const [id, record] of recent) if (Date.now() - record.at > 30000) recent.delete(id);
+    return results;
   };
 }
 
-/**
- * Sniff media for a batch of ads with Firestore cache & paced concurrency
- */
-async function sniffPageMedia(adsBatch = []) {
-  const results = {};
-  if (!adsBatch || adsBatch.length === 0) return results;
-
-  const adIds = adsBatch.map((a) => String(a.id));
-
-  // 1. Check persistent Firestore + in-memory cache first (0ms)
-  const cachedMediaMap = await getCachedMediaBatch(adIds);
-  const adsToSniff = [];
-
-  for (const ad of adsBatch) {
-    const idStr = String(ad.id);
-    if (cachedMediaMap[idStr] && cachedMediaMap[idStr].mediaType !== 'unknown') {
-      results[idStr] = cachedMediaMap[idStr];
-    } else {
-      adsToSniff.push(ad);
-    }
-  }
-
-  if (adsToSniff.length === 0) {
-    return results;
-  }
-
-  // 2. Sniff uncached ads with concurrency (3) & fast pacing to maximize Cloud Run throughput
-  const browser = await getBrowser();
-  const concurrency = 3;
-  const newlySniffed = {};
-
-  for (let i = 0; i < adsToSniff.length; i += concurrency) {
-    const chunk = adsToSniff.slice(i, i + concurrency);
-    await Promise.all(
-      chunk.map(async (ad) => {
-        const media = await sniffSingleAd(browser, ad.id, ad.adSnapshotUrl);
-        results[ad.id] = media;
-        if (media.mediaType !== 'unknown') {
-          newlySniffed[ad.id] = media;
-        }
-      })
-    );
-    // Pacing jitter between chunks (100ms)
-    if (i + concurrency < adsToSniff.length) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
-
-  // 3. Persist newly sniffed ads to Firestore + in-memory cache
-  if (Object.keys(newlySniffed).length > 0) {
-    await saveMediaBatch(newlySniffed);
-  }
-
-  return results;
-}
-
-module.exports = {
-  sniffPageMedia,
-  loadCache,
-  getBrowser,
-};
+const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, sniffSingleAd,
+  concurrency: Number(process.env.MEDIA_SNIFF_CONCURRENCY) || 2 });
+module.exports = { sniffPageMedia, getBrowser, snapshotTarget, sniffSingleAd, createMediaSniffer,
+  loadCache: () => Object.fromEntries(cache.memoryCache) };

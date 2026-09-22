@@ -98,6 +98,7 @@ async function fetchHealth() {
  * Execute Search Pipeline against Backend (4-Stage AI Pipeline)
  */
 async function executeSearch(targetInput, page = 1) {
+  resetMediaSession();
   state.currentInput = targetInput;
   state.currentPage = page;
 
@@ -237,6 +238,7 @@ function applyFiltersAndRender(targetPage = 1) {
  * Render Ad Cards into Grid
  */
 function renderAdGrid(ads) {
+  adGrid.querySelectorAll('.card-media-box').forEach(box => AdMedia.dispose(box));
   adGrid.innerHTML = '';
 
   if (!ads || ads.length === 0) {
@@ -257,8 +259,7 @@ function renderAdGrid(ads) {
     card.id = `ad-card-${ad.id}`;
     card.setAttribute('data-ad-id', String(ad.id));
 
-    const cachedMedia = state.resolvedMediaMap[ad.id] || ad.media;
-    const mediaHtml = buildMediaHtml(ad.id, cachedMedia);
+    const mediaHtml = '<div class="media-empty">Finding creative…</div>';
 
     const statusClass = ad.stats.isActive ? 'active' : 'inactive';
     const statusText = ad.stats.isActive ? 'Active' : 'Inactive';
@@ -421,342 +422,153 @@ function renderAdGrid(ads) {
       </div>
     `;
 
-    // Card hover plays video
-    card.addEventListener('mouseenter', () => {
-      const v = card.querySelector('video');
-      if (v && v.paused) v.play().catch(() => {});
-    });
-
     adGrid.appendChild(card);
   });
 
-  setupVideoAutoPlay();
+  initializeGridMedia();
 }
 
-/**
- * Autoplay visible videos on scroll (Pinterest / Instagram feed style)
- */
-let videoObserver = null;
-function setupVideoAutoPlay() {
-  if (!window.IntersectionObserver) return;
-  if (videoObserver) {
-    videoObserver.disconnect();
-  }
-
-  videoObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      const video = entry.target;
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
-    });
-  }, { threshold: [0, 0.3, 0.7] });
-
-  document.querySelectorAll('.ad-card video').forEach((v) => {
-    videoObserver.observe(v);
-  });
-}
-
-/**
- * Build Media Container HTML (Video / Image / Shimmer)
- */
-function buildMediaHtml(adId, media, isSniffed = false) {
-  if (!media || (!media.thumbnailUrl && !media.videoUrl)) {
-    if (isSniffed) {
-      return `
-        <div class="shimmer-placeholder static-preview">
-          <span class="shimmer-icon">✨</span>
-          <span>Ad Creative</span>
-        </div>
-      `;
-    }
-    return `
-      <div class="shimmer-placeholder">
-        <span class="shimmer-icon">🎬</span>
-        <span>Loading creative...</span>
-      </div>
-    `;
-  }
-
-  if (media.videoUrl) {
-    const posterAttr = media.thumbnailUrl ? `poster="${media.thumbnailUrl}"` : '';
-    return `
-      <span class="video-badge">▶ VIDEO</span>
-      <video 
-        id="video-${adId}"
-        src="${media.videoUrl}" 
-        ${posterAttr}
-        referrerpolicy="no-referrer"
-        playsinline
-        webkit-playsinline
-        muted
-        loop
-        preload="metadata"
-        onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')"
-        onerror="if (this.getAttribute('poster')) { this.outerHTML = '<img src=\\'' + this.getAttribute('poster') + '\\' alt=\\'Meta Ad Creative\\' referrerpolicy=\\'no-referrer\\' loading=\\'lazy\\' />'; }"
-      ></video>
-      <div class="video-play-overlay" id="play-overlay-${adId}" onclick="event.stopPropagation(); window.toggleVideoPlay('${adId}')" role="button" aria-label="Play video">
-        <span class="play-overlay-icon">▶</span>
-      </div>
-      <button class="sound-toggle-btn" id="sound-btn-${adId}" onclick="event.stopPropagation(); window.toggleAudio('${adId}')" title="Unmute Video Audio" aria-label="Toggle audio">
-        🔇
-      </button>
-    `;
-  }
-
-  if (media.thumbnailUrl) {
-    return `
-      <img 
-        src="${media.thumbnailUrl}" 
-        alt="Meta Ad Creative" 
-        referrerpolicy="no-referrer" 
-        loading="lazy"
-        onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span class=\\'shimmer-icon\\'>✨</span><span>Ad Creative</span></div>'"
-      />
-    `;
-  }
-
-  return `
-    <div class="shimmer-placeholder static-preview">
-      <span class="shimmer-icon">✨</span>
-      <span>Ad Creative</span>
-    </div>
-  `;
-}
-
-/**
- * Viewport-Based Lazy Media Sniffer with Visual Deduplication (Zero-Cost Anti-Scraping)
- * Only sniffs media when a card enters or approaches the viewport (rootMargin: 250px).
- */
-let cardObserver = null;
+/** Media lifecycle: one request per ad, one automatic refresh, no stale-search patches. */
+let mediaGeneration = 0;
+let cardObserver;
+let sniffDebounceTimer;
+let sniffRunning = false;
 const pendingSniffQueue = new Set();
-let sniffDebounceTimer = null;
+const mediaRequests = new Map();
+const automaticRefreshes = new Set();
+const creativeIndices = new Map();
+
+function resetMediaSession() {
+  mediaGeneration++;
+  pendingSniffQueue.clear();
+  clearTimeout(sniffDebounceTimer);
+  cardObserver?.disconnect();
+  adGrid.querySelectorAll('.card-media-box').forEach(box => AdMedia.dispose(box));
+  state.resolvedMediaMap = {};
+  automaticRefreshes.clear();
+  creativeIndices.clear();
+}
+
+function currentMedia(ad) {
+  const media = state.resolvedMediaMap[ad.id] || ad.media;
+  return media?.schemaVersion === 2 ? media : null;
+}
+
+function initializeGridMedia() {
+  for (const ad of state.currentAds || []) {
+    const box = document.getElementById(`media-box-${ad.id}`);
+    if (box && !box.dataset.initialized) renderAdMedia(ad, box);
+  }
+}
+
+function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) {
+  if (!box) return;
+  box.dataset.initialized = 'true';
+  const generation = mediaGeneration;
+  AdMedia.render(box, {
+    adId: String(ad.id), media: currentMedia(ad), index: creativeIndices.get(String(ad.id)) || 0,
+    onIndexChange: index => creativeIndices.set(String(ad.id), index),
+    onRefresh: async manual => {
+      const id = String(ad.id);
+      if (generation !== mediaGeneration || (!manual && automaticRefreshes.has(id))) return null;
+      automaticRefreshes.add(id);
+      const media = await requestAdMedia(ad, true);
+      return generation === mediaGeneration ? media : null;
+    },
+  });
+  if (box.id === 'modalMediaBox' && !currentMedia(ad)) {
+    requestAdMedia(ad).then(() => {
+      if (generation === mediaGeneration && box.isConnected
+          && String(window._currentModalAd?.id) === String(ad.id)) renderAdMedia(ad, box);
+    });
+  }
+}
+
+async function requestAdMedia(ad, forceRefresh = false) {
+  const generation = mediaGeneration;
+  const id = String(ad.id);
+  const key = `${generation}:${id}`;
+  if (mediaRequests.has(key)) return mediaRequests.get(key);
+  const request = (async () => {
+    let media;
+    try {
+      const response = await fetch('/api/sniff-page', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null }], forceRefresh }),
+        signal: AbortSignal.timeout(90000),
+      });
+      if (!response.ok) throw new Error('Preview request failed');
+      const data = await response.json();
+      media = data.mediaMap?.[id];
+      if (!media) throw new Error('Missing preview');
+    } catch {
+      media = { schemaVersion: 2, status: 'retryable_failure', creatives: [], mediaType: 'unknown' };
+    }
+    if (generation === mediaGeneration) {
+      // Keep a surviving poster on refresh failure; the viewer displays the failure separately.
+      if (media.status === 'ready' || !currentMedia(ad)) state.resolvedMediaMap[id] = media;
+      if (media.destinationUrl) {
+        ad.destinationUrl = media.destinationUrl;
+        try { ad.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, ''); } catch {}
+      }
+      if (media.ctaText) ad.ctaText = media.ctaText;
+      const strip = document.getElementById(`card-dest-${id}`);
+      if (strip) {
+        const domain = strip.querySelector('.card-dest-domain');
+        const cta = strip.querySelector('.card-dest-cta');
+        if (domain) { domain.textContent = `🌐 ${ad.displayDomain || 'Website'}`; domain.title = ad.destinationUrl || ''; }
+        if (cta) cta.textContent = `${ad.ctaText || 'Learn More'} ↗`;
+      }
+    }
+    return media;
+  })();
+  mediaRequests.set(key, request);
+  try { return await request; } finally { mediaRequests.delete(key); }
+}
 
 function observeCardsForSniffing() {
+  cardObserver?.disconnect();
+  const queue = ad => {
+    if (!currentMedia(ad)) pendingSniffQueue.add(String(ad.id));
+    scheduleFlushSniffQueue();
+  };
   if (!window.IntersectionObserver) {
-    // Fallback for browsers without IntersectionObserver
-    const pageAds = state.currentAds || [];
-    executeSniffBatch(pageAds.map(a => a.id));
+    (state.currentAds || []).forEach(queue);
     return;
   }
-
-  if (cardObserver) {
-    cardObserver.disconnect();
-  }
-
-  cardObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const adId = entry.target.getAttribute('data-ad-id');
-          if (adId && !state.resolvedMediaMap[adId]) {
-            pendingSniffQueue.add(adId);
-            scheduleFlushSniffQueue();
-          }
-          // Once queued, unobserve this card
-          cardObserver.unobserve(entry.target);
-        }
-      });
-    },
-    {
-      rootMargin: '250px 0px', // Prefetch 250px before entering viewport for instantaneous display
-      threshold: 0.05,
+  cardObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const ad = (state.currentAds || []).find(a => String(a.id) === entry.target.dataset.adId);
+      if (ad) queue(ad);
+      cardObserver.unobserve(entry.target);
     }
-  );
-
-  document.querySelectorAll('.ad-card').forEach((card) => {
-    const adId = card.getAttribute('data-ad-id');
-    const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
-    const hasMedia =
-      state.resolvedMediaMap[adId] ||
-      (ad && ad.media && (ad.media.thumbnailUrl || ad.media.videoUrl));
-
-    if (!hasMedia) {
-      cardObserver.observe(card);
-    }
-  });
+  }, { rootMargin: '250px' });
+  document.querySelectorAll('.ad-card').forEach(card => cardObserver.observe(card));
 }
 
 function scheduleFlushSniffQueue() {
-  if (sniffDebounceTimer) clearTimeout(sniffDebounceTimer);
+  if (sniffRunning) return;
+  clearTimeout(sniffDebounceTimer);
   sniffDebounceTimer = setTimeout(async () => {
-    if (pendingSniffQueue.size === 0) return;
-    const batchIds = Array.from(pendingSniffQueue).slice(0, 4);
-    batchIds.forEach((id) => pendingSniffQueue.delete(id));
-
-    await executeSniffBatch(batchIds);
-
-    if (pendingSniffQueue.size > 0) {
-      scheduleFlushSniffQueue();
+    const generation = mediaGeneration;
+    const ads = (state.currentAds || []).filter(ad => pendingSniffQueue.has(String(ad.id))).slice(0, 2);
+    if (!ads.length) return;
+    sniffRunning = true;
+    ads.forEach(ad => pendingSniffQueue.delete(String(ad.id)));
+    try {
+      await Promise.all(ads.map(async ad => {
+        await requestAdMedia(ad);
+        if (generation === mediaGeneration) renderAdMedia(ad);
+      }));
+    } finally {
+      sniffRunning = false;
+      if (pendingSniffQueue.size) scheduleFlushSniffQueue();
     }
   }, 100);
 }
 
-async function executeSniffBatch(adIds = []) {
-  const needsSniffing = adIds.filter(
-    (id) => !state.resolvedMediaMap[id]
-  );
-
-  if (needsSniffing.length === 0) return;
-
-  try {
-    const payload = needsSniffing.map((id) => {
-      const ad = (state.currentAds || []).find((a) => String(a.id) === String(id));
-      return { id, adSnapshotUrl: ad?.adSnapshotUrl || null };
-    });
-
-    const res = await fetch('/api/sniff-page', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ads: payload }),
-    });
-
-    const data = await res.json();
-    if (data.mediaMap) {
-      Object.assign(state.resolvedMediaMap, data.mediaMap);
-
-      // Visual Deduplication: Ensure no two cards from the same advertiser display the exact same creative
-      const seenMediaKeys = new Map();
-
-      // Index media already present on active page
-      (state.currentAds || []).forEach((a) => {
-        const m = state.resolvedMediaMap[a.id] || a.media;
-        const url = m && (m.videoUrl || m.thumbnailUrl);
-        if (url) {
-          const key = `${(a.pageName || '').toLowerCase()}:::${url}`;
-          if (!seenMediaKeys.has(key)) {
-            seenMediaKeys.set(key, a.id);
-          }
-        }
-      });
-
-      // Patch media & collapse duplicate creative cards
-      for (const [adId, media] of Object.entries(data.mediaMap)) {
-        const mediaUrl = media.videoUrl || media.thumbnailUrl;
-        const ad = (state.currentAds || []).find((a) => String(a.id) === String(adId));
-        const key = ad && mediaUrl ? `${(ad.pageName || '').toLowerCase()}:::${mediaUrl}` : null;
-
-        if (key && seenMediaKeys.has(key) && String(seenMediaKeys.get(key)) !== String(adId)) {
-          // Collapse duplicate visual card into primary card
-          const primaryId = seenMediaKeys.get(key);
-          const duplicateCard = document.getElementById(`ad-card-${adId}`);
-          if (duplicateCard) {
-            duplicateCard.remove();
-          }
-          const primaryCard = document.getElementById(`ad-card-${primaryId}`);
-          if (primaryCard) {
-            const statVal = primaryCard.querySelectorAll('.card-stats-strip .stat-value')[2];
-            if (statVal) {
-              const currentText = statVal.textContent;
-              const match = currentText.match(/\((\d+)\s*ads\)/i);
-              const count = match ? parseInt(match[1], 10) + 1 : 2;
-              statVal.innerHTML = `${statVal.innerHTML.split('(')[0].trim()} (${count} ads)`;
-            }
-          }
-          continue;
-        }
-
-        if (key && !seenMediaKeys.has(key)) {
-          seenMediaKeys.set(key, adId);
-        }
-
-        const box = document.getElementById(`media-box-${adId}`);
-        if (box) {
-          box.innerHTML = buildMediaHtml(adId, media, true);
-        }
-
-        // Update destination and CTA data on the card
-        if (ad) {
-          if (media.destinationUrl) {
-            ad.destinationUrl = media.destinationUrl;
-            try {
-              ad.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
-            } catch (e) {}
-          }
-          if (media.ctaText) {
-            ad.ctaText = media.ctaText;
-          }
-
-          const destStrip = document.getElementById(`card-dest-${adId}`);
-          if (destStrip) {
-            destStrip.innerHTML = `
-              <span class="card-dest-domain" title="${ad.destinationUrl || ad.displayDomain || ''}">🌐 ${ad.displayDomain || 'Website'}</span>
-              <span class="card-dest-cta">${ad.ctaText || 'Learn More'} →</span>
-            `;
-          }
-
-
-        }
-      }
-
-      setupVideoAutoPlay();
-      fetchHealth();
-    }
-  } catch (e) {
-    console.warn('[Sniffer] Batch sniffing notice:', e.message);
-  }
-}
-
-// Backward compatibility alias
-function sniffMediaForCurrentPage(ads) {
-  observeCardsForSniffing();
-}
-
-/**
- * Toggle Video Play / Pause with Visual Feedback
- */
-window.toggleVideoPlay = function (adId) {
-  const video = document.getElementById(`video-${adId}`);
-  const overlay = document.getElementById(`play-overlay-${adId}`);
-  if (video) {
-    if (video.paused) {
-      video.play().catch(() => {});
-      if (overlay) overlay.style.display = 'none';
-    } else {
-      video.pause();
-      if (overlay) overlay.style.display = 'flex';
-    }
-  }
-};
-
-/**
- * Audio Toggle Helper with Exclusive Sound (Only one video sounds at a time)
- */
-window.toggleAudio = function (adId) {
-  const video = document.getElementById(`video-${adId}`);
-  if (video) {
-    if (video.muted) {
-      // Mute all other playing videos
-      document.querySelectorAll('.ad-card video').forEach((v) => {
-        if (v !== video) {
-          v.muted = true;
-          const otherBtn = v.parentElement?.querySelector('.sound-toggle-btn');
-          if (otherBtn) {
-            otherBtn.textContent = '🔇';
-            otherBtn.title = 'Unmute Video Audio';
-            otherBtn.classList.remove('unmuted');
-          }
-        }
-      });
-    }
-
-    video.muted = !video.muted;
-    const btn = document.getElementById(`sound-btn-${adId}`);
-    if (btn) {
-      btn.textContent = video.muted ? '🔇' : '🔊';
-      btn.title = video.muted ? 'Unmute Video Audio' : 'Mute Video Audio';
-      if (!video.muted) btn.classList.add('unmuted');
-      else btn.classList.remove('unmuted');
-    }
-    if (!video.muted && video.paused) {
-      video.play().catch(() => {});
-      const overlay = document.getElementById(`play-overlay-${adId}`);
-      if (overlay) overlay.style.display = 'none';
-    }
-  }
-};
+function sniffMediaForCurrentPage() { observeCardsForSniffing(); }
 
 /**
  * Flip between tested variants directly on the card (Grid carousel)
@@ -939,8 +751,8 @@ window.closeVariantsModal = function (e) {
   const modal = document.getElementById('variantsModal');
   if (modal) modal.style.display = 'none';
   document.body.style.overflow = '';
-  const v = modal ? modal.querySelector('video') : null;
-  if (v) v.pause();
+  const mediaBox = document.getElementById('modalMediaBox');
+  if (mediaBox) AdMedia.dispose(mediaBox);
 };
 
 window.switchModalVariant = function (idx) {
@@ -964,30 +776,9 @@ function renderModalContent(ad, activeIdx = 0) {
   }];
 
   const currentVariant = variants[activeIdx] || variants[0];
-  const cachedMedia = state.resolvedMediaMap[ad.id] || ad.media;
-
-  // Media HTML for Modal Left Col
-  let mediaHtml = '';
-  if (cachedMedia && cachedMedia.videoUrl) {
-    mediaHtml = `
-      <div class="modal-media-wrap">
-        <video src="${cachedMedia.videoUrl}" poster="${cachedMedia.thumbnailUrl || ''}" controls playsinline autoplay loop></video>
-      </div>
-    `;
-  } else if (cachedMedia && cachedMedia.thumbnailUrl) {
-    mediaHtml = `
-      <div class="modal-media-wrap">
-        <img src="${cachedMedia.thumbnailUrl}" alt="${ad.pageName} Ad Creative" loading="lazy" />
-      </div>
-    `;
-  } else {
-    mediaHtml = `
-      <div class="modal-media-wrap" style="padding: 40px; text-align: center; color: var(--text-muted);">
-        <div style="font-size: 2.5rem; margin-bottom: 8px;">🎬</div>
-        <p style="font-size: 0.85rem;">Media preview loading or static creative</p>
-      </div>
-    `;
-  }
+  const oldMediaBox = document.getElementById('modalMediaBox');
+  if (oldMediaBox) AdMedia.dispose(oldMediaBox);
+  const mediaHtml = '<div class="modal-media-wrap" id="modalMediaBox"></div>';
 
   // Build Variant Tabs
   let variantTabsHtml = '';
@@ -1109,4 +900,5 @@ function renderModalContent(ad, activeIdx = 0) {
       </div>
     </div>
   `;
+  renderAdMedia(ad, document.getElementById('modalMediaBox'));
 }

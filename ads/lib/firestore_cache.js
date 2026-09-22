@@ -1,242 +1,108 @@
-/**
- * Persistent Zero-Cost Media Cache (Firestore Native + In-Memory + Disk Fallback)
- * Ascendant Labs / Media Sniffing Optimization Engine
- * 
- * Features:
- * - Backed by Google Cloud Firestore (Always Free Tier: 50,000 reads / 20,000 writes per day)
- * - In-memory LRU cache for 0ms sub-millisecond local reads
- * - Automatic URL expiration check (?oe= hex timestamp)
- * - Seamless fallback to local JSON cache (media_cache.json) if Firestore is unreachable
- * - Batch operations via Firestore getAll() for minimal latency
- */
-
+/** Short-lived cache of ad-bound media descriptors (not media bytes). */
 const fs = require('fs');
 const path = require('path');
 const { Firestore } = require('@google-cloud/firestore');
+const { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, mediaResult, isAvatarUrl, isUrlExpired } = require('./media_resolver');
 
 const CACHE_DIR = path.resolve(__dirname, '../.cache');
 const FALLBACK_CACHE_FILE = path.join(CACHE_DIR, 'media_cache.json');
 const COLLECTION_NAME = 'ad_media_cache';
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ascendant-labs-45812';
-
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-}
-
-// In-memory cache for 0ms local reads
 const memoryCache = new Map();
-let firestoreInstance = null;
-let firestoreAvailable = null; // null = untested, true = connected, false = fallback
+let firestoreInstance;
+let retryFirestoreAt = 0;
 
-function isAvatarUrl(url) {
-  if (!url) return false;
-  return /s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\.82787|_8nqq/i.test(url);
-}
-
-/**
- * Check if a Meta signed CDN URL has expired (oe= parameter is a hex timestamp)
- */
-function isUrlExpired(url) {
-  if (!url) return false;
-  const match = url.match(/[?&]oe=([0-9a-fA-F]+)/);
-  if (match) {
-    const expirySec = parseInt(match[1], 16);
-    if (!isNaN(expirySec) && (Date.now() / 1000) > (expirySec - 3600)) {
-      return true; // Expired or expiring within 1 hour
-    }
-  }
-  return false;
+function normalizeCacheEntry(entry, now = Date.now()) {
+  // Old entries were selected from unscoped network traffic; do not perpetuate them.
+  if (!entry || entry.schemaVersion !== MEDIA_SCHEMA_VERSION || !Number.isFinite(entry.cachedAt)
+      || now - entry.cachedAt > MEDIA_CACHE_TTL_MS || entry.cachedAt > now + 60000) return null;
+  const items = (entry.creatives || [entry]).map(c => ({ ...c,
+    thumbnailUrl: isUrlExpired(c.thumbnailUrl, now) ? null : c.thumbnailUrl,
+    imageSources: (c.imageSources || []).filter(u => !isUrlExpired(u, now)),
+    videoUrl: isUrlExpired(c.videoUrl, now) ? null : c.videoUrl,
+    videoSources: (c.videoSources || []).filter(u => !isUrlExpired(u, now)),
+  }));
+  const media = mediaResult(items, entry.source);
+  return media.status === 'ready' ? { ...media, cachedAt: entry.cachedAt } : null;
 }
 
 function getFirestore() {
-  if (!firestoreInstance) {
-    try {
-      firestoreInstance = new Firestore({
-        projectId: PROJECT_ID,
-      });
-    } catch (err) {
-      console.warn('[FirestoreCache] Failed to initialize Firestore client, using local cache fallback:', err.message);
-      firestoreAvailable = false;
-    }
-  }
+  if (process.env.MEDIA_FIRESTORE_DISABLED === '1' || Date.now() < retryFirestoreAt) return null;
+  if (!firestoreInstance) firestoreInstance = new Firestore({ projectId: PROJECT_ID });
   return firestoreInstance;
 }
-
-// Load local fallback cache
-function loadLocalFallback() {
-  if (fs.existsSync(FALLBACK_CACHE_FILE)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(FALLBACK_CACHE_FILE, 'utf8'));
-      for (const [id, entry] of Object.entries(data)) {
-        if (!isUrlExpired(entry.thumbnailUrl) && !isUrlExpired(entry.videoUrl)) {
-          memoryCache.set(String(id), entry);
-        }
-      }
-    } catch (e) {}
+function remember(id, entry) {
+  memoryCache.delete(id);
+  memoryCache.set(id, entry);
+  while (memoryCache.size > 500) memoryCache.delete(memoryCache.keys().next().value);
+}
+try {
+  const entries = JSON.parse(fs.readFileSync(FALLBACK_CACHE_FILE, 'utf8'));
+  for (const [id, raw] of Object.entries(entries)) {
+    const entry = normalizeCacheEntry(raw);
+    if (entry) remember(id, entry);
   }
-}
-loadLocalFallback();
+} catch { /* First run or unreadable local cache. */ }
 
-function saveLocalFallback() {
-  try {
-    const obj = {};
-    for (const [k, v] of memoryCache.entries()) {
-      obj[k] = v;
-    }
-    fs.writeFileSync(FALLBACK_CACHE_FILE, JSON.stringify(obj, null, 2), 'utf8');
-  } catch (e) {}
-}
-
-/**
- * Retrieve cached media for a list of ad IDs
- * @param {string[]} adIds
- * @returns {Promise<Record<string, { thumbnailUrl: string, videoUrl: string, mediaType: string }>>}
- */
 async function getCachedMediaBatch(adIds = []) {
   const results = {};
-  const missingFromMemory = [];
-
-  // 1. Check in-memory cache first (0ms)
-  for (const adId of adIds) {
-    const idStr = String(adId);
-    if (memoryCache.has(idStr)) {
-      const entry = memoryCache.get(idStr);
-      if (
-        (entry.thumbnailUrl && isAvatarUrl(entry.thumbnailUrl)) ||
-        isUrlExpired(entry.thumbnailUrl) ||
-        isUrlExpired(entry.videoUrl)
-      ) {
-        memoryCache.delete(idStr);
-        missingFromMemory.push(idStr);
-      } else {
-        results[idStr] = entry;
-      }
-    } else {
-      missingFromMemory.push(idStr);
-    }
+  const missing = [];
+  for (const id of [...new Set(adIds.map(String))]) {
+    const entry = normalizeCacheEntry(memoryCache.get(id));
+    if (entry) { remember(id, entry); results[id] = entry; }
+    else { memoryCache.delete(id); missing.push(id); }
   }
-
-  if (missingFromMemory.length === 0) {
-    return results;
-  }
-
-  // 2. Query Firestore for missing items
-  const db = getFirestore();
-  if (db && firestoreAvailable !== false) {
+  const db = missing.length ? getFirestore() : null;
+  if (db) {
     try {
-      const refs = missingFromMemory.map(id => db.collection(COLLECTION_NAME).doc(id));
-      // Chunk into 30 docs max for getAll
-      const chunkSize = 30;
-      for (let i = 0; i < refs.length; i += chunkSize) {
-        const chunk = refs.slice(i, i + chunkSize);
-        const docs = await db.getAll(...chunk);
-        
+      for (let i = 0; i < missing.length; i += 30) {
+        const docs = await db.getAll(...missing.slice(i, i + 30).map(id => db.collection(COLLECTION_NAME).doc(id)));
         for (const doc of docs) {
-          if (doc.exists) {
-            const data = doc.data();
-            const id = doc.id;
-            const isBad = (data.thumbnailUrl && isAvatarUrl(data.thumbnailUrl)) ||
-                          isUrlExpired(data.thumbnailUrl) ||
-                          isUrlExpired(data.videoUrl);
-
-            if (!isBad && data.mediaType !== 'unknown') {
-              const entry = {
-                thumbnailUrl: data.thumbnailUrl || null,
-                videoUrl: data.videoUrl || null,
-                mediaType: data.mediaType || 'unknown',
-                destinationUrl: data.destinationUrl || null,
-                ctaText: data.ctaText || null,
-                cachedAt: data.cachedAt || Date.now(),
-              };
-              results[id] = entry;
-              memoryCache.set(id, entry);
-            }
-          }
+          const entry = doc.exists && normalizeCacheEntry(doc.data());
+          if (entry) { remember(doc.id, entry); results[doc.id] = entry; }
         }
       }
-      firestoreAvailable = true;
-    } catch (err) {
-      console.warn('[FirestoreCache] Firestore read notice, falling back to memory/local:', err.message);
-      firestoreAvailable = false;
+    } catch {
+      retryFirestoreAt = Date.now() + 60000;
+      console.warn('[MediaCache] Firestore unavailable; using local cache for one minute.');
     }
   }
-
   return results;
 }
 
-/**
- * Save media entries to cache (In-memory + Firestore + Local fallback)
- * @param {Record<string, { thumbnailUrl: string, videoUrl: string, mediaType: string, destinationUrl?: string, ctaText?: string }>>} entries
- */
 async function saveMediaBatch(entries = {}) {
-  const entriesToSave = Object.entries(entries).filter(([_, m]) => m && m.mediaType !== 'unknown');
-  if (entriesToSave.length === 0) return;
-
-  // 1. Update in-memory & local fallback
-  for (const [id, media] of entriesToSave) {
-    const entry = {
-      thumbnailUrl: media.thumbnailUrl || null,
-      videoUrl: media.videoUrl || null,
-      mediaType: media.mediaType,
-      destinationUrl: media.destinationUrl || null,
-      ctaText: media.ctaText || null,
-      cachedAt: Date.now(),
-    };
-    memoryCache.set(String(id), entry);
+  const valid = [];
+  for (const [id, media] of Object.entries(entries)) {
+    const entry = normalizeCacheEntry({ ...media, cachedAt: Date.now() });
+    if (entry) { remember(String(id), entry); valid.push([String(id), entry]); }
   }
-  saveLocalFallback();
-
-  // 2. Write to Firestore in batches
+  if (!valid.length) return;
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(FALLBACK_CACHE_FILE, JSON.stringify(Object.fromEntries(memoryCache)), 'utf8');
+  } catch { /* Disk cache is optional on ephemeral workers. */ }
   const db = getFirestore();
-  if (db && firestoreAvailable !== false) {
+  if (db) {
     try {
-      const batch = db.batch();
-      for (const [id, media] of entriesToSave) {
-        const docRef = db.collection(COLLECTION_NAME).doc(String(id));
-        batch.set(docRef, {
-          adId: String(id),
-          thumbnailUrl: media.thumbnailUrl || null,
-          videoUrl: media.videoUrl || null,
-          mediaType: media.mediaType,
-          destinationUrl: media.destinationUrl || null,
-          ctaText: media.ctaText || null,
-          cachedAt: Date.now(),
-        }, { merge: true });
+      for (let i = 0; i < valid.length; i += 400) {
+        const batch = db.batch();
+        for (const [id, entry] of valid.slice(i, i + 400)) batch.set(db.collection(COLLECTION_NAME).doc(id), { ...entry, adId: id });
+        await batch.commit();
       }
-      await batch.commit();
-      firestoreAvailable = true;
-    } catch (err) {
-      console.warn('[FirestoreCache] Firestore write notice (cached locally):', err.message);
+    } catch {
+      retryFirestoreAt = Date.now() + 60000;
+      console.warn('[MediaCache] Firestore write unavailable; descriptors saved locally.');
     }
   }
 }
 
-/**
- * Diagnostic connection test
- */
 async function testConnection() {
   const db = getFirestore();
-  if (!db) return { success: false, reason: 'Client uninitialized' };
+  if (!db) return { success: false, reason: 'Cache storage temporarily unavailable' };
   try {
-    const testDoc = db.collection(COLLECTION_NAME).doc('healthcheck_test');
-    await testDoc.set({ ping: Date.now() });
-    const snap = await testDoc.get();
-    return {
-      success: true,
-      exists: snap.exists,
-      data: snap.data(),
-      projectId: PROJECT_ID,
-    };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
+    await db.collection(COLLECTION_NAME).limit(1).get();
+    return { success: true, projectId: PROJECT_ID };
+  } catch { return { success: false, reason: 'Firestore read failed' }; }
 }
-
-module.exports = {
-  getCachedMediaBatch,
-  saveMediaBatch,
-  testConnection,
-  isUrlExpired,
-  isAvatarUrl,
-  memoryCache,
-};
+module.exports = { getCachedMediaBatch, saveMediaBatch, testConnection, normalizeCacheEntry,
+  isUrlExpired, isAvatarUrl, memoryCache };

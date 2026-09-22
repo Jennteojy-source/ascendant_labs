@@ -2,6 +2,7 @@
   "name": "ascendant-labs",
   "private": true,
   "scripts": {
+    "test:media": "node --test ads/tests/media.test.js ads/tests/media-browser.test.js",
     "spy": "node ads/affiliate_spy_engine.js",
     "video:ad": "node ads/video_ad_generator.js",
     "ads": "node ads/meta_marketing_api.js",

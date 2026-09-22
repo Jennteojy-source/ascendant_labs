@@ -106,6 +106,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && pathname === '/app.js') {
       return serveStatic(res, path.join(WEB_DIR, 'app.js'), 'application/javascript');
     }
+    if (req.method === 'GET' && pathname === '/media.js') {
+      return serveStatic(res, path.join(WEB_DIR, 'media.js'), 'application/javascript');
+    }
     if (req.method === 'GET' && pathname.startsWith('/assets/logos/')) {
       const fileName = path.basename(pathname);
       const filePath = path.join(WEB_DIR, 'assets/logos', fileName);
@@ -221,7 +224,6 @@ const server = http.createServer(async (req, res) => {
       const allAdIds = (rankedAds || []).map(a => String(a.id));
       const mediaCache = await getCachedMediaBatch(allAdIds);
       const uniqueVisualAds = [];
-      const seenMediaPerAdvertiser = new Set();
 
       for (const item of rankedAds) {
         if (mediaCache[item.id]) {
@@ -235,76 +237,12 @@ const server = http.createServer(async (req, res) => {
           if (item.media.ctaText) {
             item.ctaText = item.media.ctaText;
           }
-          const mediaKey = item.media.videoUrl || item.media.thumbnailUrl;
-          if (mediaKey) {
-            const advMediaId = `${(item.pageName || '').toLowerCase()}:::${mediaKey}`;
-            if (seenMediaPerAdvertiser.has(advMediaId)) {
-              const existing = uniqueVisualAds.find(a => `${(a.pageName || '').toLowerCase()}:::${(a.media?.videoUrl || a.media?.thumbnailUrl)}` === advMediaId);
-              if (existing) {
-                existing.variantCount = (existing.variantCount || 1) + 1;
-                existing.associatedAdIds = existing.associatedAdIds || [existing.id];
-                existing.associatedAdIds.push(item.id);
-              }
-              continue;
-            }
-            seenMediaPerAdvertiser.add(advMediaId);
-          }
         }
         uniqueVisualAds.push(item);
       }
 
-      // GCP Compute Pre-Warming: Pre-sniff top above-the-fold uncached ads
-      const topAdsToPrewarm = uniqueVisualAds
-        .slice(0, 3)
-        .filter((a) => !a.media?.videoUrl && !a.media?.thumbnailUrl);
-
-      if (topAdsToPrewarm.length > 0) {
-        logger.info('Pre-warming top above-the-fold ads on GCP Cloud Run', {
-          count: topAdsToPrewarm.length,
-          adIds: topAdsToPrewarm.map((a) => a.id),
-        });
-        try {
-          const prewarmStart = Date.now();
-          const resolvedMedia = await Promise.race([
-            sniffPageMedia(topAdsToPrewarm),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Prewarm timeout')), 2400)),
-          ]);
-          if (resolvedMedia) {
-            for (const [adId, media] of Object.entries(resolvedMedia)) {
-              const matchedAd = uniqueVisualAds.find((a) => String(a.id) === String(adId));
-              if (matchedAd && media && media.mediaType !== 'unknown') {
-                matchedAd.media = media;
-                if (media.destinationUrl) {
-                  matchedAd.destinationUrl = media.destinationUrl;
-                  try {
-                    matchedAd.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
-                  } catch (e) {}
-                }
-                if (media.ctaText) matchedAd.ctaText = media.ctaText;
-              }
-            }
-          }
-          logger.info('GCP pre-warming finished', {
-            durationMs: Date.now() - prewarmStart,
-            resolved: Object.keys(resolvedMedia || {}).length,
-          });
-        } catch (pwErr) {
-          logger.info('GCP pre-warming yielded to search response (continuing in background)', {
-            reason: pwErr.message,
-          });
-        }
-      }
-
-      // Background Pre-Warming: Asynchronously resolve next 5 ads
-      const backgroundAdsToPrewarm = uniqueVisualAds
-        .slice(3, 8)
-        .filter((a) => !a.media?.videoUrl && !a.media?.thumbnailUrl);
-
-      if (backgroundAdsToPrewarm.length > 0) {
-        sniffPageMedia(backgroundAdsToPrewarm).catch((err) => {
-          logger.info('Background GCP prewarm finished', { error: err.message });
-        });
-      }
+      // Visible cards request media through /api/sniff-page. Avoid speculative browser
+      // work here: it competes with visible previews and can outlive this request.
 
       // Paginate
       const paginated = paginateAds(uniqueVisualAds, page, pageSize);
@@ -401,6 +339,9 @@ const server = http.createServer(async (req, res) => {
       if (!Array.isArray(ads) || ads.length === 0) {
         return sendJson(res, 400, { error: 'Missing or empty "ads" array' });
       }
+      if (ads.length > 10 || ads.some(ad => !ad || !/^\d{1,40}$/.test(String(ad.id)))) {
+        return sendJson(res, 400, { error: 'Provide up to 10 valid Ad Library IDs' });
+      }
 
       logger.info('Media sniffing batch started', {
         batchSize: ads.length,
@@ -408,7 +349,7 @@ const server = http.createServer(async (req, res) => {
       });
 
       // Sniff media for up to 10 ads on the active page
-      const mediaMap = await sniffPageMedia(ads.slice(0, 10));
+      const mediaMap = await sniffPageMedia(ads, { forceRefresh: body.forceRefresh === true });
 
       logger.info('Media sniffing batch completed', {
         resolvedCount: Object.keys(mediaMap).length,
