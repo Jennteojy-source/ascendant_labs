@@ -47,23 +47,7 @@ const prevPageBtn = document.getElementById('prevPageBtn');
 const nextPageBtn = document.getElementById('nextPageBtn');
 const pageNumbersList = document.getElementById('pageNumbersList');
 
-// Modal Elements
-const adModal = document.getElementById('adModal');
-const modalCloseBtn = document.getElementById('modalCloseBtn');
-const modalBrandAvatar = document.getElementById('modalBrandAvatar');
-const modalPageName = document.getElementById('modalPageName');
-const modalVerifiedBadge = document.getElementById('modalVerifiedBadge');
-const modalAdId = document.getElementById('modalAdId');
-const modalMediaWrap = document.getElementById('modalMediaWrap');
-const modalStatsRow = document.getElementById('modalStatsRow');
-const modalHeadline = document.getElementById('modalHeadline');
-const modalBodyText = document.getElementById('modalBodyText');
-const modalLibraryLink = document.getElementById('modalLibraryLink');
 
-// Destination Elements
-const modalDestUrlText = document.getElementById('modalDestUrlText');
-const modalVisitDestBtn = document.getElementById('modalVisitDestBtn');
-const modalVisitDestBtnText = document.getElementById('modalVisitDestBtnText');
 
 // Initialize Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -84,18 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.currentPage < state.totalPages) changePage(state.currentPage + 1);
   });
 
-  // Modal interactions
-  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
-  if (adModal) {
-    adModal.addEventListener('click', (e) => {
-      if (e.target === adModal) closeModal();
-    });
-  }
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && adModal && adModal.style.display === 'flex') {
-      closeModal();
-    }
-  });
+
 });
 
 async function fetchHealth() {
@@ -328,7 +301,23 @@ function renderAdGrid(ads) {
       relBadge = `<span class="relevance-tag comp-tag">Competitor</span>`;
     }
 
-    const angleText = ad.aiAnalysis?.creativeAngle || ad.copy?.primaryHook || 'Direct-Response';
+    // Build platforms string from raw Meta data
+    const platforms = (ad.stats?.platforms || ['facebook', 'instagram'])
+      .map(p => {
+        const clean = p.toLowerCase().replace('_', ' ');
+        if (clean.includes('facebook')) return 'Facebook';
+        if (clean.includes('instagram')) return 'Instagram';
+        if (clean.includes('audience')) return 'Audience Network';
+        if (clean.includes('messenger')) return 'Messenger';
+        return clean.charAt(0).toUpperCase() + clean.slice(1);
+      })
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .join(', ');
+
+    // Format start date from raw Meta data
+    const startDate = ad.stats?.startDate
+      ? new Date(ad.stats.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
 
     card.innerHTML = `
       <div class="card-header">
@@ -359,28 +348,29 @@ function renderAdGrid(ads) {
           </span>
         </div>
         <div class="stat-item">
+          <span class="stat-label">Platforms</span>
+          <span class="stat-value">${platforms}</span>
+        </div>
+        <div class="stat-item">
           <span class="stat-label">Regions</span>
           <span class="stat-value">
             ${(ad.stats.countries || []).join(', ') || 'Global'}
           </span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Reach</span>
-          <span class="stat-value">
-            ${ad.stats.scaleTier.includes('High') ? 'Top Performer' : (ad.stats.scaleTier.includes('Mid') ? 'Active Run' : 'Recent')}${ad.variantCount > 1 ? ` (${ad.variantCount} ads)` : ''}
-          </span>
-        </div>
       </div>
 
+      ${startDate ? `<div class="card-meta-row"><span class="meta-label">Started:</span> <span class="meta-value">${startDate}</span>${ad.variantCount > 1 ? ` · <span class="meta-value">${ad.variantCount} ad variants</span>` : ''}</div>` : ''}
+
       <div class="card-copy-content">
-        <span class="hook-archetype-pill">${angleText}</span>
         ${ad.copy.headline ? `<h4 class="ad-headline">${ad.copy.headline}</h4>` : ''}
         <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body}</p>
         ${ad.copy.body.length > 110 ? `<button class="show-more-btn" onclick="toggleCopy('${ad.id}')">Read more</button>` : ''}
       </div>
 
       <div class="card-footer">
-        <button class="view-ad-btn" onclick="openModalById('${ad.id}')">View Details</button>
+        <a href="${ad.adLibraryUrl || '#'}" target="_blank" rel="noopener noreferrer" class="view-ad-btn" onclick="event.stopPropagation()">
+          View in Ad Library ↗
+        </a>
       </div>
     `;
 
@@ -389,9 +379,6 @@ function renderAdGrid(ads) {
       const v = card.querySelector('video');
       if (v && v.paused) v.play().catch(() => {});
     });
-
-    // Clicking media opens the inspection modal
-    card.querySelector('.card-media-box').addEventListener('click', () => openModal(ad));
 
     adGrid.appendChild(card);
   });
@@ -652,10 +639,7 @@ async function executeSniffBatch(adIds = []) {
             `;
           }
 
-          // If modal is actively inspecting this ad, refresh modal contents
-          if (adModal.style.display === 'flex' && adModal.getAttribute('data-active-id') === String(adId)) {
-            openModal(ad);
-          }
+
         }
       }
 
@@ -734,8 +718,6 @@ window.openOutboundUrl = function (adId) {
   const url = ad?.destinationUrl || (state.resolvedMediaMap[adId]?.destinationUrl);
   if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
     window.open(url, '_blank', 'noopener,noreferrer');
-  } else {
-    openModalById(adId);
   }
 };
 
@@ -782,193 +764,6 @@ function changePage(newPage) {
   window.scrollTo({ top: 380, behavior: 'smooth' });
 }
 
-/**
- * Modal Inspection (2-Column Split)
- */
-window.openModalById = function (adId) {
-  const ad = (state.currentAds || []).find(a => String(a.id) === String(adId));
-  if (ad) openModal(ad);
-};
-
-function openModal(ad) {
-  adModal.setAttribute('data-active-id', String(ad.id));
-  
-  // 1. Header Information
-  if (modalBrandAvatar) {
-    modalBrandAvatar.textContent = (ad.pageName || 'A').charAt(0).toUpperCase();
-  }
-  if (modalPageName) modalPageName.textContent = ad.pageName;
-  if (modalAdId) modalAdId.textContent = `ID: ${ad.id}`;
-  if (modalLibraryLink) modalLibraryLink.href = ad.adLibraryUrl;
-
-  const media = state.resolvedMediaMap[ad.id] || ad.media;
-  const destUrl = (media && media.destinationUrl) || ad.destinationUrl || '';
-  const cta = (media && media.ctaText) || ad.ctaText || 'Learn More';
-  
-  let domain = ad.displayDomain || '';
-  if (!domain && destUrl) {
-    try {
-      domain = new URL(destUrl).hostname.replace(/^www\./, '');
-    } catch (e) {}
-  }
-  if (!domain) {
-    domain = ad.copy?.caption || ad.pageName || 'Website';
-  }
-
-  // 2. Intelligent Copy & Messaging Deduplication
-  const rawHeadline = (ad.copy?.headline || '').trim();
-  const rawBody = (ad.copy?.body || '').trim();
-  const pageName = (ad.pageName || '').trim();
-
-  let cleanDomain = '';
-  if (destUrl) {
-    try {
-      cleanDomain = new URL(destUrl).hostname.replace(/^www\./, '');
-    } catch (e) {}
-  } else if (domain) {
-    cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-  }
-
-  const normHeadline = rawHeadline.toLowerCase().replace(/https?:\/\//, '').replace(/\/$/, '').trim();
-  const normBody = rawBody.toLowerCase().trim();
-  const normPage = pageName.toLowerCase().trim();
-  const normDomain = cleanDomain.toLowerCase().trim();
-
-  // Deduplicate:
-  // - If headline is generic placeholder ("no headline")
-  // - If headline is identical to body
-  // - If headline is identical to brand/page name
-  // - If headline is identical to domain or URL
-  // - If body contains headline or starts with headline
-  const isDuplicateHeadline = !rawHeadline || 
-    rawHeadline.toLowerCase() === 'no headline' ||
-    normHeadline === normBody ||
-    normHeadline === normPage ||
-    (normDomain && (normHeadline === normDomain || normHeadline.includes(normDomain))) ||
-    normBody.includes(normHeadline) ||
-    (normHeadline.length > 6 && normBody.startsWith(normHeadline.slice(0, 15)));
-
-  if (!isDuplicateHeadline) {
-    modalHeadline.textContent = rawHeadline;
-    modalHeadline.style.display = 'block';
-  } else {
-    modalHeadline.textContent = '';
-    modalHeadline.style.display = 'none';
-  }
-
-  if (rawBody) {
-    modalBodyText.textContent = rawBody;
-    modalBodyText.style.display = 'block';
-  } else if (rawHeadline && !isDuplicateHeadline) {
-    modalBodyText.textContent = rawHeadline;
-    modalBodyText.style.display = 'block';
-  } else {
-    modalBodyText.textContent = '';
-    modalBodyText.style.display = 'none';
-  }
-
-  // 3. Simple & Clean Destination Link
-  if (modalDestUrlText) {
-    let displayUrl = '';
-    if (destUrl) {
-      try {
-        const u = new URL(destUrl);
-        displayUrl = u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : '');
-      } catch (e) {
-        displayUrl = destUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
-      }
-    } else if (domain) {
-      displayUrl = domain;
-    } else {
-      displayUrl = 'Meta Ad Library';
-    }
-    if (displayUrl.length > 42) {
-      displayUrl = displayUrl.slice(0, 39) + '...';
-    }
-    modalDestUrlText.textContent = displayUrl;
-    modalDestUrlText.title = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
-  }
-
-  if (modalVisitDestBtn) {
-    modalVisitDestBtn.href = destUrl || (domain ? `https://${domain}` : ad.adLibraryUrl);
-  }
-
-  if (modalVisitDestBtnText) {
-    modalVisitDestBtnText.textContent = cta || 'Visit Site';
-  }
-
-  // 4. Campaign Stats & Details
-  const platforms = (ad.stats?.platforms || ['facebook', 'instagram'])
-    .map(p => {
-      const clean = p.toLowerCase().replace('_', ' ');
-      if (clean.includes('facebook')) return 'FB';
-      if (clean.includes('instagram')) return 'IG';
-      if (clean.includes('audience')) return 'Audience';
-      if (clean.includes('messenger')) return 'Messenger';
-      if (clean.includes('threads')) return 'Threads';
-      return clean.charAt(0).toUpperCase() + clean.slice(1);
-    })
-    .filter((v, i, a) => a.indexOf(v) === i)
-    .join(', ');
-
-  const flightDays = ad.stats?.flightDays ?? 0;
-  const statusHtml = ad.stats?.isActive
-    ? `<span class="spec-status active">🟢 Active (${flightDays}d)</span>`
-    : `<span class="spec-status ended">⚪ Ended (${flightDays}d)</span>`;
-
-  const tierText = (ad.stats?.scaleTier || '').includes('High')
-    ? '🔥 Top Scaler'
-    : ((ad.stats?.scaleTier || '').includes('Mid') ? 'Active Run' : 'Standard');
-
-  if (modalStatsRow) {
-    modalStatsRow.innerHTML = `
-      <div class="modal-spec-chip">
-        <span class="spec-chip-label">Status</span>
-        <span class="spec-chip-val">${statusHtml}</span>
-      </div>
-      <div class="modal-spec-chip">
-        <span class="spec-chip-label">Longevity</span>
-        <span class="spec-chip-val">${tierText}</span>
-      </div>
-      <div class="modal-spec-chip">
-        <span class="spec-chip-label">Platforms</span>
-        <span class="spec-chip-val">${platforms || 'FB, IG'}</span>
-      </div>
-      <div class="modal-spec-chip">
-        <span class="spec-chip-label">Regions</span>
-        <span class="spec-chip-val">${(ad.stats?.countries || []).join(', ').toUpperCase() || 'Global'}</span>
-      </div>
-    `;
-  }
-
-  // 5. Clean Media Showcase (No download buttons, no extra toolbars)
-  if (media && media.videoUrl) {
-    const backdrop = media.thumbnailUrl ? `<div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>` : '';
-    modalMediaWrap.innerHTML = `
-      ${backdrop}
-      <video src="${media.videoUrl}" poster="${media.thumbnailUrl || ''}" controls autoplay playsinline referrerpolicy="no-referrer"></video>
-    `;
-  } else if (media && media.thumbnailUrl) {
-    modalMediaWrap.innerHTML = `
-      <div class="media-backdrop" style="background-image: url('${media.thumbnailUrl}')"></div>
-      <img src="${media.thumbnailUrl}" alt="${ad.pageName}" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=\\'shimmer-placeholder static-preview\\'><span>Meta Ad Snapshot</span></div>'" />
-    `;
-  } else {
-    modalMediaWrap.innerHTML = `
-      <div class="shimmer-placeholder static-preview"><span>Meta Ad Creative Preview</span></div>
-    `;
-  }
-
-  adModal.style.display = 'flex';
-  document.body.classList.add('modal-open');
-}
-
-function closeModal() {
-  adModal.style.display = 'none';
-  adModal.removeAttribute('data-active-id');
-  modalMediaWrap.innerHTML = '';
-  document.body.classList.remove('modal-open');
-}
 
 window.copyToClipboard = function (text, btnElement, successMsg = '✅ Copied!') {
   if (!text) return;
