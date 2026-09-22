@@ -263,17 +263,6 @@ function renderAdGrid(ads) {
 
     const statusClass = ad.stats.isActive ? 'active' : 'inactive';
     const statusText = ad.stats.isActive ? 'Active' : 'Inactive';
-    const rel = ad.ranking?.relationship || ad.ranking?.relevanceType;
-    let relBadge = '';
-    if (rel === 'OFFICIAL_BRAND' || rel === 'DIRECT_BRAND') {
-      relBadge = `<span class="relevance-tag official-tag">Official Brand</span>`;
-    } else if (rel === 'REVIEW_EDITORIAL') {
-      relBadge = `<span class="relevance-tag review-tag">Review / Editorial</span>`;
-    } else if (rel === 'AFFILIATE_PARTNER' || rel === 'BRAND_AFFILIATE') {
-      relBadge = `<span class="relevance-tag affiliate-tag">Affiliate / Partner</span>`;
-    } else if (rel && rel !== 'UNRELATED') {
-      relBadge = `<span class="relevance-tag affiliate-tag">Product Ad</span>`;
-    }
 
     // Country Flag Mapper
     const countryFlagMap = {
@@ -317,17 +306,6 @@ function renderAdGrid(ads) {
       ? new Date(ad.stats.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : '';
 
-    // Impression Tier Badge (High Impression vs Low Impression)
-    const impTier = (ad.stats?.impressionTier || ad.stats?.scaleTier || '').toLowerCase();
-    let impressionBadge = '';
-    if (impTier.includes('high') || (ad.stats?.euTotalReach && ad.stats.euTotalReach >= 10000) || ad.stats?.flightDays >= 21) {
-      impressionBadge = `<span class="impression-badge high-imp" title="High Impression / Scaled Winning Ad">🔥 High Impression</span>`;
-    } else if (impTier.includes('low') || ad.stats?.flightDays <= 5) {
-      impressionBadge = `<span class="impression-badge low-imp" title="Low impression testing ad">📉 Low Impression</span>`;
-    } else {
-      impressionBadge = `<span class="impression-badge mid-imp" title="Active scaling ad">⚡ Moderate Scale</span>`;
-    }
-
     // Format EU Reach (ONLY display when available and > 0)
     const rawEuReach = ad.stats?.euTotalReach || ad.stats?.euReach;
     const hasEuReach = rawEuReach && !isNaN(rawEuReach) && Number(rawEuReach) > 0;
@@ -345,14 +323,10 @@ function renderAdGrid(ads) {
       <div class="card-header">
         <div class="advertiser-info">
           <span class="advertiser-name" title="${ad.pageName}">${ad.pageName}</span>
-          ${relBadge}
         </div>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          ${impressionBadge}
-          <div class="card-status-badge ${statusClass}">
-            <span class="status-dot"></span>
-            ${statusText}
-          </div>
+        <div class="card-status-badge ${statusClass}">
+          <span class="status-dot"></span>
+          ${statusText}
         </div>
       </div>
 
@@ -396,9 +370,9 @@ function renderAdGrid(ads) {
         </div>
       </div>
 
-      <!-- In-Card Variant Carousel Controller (Flips directly on the grid — no modal) -->
-      <div class="card-variant-carousel-bar">
-        ${variantCount > 1 ? `
+      <!-- In-Card Variant Carousel Controller (Shown only when multiple variants exist) -->
+      ${variantCount > 1 ? `
+        <div class="card-variant-carousel-bar">
           <div class="variant-carousel-nav">
             <button type="button" class="variant-nav-arrow" onclick="event.stopPropagation(); flipCardVariant('${ad.id}', -1)" title="Previous copy variant" aria-label="Previous variant">‹</button>
             <span class="variant-step-counter" id="var-counter-${ad.id}">
@@ -406,13 +380,8 @@ function renderAdGrid(ads) {
             </span>
             <button type="button" class="variant-nav-arrow" onclick="event.stopPropagation(); flipCardVariant('${ad.id}', 1)" title="Next copy variant" aria-label="Next variant">›</button>
           </div>
-        ` : `
-          <span class="variant-single-label">Tested Copy</span>
-        `}
-        <button type="button" class="card-copy-btn" id="copy-btn-${ad.id}" onclick="event.stopPropagation(); copyActiveVariantCopy('${ad.id}', this)" title="Copy headline & body to clipboard">
-          📋 Copy Copy
-        </button>
-      </div>
+        </div>
+      ` : ''}
 
       <div class="card-copy-content">
         <h4 class="ad-headline" id="headline-${ad.id}" style="${ad.copy.headline ? '' : 'display:none;'}">${ad.copy.headline || ''}</h4>
@@ -718,18 +687,7 @@ window.openVariantsModal = function (adId) {
   if (advertiserEl) advertiserEl.textContent = pageName;
   if (avatarEl) avatarEl.textContent = pageName.charAt(0).toUpperCase();
 
-  const rel = ad.ranking?.relationship || ad.ranking?.relevanceType;
-  let relBadge = '';
-  if (rel === 'OFFICIAL_BRAND' || rel === 'DIRECT_BRAND') {
-    relBadge = `<span class="relevance-tag official-tag">Official Brand</span>`;
-  } else if (rel === 'REVIEW_EDITORIAL') {
-    relBadge = `<span class="relevance-tag review-tag">Review / Editorial</span>`;
-  } else if (rel === 'AFFILIATE_PARTNER' || rel === 'BRAND_AFFILIATE') {
-    relBadge = `<span class="relevance-tag affiliate-tag">Affiliate / Partner</span>`;
-  } else {
-    relBadge = `<span class="relevance-tag affiliate-tag">Product Ad</span>`;
-  }
-  if (badgeEl) badgeEl.innerHTML = relBadge;
+  if (badgeEl) badgeEl.innerHTML = '';
 
   const flightDays = ad.stats?.flightDays || 1;
   const statusStr = ad.stats?.isActive ? `Active for ${flightDays} days` : `Ran for ${flightDays} days`;

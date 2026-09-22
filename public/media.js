@@ -72,8 +72,14 @@
     }
     if (!creative) {
       stage.classList.add('media-empty');
-      stage.textContent = media ? 'Preview unavailable' : 'Finding creative…';
-      status(media ? (media.status === 'blocked' ? 'Meta could not provide this preview.' : 'No preview available yet.') : 'Loading preview…', !!media);
+      if (!media) {
+        stage.classList.add('is-loading');
+        stage.innerHTML = '<div class="media-empty-spinner"></div><span>Finding creative…</span>';
+      } else {
+        stage.classList.remove('is-loading');
+        stage.textContent = media.status === 'blocked' ? 'Meta could not provide this preview.' : 'Preview unavailable';
+        status('No preview available.', true);
+      }
       return;
     }
     dimensions(creative.width, creative.height);
@@ -101,54 +107,86 @@
     const videos = sources([creative.videoUrl, ...(creative.videoSources || [])]);
     const images = sources([creative.thumbnailUrl, ...(creative.imageSources || [])]);
     function showImage(asFallback = false) {
-      if (!images.length) { stage.replaceChildren(); stage.classList.add('media-empty'); stage.textContent = 'Preview unavailable'; return; }
+      if (!images.length) {
+        stage.classList.remove('is-loading');
+        stage.replaceChildren();
+        stage.classList.add('media-empty');
+        stage.textContent = 'Preview unavailable';
+        return;
+      }
+      stage.classList.add('is-loading');
       const image = document.createElement('img');
       image.alt = `Ad creative ${index + 1}`;
       image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
       let sourceIndex = 0;
       image.onload = () => {
         clearTimeout(timer);
+        stage.classList.remove('is-loading');
+        image.classList.add('media-ready');
         dimensions(image.naturalWidth, image.naturalHeight);
         if (!asFallback) {
-          status(creative.mediaType === 'video' ? 'Video unavailable; showing its poster.' : '', creative.mediaType === 'video');
+          status(creative.mediaType === 'video' ? 'Video stream paused; showing poster.' : '', creative.mediaType === 'video');
           if (creative.mediaType === 'video') refresh(false);
         }
       };
       image.onerror = () => {
         if (disposed) return;
         if (++sourceIndex < images.length) image.src = images[sourceIndex];
-        else { image.remove(); stage.classList.add('media-empty'); stage.textContent = 'Image unavailable'; failed('Could not load this image.'); }
+        else {
+          stage.classList.remove('is-loading');
+          image.remove();
+          stage.classList.add('media-empty');
+          stage.textContent = 'Image unavailable';
+          failed('Could not load this image.');
+        }
       };
       stage.replaceChildren(image);
       image.src = images[0];
-      timer = setTimeout(() => { if (!disposed && !image.complete) failed('Image is taking too long to load.'); }, 25000);
+      timer = setTimeout(() => {
+        if (!disposed && !image.complete) {
+          stage.classList.remove('is-loading');
+          failed('Image is taking too long to load.');
+        }
+      }, 25000);
     }
     function activate() {
       if (disposed) return;
       observer?.disconnect();
       if (!videos.length) { showImage(); return; }
+      stage.classList.add('is-loading');
       player = document.createElement('video');
       player.controls = true; player.playsInline = true; player.muted = true;
       player.loop = true; player.preload = 'metadata';
       player.setAttribute('aria-label', `Ad video ${index + 1}`);
       if (images[0]) player.poster = images[0];
       let sourceIndex = 0;
-      player.onloadedmetadata = () => {
-        clearTimeout(timer); dimensions(player.videoWidth, player.videoHeight); status('');
+      const onReady = () => {
+        clearTimeout(timer);
+        stage.classList.remove('is-loading');
+        player.classList.add('media-ready');
+        dimensions(player.videoWidth, player.videoHeight);
+        status('');
       };
+      player.onloadedmetadata = onReady;
+      player.oncanplay = onReady;
       player.onplay = () => {
         document.querySelectorAll('.creative-viewer video').forEach(other => { if (other !== player) other.pause(); });
       };
       player.onerror = () => {
         if (disposed) return;
         clearTimeout(timer);
+        stage.classList.remove('is-loading');
         if (++sourceIndex < videos.length) { player.src = videos[sourceIndex]; player.load(); }
         else { showImage(true); failed('Video unavailable; showing its poster when available.'); }
       };
       stage.replaceChildren(player);
       player.src = videos[0];
       timer = setTimeout(() => {
-        if (!disposed && player.readyState === 0) { showImage(true); failed('Video is taking too long to load.'); }
+        if (!disposed && player.readyState === 0) {
+          stage.classList.remove('is-loading');
+          showImage(true);
+          failed('Video is taking too long to load.');
+        }
       }, 25000);
       // Poster errors do not emit video error events. Probe alternate posters separately.
       if (images.length) {
@@ -162,7 +200,6 @@
         probe.src = images[0];
       }
     }
-    status('Loading preview…');
     if ('IntersectionObserver' in window) {
       observer = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) activate(); }, { rootMargin: '250px' });
       observer.observe(container);
