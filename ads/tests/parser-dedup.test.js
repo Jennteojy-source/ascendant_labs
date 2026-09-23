@@ -92,3 +92,17 @@ test('AI follow-up queries retain brand identity and replace static fallback whe
   });
   assert.deepEqual(calls, ['Example Brand', 'Example Brand campaign']);
 });
+
+test('an in-flight exact browser result is reused after AI planning', async () => {
+  const calls = [];
+  const results = await findComparables({
+    vectors: [{ type: 'EXACT_BRAND', query: 'Example Brand' }],
+    minRecall: 1,
+    initialSearches: [{ vector: { type: 'EXACT_BRAND', query: 'Example Brand' }, result: {
+      data: [{ id: '523456789', page_name: 'Example Brand' }], error: null, blocked: false,
+    } }],
+    queryArchive: async term => { calls.push(term); return { data: [], error: null, blocked: false }; },
+  });
+  assert.equal(results.totalRawAds, 1);
+  assert.deepEqual(calls, []);
+});

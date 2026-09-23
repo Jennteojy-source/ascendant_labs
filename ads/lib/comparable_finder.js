@@ -46,7 +46,8 @@ async function findComparables(searchPlan = {}, options = {}) {
   const merged = { ...(typeof searchPlan === 'object' ? searchPlan : {}), ...(typeof options === 'object' ? options : {}) };
   const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
     limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true,
-    minRecall = 5, maxQueries = 5, deadlineMs = 45000, queryArchive = queryMetaArchive, nextQueries } = merged;
+    minRecall = 5, maxQueries = 5, deadlineMs = 45000, queryArchive = queryMetaArchive, nextQueries,
+    initialSearches = [] } = merged;
   const startedAt = Date.now();
   const rawAdsMap = new Map();
   const vectorHits = {};
@@ -55,13 +56,11 @@ async function findComparables(searchPlan = {}, options = {}) {
   const retrievalPlan = buildRetrievalPlan(vectors, maxQueries);
   const spam = /novels? lover|novel drama|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
 
-  async function runVector(vector, limit = limitPerVector) {
+  function collectResult(vector, result = {}) {
     const term = String(vector.query || '').trim();
-    if (!term) return;
     vectorHits[term] = vectorHits[term] || 0;
-    const remainingMs = Math.max(5000, deadlineMs - (Date.now() - startedAt));
-    const result = await queryArchive(term, { countries, status, limit, mediaType, timeoutMs: remainingMs });
-    if (result.error && !result.data.length) {
+    const data = Array.isArray(result.data) ? result.data : [];
+    if (result.error && !data.length) {
       discoveryErrors.push({
         term,
         error: result.error,
@@ -70,7 +69,7 @@ async function findComparables(searchPlan = {}, options = {}) {
       });
       console.warn(`[BrowserSearch] "${term}": ${result.error}`);
     }
-    for (const ad of result.data) {
+    for (const ad of data) {
       if (!ad.id || spam.test(ad.page_name || '')) continue;
       const existing = rawAdsMap.get(ad.id);
       if (!existing) rawAdsMap.set(ad.id, { ...ad, discoveryVectors: [vector.type || 'KEYWORD'], matchedQueries: [term] });
@@ -84,6 +83,14 @@ async function findComparables(searchPlan = {}, options = {}) {
     }
   }
 
+  async function runVector(vector, limit = limitPerVector) {
+    const term = String(vector.query || '').trim();
+    if (!term) return;
+    const remainingMs = Math.max(5000, deadlineMs - (Date.now() - startedAt));
+    const result = await queryArchive(term, { countries, status, limit, mediaType, timeoutMs: remainingMs });
+    collectResult(vector, result);
+  }
+
   // Run the canonical query once, then let the AI controller react to the
   // browser's evidence. The deterministic plan is reserved for AI outages.
   const attempted = [];
@@ -94,6 +101,15 @@ async function findComparables(searchPlan = {}, options = {}) {
     await runVector(vector, limitPerVector);
     return true;
   };
+  // The raw exact query may start while Gemini plans the follow-up strategy.
+  // Reuse its live browser result instead of issuing the same search twice.
+  for (const seeded of initialSearches) {
+    const vector = seeded?.vector;
+    const term = String(vector?.query || '').trim();
+    if (!term || attempted.some(value => normalizedTerm(value) === normalizedTerm(term))) continue;
+    attempted.push(term);
+    collectResult(vector, seeded.result);
+  }
   await runPlanned(retrievalPlan[0]);
   while (rawAdsMap.size < minRecall && attempted.length < maxQueries && Date.now() - startedAt < deadlineMs) {
     const remaining = maxQueries - attempted.length;

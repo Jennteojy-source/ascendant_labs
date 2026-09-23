@@ -17,7 +17,7 @@ require('./lib/local_env').loadLocalEnv();
 const { profilePDP } = require('./lib/pdp_profiler');
 const { expandQueryWithAI } = require('./lib/ai_query_expander');
 const { decideNextSearch } = require('./lib/ai_retrieval_agent');
-const { findComparables } = require('./lib/comparable_finder');
+const { findComparables, queryMetaArchive } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
@@ -185,6 +185,11 @@ const server = http.createServer(async (req, res) => {
         {
           // ─── Stage 1: AI Query Expansion ───────────────────────────
           const expansionStarted = Date.now();
+          // The exact global browser query is independent of AI planning. Run
+          // both concurrently; Gemini only controls follow-ups if it is sparse.
+          const exactBrowserSearch = queryMetaArchive(trimmedInput, {
+            countries, status, mediaType, limit: 25,
+          });
           queryProfile = await expandQueryWithAI(trimmedInput);
           pipeline.stages.queryExpansionMs = Date.now() - expansionStarted;
 
@@ -213,6 +218,10 @@ const server = http.createServer(async (req, res) => {
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
             deadlineMs: Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 45000,
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
+            initialSearches: [{
+              vector: { type: 'EXACT_BRAND', query: trimmedInput },
+              result: await exactBrowserSearch,
+            }],
             enableAgenticLoop: false,
           });
 
