@@ -21,6 +21,36 @@ test('nested Meta fields retain their primary text, headline, and description ro
   assert.deepEqual(ad.ad_creative_link_descriptions, ['A distinct description']);
 });
 
+test('Library interface labels do not become primary text or headlines', () => {
+  const [ad] = extractAdsFromPayload({ ads: [{
+    ad_archive_id: '888000111', page_name: 'Example', snapshot: {
+      body: 'Meta Ad Library', title: 'Ad Library',
+      cards: [{ body: 'See summary details', link_title: 'Categories' }],
+    },
+  }] });
+  assert.deepEqual(ad.ad_creative_bodies, []);
+  assert.deepEqual(ad.ad_creative_link_titles, []);
+});
+
+test('the same image served at different sizes and with revised copy is one creative group', () => {
+  const imageBase = 'https://scontent.xx.fbcdn.net/v/t39.35426-6/48591234_1234567890_n.jpg';
+  const ads = ['111000111', '222000222'].map((id, index) => ({
+    id, page_name: 'Example', ad_creative_bodies: [`Copy variant ${index + 1}`],
+    ad_creative_link_titles: ['A real headline'],
+    browserMedia: { creatives: [{ thumbnailUrl: `${imageBase}?stp=dst-jpg_s${index ? '960' : '600'}x600` }] },
+  }));
+  const ranked = deduplicateAndRankAds(ads, { targetBrand: 'example' });
+  assert.equal(ranked.length, 1);
+  assert.deepEqual(ranked[0].associatedAdIds, ['111000111', '222000222']);
+  assert.equal(ranked[0].variants.length, 2);
+});
+
+test('navigation captured as an ad is removed before ranking', () => {
+  const ranked = deduplicateAndRankAds([{ id: '888000222', page_name: 'Log in',
+    ad_creative_bodies: ['Meta Ad Library'], ad_creative_link_titles: ['Ad Library'] }]);
+  assert.equal(ranked.length, 0);
+});
+
 test('identical creative copy is deduplicated even when Ads Library returns another page entry', () => {
   const raw = [{
     id: '100000001', page_name: 'Example Brand', ad_delivery_start_time: '2026-01-01T00:00:00.000Z',

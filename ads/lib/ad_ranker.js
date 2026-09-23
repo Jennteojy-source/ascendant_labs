@@ -7,6 +7,7 @@
  */
 
 const crypto = require('crypto');
+const { assetFingerprint } = require('./media_resolver');
 
 /**
  * Classify hook archetype from ad text
@@ -47,6 +48,9 @@ function cleanAdText(text) {
   if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return '';
   if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return '';
   if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return '';
+  if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^categories$|^impressions:?$|^see\s+more$|^log\s*in$|^log\s*out$|^sign\s*up$|^search\s+ads$|^filter\s+results$/i.test(s)) return '';
+  if (/^this ad was run by an account or page we later disabled/i.test(s)) return '';
+  if (/^sorry, we're having trouble playing this video\.?$/i.test(s)) return '';
   if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return '';
   if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return '';
   if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return '';
@@ -65,6 +69,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
   const creativeGroups = new Map();
 
   for (const ad of rawAds) {
+    if (/^(?:log\s*in|log\s*out|meta\s+ad\s+library|ad\s+library)$/i.test(String(ad.page_name || '').trim())) continue;
     const bodies = (ad.ad_creative_bodies || []).map(cleanAdText).filter(Boolean);
     const titles = (ad.ad_creative_link_titles || []).map(cleanAdText).filter(Boolean);
     const descriptions = (ad.ad_creative_link_descriptions || []).map(cleanAdText).filter(Boolean);
@@ -74,14 +79,18 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const description = descriptions[0] || '';
     const caption = captions[0] || '';
     const media = ad.browserMedia || {};
-    const asset = [media.videoUrl, media.thumbnailUrl, ...(media.creatives || []).flatMap(item => [item.videoUrl, item.thumbnailUrl])]
-      .filter(Boolean).map(value => String(value).split('?')[0]).sort().join('|');
+    const creatives = media.creatives?.length ? media.creatives : [media];
+    const asset = [...new Set(creatives.map(item => {
+      const video = assetFingerprint(item.videoUrl || item.videoSources?.[0]);
+      const image = assetFingerprint(item.thumbnailUrl || item.imageSources?.[0]);
+      return video ? `video:${video}` : image ? `image:${image}` : '';
+    }).filter(Boolean))].sort().join('|');
 
-    // A creative is defined by its rendered copy and asset, not its ad set or
-    // advertiser page. This collapses repeated Ads Library entries reliably.
-    const normText = [body, title, description, caption, asset]
+    // The asset identifies a visual creative even when copy changes. Without
+    // media, require actual ad copy; a shared destination alone is ambiguous.
+    const normText = (asset ? [asset] : (body || title || description) ? [body, title, description, caption] : [])
       .map(value => String(value).toLowerCase().replace(/\s+/g, ' ').trim()).join(':::');
-    const hash = crypto.createHash('md5').update(normText).digest('hex');
+    const hash = crypto.createHash('md5').update(normText || `ad:${ad.id}`).digest('hex');
 
     if (!creativeGroups.has(hash)) {
       creativeGroups.set(hash, {

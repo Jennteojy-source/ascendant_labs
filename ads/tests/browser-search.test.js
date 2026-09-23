@@ -79,3 +79,18 @@ test('visible Library cards provide a DOM fallback when response JSON changes', 
   assert.equal(ad.ctaText, 'Learn More');
   assert.equal(ad.mediaItems.length, 1);
 });
+
+test('DOM fallback excludes navigation labels outside the nearest ad card', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.setContent(`<main><header><a>Log in</a><a>Meta Ad Library</a><a>Ad Library</a></header>
+    <article><a href="https://www.facebook.com/examplebrand">Example Brand</a>
+      <div>Active</div><div>Started running on Jan 1, 2025</div><div>Library ID: 987654322</div>
+      <p>Real primary text for this specific creative.</p><strong>Real ad headline</strong>
+      <img src="https://scontent.xx.fbcdn.net/creative.jpg" width="600" height="600">
+    </article></main>`);
+  const [ad] = await page.evaluate(extractAdsFromDocument);
+  assert.equal(ad.pageName, 'Example Brand');
+  assert.equal(ad.body, 'Real primary text for this specific creative.');
+  assert.equal(ad.headline, 'Real ad headline');
+});

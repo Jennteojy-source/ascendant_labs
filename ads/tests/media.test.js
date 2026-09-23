@@ -45,6 +45,13 @@ test('old/unbounded cache entries are invalidated while valid poster survives ex
   assert.equal(entry.mediaType, 'video');
 });
 
+test('durable media cache retains its storage status across normalization', () => {
+  const entry = normalizeCacheEntry({ ...mediaResult([{ thumbnailUrl: image }], 'structured'),
+    storageStatus: 'ready', storedAt: Date.now(), cachedAt: Date.now() - 2 * 60 * 60 * 1000 });
+  assert.equal(entry.storageStatus, 'ready');
+  assert.match(entry.thumbnailUrl, /creative\.jpg/);
+});
+
 test('snapshot navigation is constrained to the requested ad on Meta', () => {
   assert.equal(snapshotTarget('123', 'https://www.facebook.com/ads/library/?id=999'), null);
   assert.equal(snapshotTarget('123', 'https://www.facebook.com.evil.example/ads/library/?id=123'), null);
@@ -208,4 +215,3 @@ test('preserves genuine multi-card carousel ads with distinct card titles', () =
   assert.equal(result.creatives[1].title, 'Cadbury Top Deck');
   assert.equal(result.creatives[2].title, 'Cadbury Wholenut');
 });
-

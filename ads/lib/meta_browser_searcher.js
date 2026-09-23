@@ -127,6 +127,9 @@ function isInvalidAdText(text) {
   if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return true;
   if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return true;
   if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return true;
+  if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^categories$|^impressions:?$|^see\s+more$|^log\s*in$|^log\s*out$|^sign\s*up$|^search\s+ads$|^filter\s+results$/i.test(s)) return true;
+  if (/^this ad was run by an account or page we later disabled/i.test(s)) return true;
+  if (/^sorry, we're having trouble playing this video\.?$/i.test(s)) return true;
   if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return true;
   if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return true;
   if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return true;
@@ -258,7 +261,10 @@ function extractAdsFromDocument() {
     for (let node = marker.parentElement; node && node !== document.body; node = node.parentElement) {
       const ids = idsIn(node);
       if (ids.some(other => other !== id)) break;
-      if ((node.innerText || '').length >= 80 && node.querySelector('a[href], img, video')) root = node;
+      // The nearest complete card keeps navigation and neighbouring ads out of copy.
+      if ((node.innerText || '').length >= 60 && node.querySelector('a[href], img, video')) {
+        root = node; break;
+      }
     }
     if (!root) continue;
     seen.add(id);
@@ -273,7 +279,7 @@ function extractAdsFromDocument() {
           && (a.innerText || '').trim().length > 1;
       } catch { return false; }
     });
-    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp|eu transparency|report ad)$/i;
+    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp|eu transparency|report ad|(?:meta\s+)?ad library|see summary details|estimated audience size:?|categories|impressions:?|log\s*in|log\s*out)$/i;
     const isBadCopy = text => {
       const s = (text || '').trim();
       if (!s || s.length < 3) return true;
@@ -282,6 +288,9 @@ function extractAdsFromDocument() {
       if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return true;
       if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return true;
       if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return true;
+      if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^categories$|^impressions:?$|^log\s*in$|^log\s*out$/i.test(s)) return true;
+      if (/^this ad was run by an account or page we later disabled/i.test(s)) return true;
+      if (/^sorry, we're having trouble playing this video\.?$/i.test(s)) return true;
       if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return true;
       if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return true;
       if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return true;

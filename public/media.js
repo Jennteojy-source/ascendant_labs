@@ -185,7 +185,15 @@
         stage.innerHTML = '<div class="media-empty-spinner"></div><span>Finding creative…</span>';
       } else {
         stage.classList.remove('is-loading');
-        stage.textContent = media.status === 'blocked' ? 'Meta could not provide this preview.' : 'Preview unavailable';
+        stage.textContent = media.status === 'blocked' ? 'Meta blocked this preview.' : 'Preview unavailable';
+        if (/^\d{1,40}$/.test(String(options.adId || ''))) {
+          const original = document.createElement('a');
+          original.href = `https://www.facebook.com/ads/library/?id=${options.adId}`;
+          original.target = '_blank';
+          original.rel = 'noopener noreferrer';
+          original.textContent = 'View original ad ↗';
+          stage.append(original);
+        }
         status('No preview available.', true);
       }
       return;

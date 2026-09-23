@@ -1002,6 +1002,12 @@ body {
   gap: 10px;
 }
 
+.media-empty a {
+  color: #bfdbfe;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .media-empty-spinner {
   width: 26px;
   height: 26px;

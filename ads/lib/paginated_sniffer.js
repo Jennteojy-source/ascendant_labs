@@ -58,12 +58,12 @@ async function sniffSingleAd(browser, adId, supplied) {
       read.finally(() => reads.delete(read));
     });
     const navigation = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 12000 });
-    if (navigation && [401, 403, 429].includes(navigation.status())) return mediaResult([], null, 'blocked');
-    if (/\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())) return mediaResult([], null, 'blocked');
+    const primaryBlocked = Boolean((navigation && [401, 403, 429].includes(navigation.status()))
+      || /\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url()));
     const started = Date.now();
     let signature = '';
     let stableSince = started;
-    while (Date.now() - started < 8000) {
+    while (!primaryBlocked && Date.now() - started < 8000) {
       for (const frame of page.frames()) {
         const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
         if (!data) continue;
@@ -81,7 +81,27 @@ async function sniffSingleAd(browser, adId, supplied) {
           && Date.now() - started >= (posterOnly ? 4000 : 1500)) break;
       await page.waitForTimeout(250);
     }
+    // Some ads expose the creative only in Meta's dedicated render document.
+    // Visit it only when the regular Library detail supplied no usable media.
+    if (!structured.creatives.length && !best.creatives.length) {
+      const renderUrl = `https://www.facebook.com/ads/archive/render_ad/?id=${encodeURIComponent(adId)}`;
+      await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => null);
+      const fallbackStarted = Date.now();
+      while (Date.now() - fallbackStarted < 4000 && !structured.creatives.length && !best.creatives.length) {
+        for (const frame of page.frames()) {
+          const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
+          if (!data) continue;
+          data.json.forEach(inspectJSON);
+          const found = mediaResult(data.items.map(item => ({ ...item,
+            destinationUrl: (data.links || []).map(destinationUrl).find(Boolean), ctaText: data.cta })), 'dom');
+          if (found.creatives.length) best = found;
+        }
+        if (!structured.creatives.length && !best.creatives.length) await page.waitForTimeout(250);
+      }
+    }
+    await Promise.race([Promise.allSettled([...reads]), page.waitForTimeout(1000)]);
     const selected = structured.creatives.length ? structured : best;
+    if (!selected.creatives.length && primaryBlocked) return mediaResult([], null, 'blocked');
     return mediaResult(selected.creatives.map(c => ({ ...c,
       videoUrl: failedUrls.has(c.videoUrl) ? null : c.videoUrl,
       videoSources: c.videoSources.filter(url => !failedUrls.has(url)),

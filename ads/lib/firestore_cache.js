@@ -25,7 +25,11 @@ function normalizeCacheEntry(entry, now = Date.now()) {
     videoSources: (c.videoSources || []).filter(u => !isUrlExpired(u, now)),
   }));
   const media = mediaResult(items, entry.source);
-  return media.status === 'ready' ? { ...media, cachedAt: entry.cachedAt } : null;
+  return media.status === 'ready' ? {
+    ...media, cachedAt: entry.cachedAt,
+    storageStatus: entry.storageStatus || null,
+    storedAt: entry.storedAt || null,
+  } : null;
 }
 
 function getFirestore() {

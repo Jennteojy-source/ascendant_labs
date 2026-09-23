@@ -325,5 +325,5 @@ function inspectAdDocument(adId) {
 }
 
 module.exports = { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, DURABLE_MEDIA_CACHE_TTL_MS, httpUrl, mediaUrl,
-  isAvatarUrl, isUrlExpired, destinationUrl, normalizeCreative, mediaResult,
+  isAvatarUrl, isUrlExpired, destinationUrl, normalizeCreative, assetFingerprint, mediaResult,
   extractStructuredMedia, inspectAdDocument };
