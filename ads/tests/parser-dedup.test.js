@@ -4,6 +4,7 @@ const { extractAdsFromPayload } = require('../lib/meta_browser_searcher');
 const { deduplicateAndRankAds } = require('../lib/ad_ranker');
 const { storedAssetPaths } = require('../lib/search_logger');
 const { buildRetrievalPlan, findComparables } = require('../lib/comparable_finder');
+const { sanitizeAgentQueries } = require('../lib/ai_retrieval_agent');
 
 test('nested Meta fields retain their primary text, headline, and description roles', () => {
   const payload = { data: { ads: [{
@@ -70,4 +71,24 @@ test('fallback terms run only when exact global retrieval is sparse', async () =
   });
   assert.deepEqual(calls, ['Example Brand', 'Example Brand Official']);
   assert.equal(results.totalRawAds, 3);
+});
+
+test('AI follow-up queries retain brand identity and replace static fallback when available', async () => {
+  assert.deepEqual(sanitizeAgentQueries([
+    { type: 'PAGE_VARIATION', query: 'Lyza Coding' },
+    { type: 'PRODUCT_NAME', query: 'Unrelated Brand' },
+  ], 'Lyza Education', 2), [{ type: 'PAGE_VARIATION', query: 'Lyza Coding' }]);
+
+  const calls = [];
+  await findComparables({
+    vectors: [{ type: 'EXACT_BRAND', query: 'Example Brand' }, { type: 'PAGE_VARIATION', query: 'Example Brand Official' }],
+    minRecall: 1,
+    maxQueries: 2,
+    nextQueries: async () => [{ type: 'AI_FOLLOWUP', query: 'Example Brand campaign' }],
+    queryArchive: async term => {
+      calls.push(term);
+      return { data: term === 'Example Brand campaign' ? [{ id: '423456789', page_name: 'Example Brand' }] : [], error: null, blocked: false };
+    },
+  });
+  assert.deepEqual(calls, ['Example Brand', 'Example Brand campaign']);
 });

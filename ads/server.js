@@ -16,6 +16,7 @@ require('./lib/local_env').loadLocalEnv();
 
 const { profilePDP } = require('./lib/pdp_profiler');
 const { expandQueryWithAI } = require('./lib/ai_query_expander');
+const { decideNextSearch } = require('./lib/ai_retrieval_agent');
 const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
@@ -210,6 +211,7 @@ const server = http.createServer(async (req, res) => {
             // is sparse; deploy-time tuning avoids product-specific rules.
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
+            nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
             enableAgenticLoop: false,
           });
 

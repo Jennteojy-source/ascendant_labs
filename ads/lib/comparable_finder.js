@@ -46,7 +46,7 @@ async function findComparables(searchPlan = {}, options = {}) {
   const merged = { ...(typeof searchPlan === 'object' ? searchPlan : {}), ...(typeof options === 'object' ? options : {}) };
   const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
     limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true,
-    minRecall = 5, maxQueries = 5, queryArchive = queryMetaArchive } = merged;
+    minRecall = 5, maxQueries = 5, queryArchive = queryMetaArchive, nextQueries } = merged;
   const rawAdsMap = new Map();
   const vectorHits = {};
   const competitorPagesMap = new Map();
@@ -82,11 +82,33 @@ async function findComparables(searchPlan = {}, options = {}) {
     }
   }
 
-  for (const vector of retrievalPlan) {
-    // Exact global retrieval is always first. Additional terms are conditional
-    // recall recovery, rather than a fixed fan-out that burns browser minutes.
-    if (Object.keys(vectorHits).length && rawAdsMap.size >= minRecall) break;
+  // Run the canonical query once, then let the AI controller react to the
+  // browser's evidence. The deterministic plan is reserved for AI outages.
+  const attempted = [];
+  const runPlanned = async vector => {
+    const term = String(vector?.query || '').trim();
+    if (!term || attempted.some(value => normalizedTerm(value) === normalizedTerm(term))) return false;
+    attempted.push(term);
     await runVector(vector, limitPerVector);
+    return true;
+  };
+  await runPlanned(retrievalPlan[0]);
+  while (rawAdsMap.size < minRecall && attempted.length < maxQueries) {
+    const remaining = maxQueries - attempted.length;
+    let followups = [];
+    if (typeof nextQueries === 'function') {
+      followups = await nextQueries({
+        attempted: [...attempted],
+        candidates: [...rawAdsMap.values()],
+        totalRawAds: rawAdsMap.size,
+        remainingQueries: remaining,
+      });
+    }
+    const next = (Array.isArray(followups) ? followups : []).find(vector =>
+      vector?.query && !attempted.some(term => normalizedTerm(term) === normalizedTerm(vector.query)))
+      // AI unavailability must not make a sparse global search a dead end.
+      || retrievalPlan.find(vector => !attempted.some(term => normalizedTerm(term) === normalizedTerm(vector.query)));
+    if (!next || !(await runPlanned(next))) break;
   }
 
   const discoveredCompetitors = [];
