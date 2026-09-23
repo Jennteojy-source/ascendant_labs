@@ -15,6 +15,7 @@
 window.AdMedia = window.AdMedia || (() => {
   const instances = new WeakMap();
   const url = value => {
+    if (!value || typeof value !== 'string') return null;
     try { const u = new URL(value, location.origin); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
     catch { return null; }
   };

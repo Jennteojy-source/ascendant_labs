@@ -324,51 +324,247 @@ body {
 }
 
 .results-filters {
-  margin: 0 0 20px;
-  padding: 14px 16px;
-  background: #fff;
+  margin: 0 0 24px;
+  padding: 16px 20px;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 16px -2px rgba(44, 38, 35, 0.05), 0 2px 4px -1px rgba(44, 38, 35, 0.03);
+  transition: var(--transition-fast);
 }
 
-.results-filter-heading { display: flex; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: .82rem; margin-bottom: 10px; }
-.results-filter-controls { display: flex; flex-wrap: wrap; gap: 10px; }
-.results-filter-controls label { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: .78rem; font-weight: 700; }
-.results-filter-controls select { max-width: 180px; padding: 7px 9px; color: var(--text-primary); background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-weight: 500; }
+.results-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(232, 225, 213, 0.6);
+}
 
-/* Filters are controls, not an inline sentence. Give each one a predictable
-   tap target before the labels begin wrapping on tablets and phones. */
+.results-filter-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.filter-heading-text {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.active-filters-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--accent-primary);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
+.results-filter-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-count-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(217, 208, 193, 0.4);
+}
+
+.filter-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.filter-reset-btn:hover {
+  background: #FEECEB;
+  border-color: #F8B4B4;
+  color: var(--accent-danger);
+}
+
+.results-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #FAF7F2;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 3px 6px 3px 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(44, 38, 35, 0.03);
+}
+
+.filter-pill:hover {
+  background: #FFFFFF;
+  border-color: var(--border-medium);
+  box-shadow: 0 2px 6px rgba(44, 38, 35, 0.06);
+}
+
+.filter-pill.is-active {
+  background: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(223, 90, 54, 0.15);
+}
+
+.filter-pill-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  margin-right: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.filter-pill.is-active .filter-pill-icon {
+  color: var(--accent-primary);
+}
+
+.filter-pill-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-right: 6px;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.filter-pill.is-active .filter-pill-label {
+  color: var(--accent-primary);
+}
+
+.filter-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.filter-select-wrap select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 6px 26px 6px 10px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+  box-shadow: 0 1px 2px rgba(44, 38, 35, 0.03);
+}
+
+.filter-pill.is-active .filter-select-wrap select {
+  border-color: rgba(223, 90, 54, 0.4);
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.filter-select-wrap select:hover {
+  border-color: var(--border-medium);
+}
+
+.filter-select-wrap select:focus-visible {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(223, 90, 54, 0.14);
+}
+
+.select-chevron {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+  width: 9px;
+  height: 6px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238C8278' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  transition: transform 0.15s ease;
+}
+
+.filter-pill.is-active .select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23DF5A36' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
 @media (max-width: 820px) {
   .results-filters {
-    padding: 16px;
-    border-radius: 16px;
+    padding: 14px 16px;
+    border-radius: var(--radius-lg);
   }
 
-  .results-filter-heading {
-    align-items: center;
-    font-size: .88rem;
-    margin-bottom: 14px;
+  .results-filter-header {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .results-filter-controls {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
   }
 
-  .results-filter-controls label {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 6px;
-    font-size: .76rem;
+  .filter-pill {
+    padding: 4px 6px 4px 8px;
   }
 
-  .results-filter-controls select {
+  .filter-select-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filter-select-wrap select {
     width: 100%;
-    max-width: none;
-    min-height: 44px;
-    padding: 9px 10px;
-    font-size: .9rem;
+    min-height: 38px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .results-filter-controls {
+    grid-template-columns: 1fr;
   }
 }
 
