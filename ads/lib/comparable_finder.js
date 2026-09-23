@@ -10,27 +10,55 @@ async function queryMetaArchive(searchTerm, options = {}) {
   return searchMetaAds(searchTerm, { countries, status, limit, mediaType });
 }
 
+function normalizedTerm(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// These are query transformations, not location or data fallbacks. They run
+// only when the exact global query has poor recall, and keep the search tied
+// to the submitted identity.
+function buildRetrievalPlan(vectors = [], maxQueries = 4) {
+  const seen = new Set();
+  const add = (result, type, query) => {
+    const cleaned = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    const key = normalizedTerm(cleaned);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    result.push({ type, query: cleaned });
+  };
+
+  const supplied = Array.isArray(vectors) ? vectors : [];
+  const exact = supplied.find(vector => String(vector?.type).toUpperCase() === 'EXACT_BRAND') || supplied[0];
+  const plan = [];
+  add(plan, 'EXACT_BRAND', exact?.query);
+  for (const vector of supplied) add(plan, String(vector?.type || 'EXPANDED').toUpperCase(), vector?.query);
+
+  const exactTerm = String(exact?.query || '').trim();
+  const compact = exactTerm.replace(/[^\p{L}\p{N}]+/gu, '');
+  if (compact && normalizedTerm(compact) !== normalizedTerm(exactTerm)) add(plan, 'RELAXED_COMPACT', compact);
+  const firstToken = exactTerm.split(/[^\p{L}\p{N}]+/u).find(token => token.length >= 3);
+  if (firstToken && normalizedTerm(firstToken) !== normalizedTerm(exactTerm)) add(plan, 'RELAXED_BRAND_TOKEN', firstToken);
+
+  return plan.slice(0, Math.max(1, Math.min(6, Number(maxQueries) || 4)));
+}
+
 async function findComparables(searchPlan = {}, options = {}) {
   const merged = { ...(typeof searchPlan === 'object' ? searchPlan : {}), ...(typeof options === 'object' ? options : {}) };
   const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
-    limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true } = merged;
+    limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true,
+    minRecall = 5, maxQueries = 5, queryArchive = queryMetaArchive } = merged;
   const rawAdsMap = new Map();
   const vectorHits = {};
   const competitorPagesMap = new Map();
   const discoveryErrors = [];
-  const seenTerms = new Set();
-  const uniqueVectors = vectors.filter(vector => {
-    const term = String(vector.query || '').trim().toLowerCase();
-    if (!term || seenTerms.has(term)) return false;
-    seenTerms.add(term); return true;
-  }).slice(0, 2);
+  const retrievalPlan = buildRetrievalPlan(vectors, maxQueries);
   const spam = /novels? lover|novel drama|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
 
   async function runVector(vector, limit = limitPerVector) {
     const term = String(vector.query || '').trim();
     if (!term) return;
     vectorHits[term] = vectorHits[term] || 0;
-    const result = await queryMetaArchive(term, { countries, status, limit, mediaType });
+    const result = await queryArchive(term, { countries, status, limit, mediaType });
     if (result.error && !result.data.length) {
       discoveryErrors.push({
         term,
@@ -54,11 +82,11 @@ async function findComparables(searchPlan = {}, options = {}) {
     }
   }
 
-  for (const vector of uniqueVectors) {
+  for (const vector of retrievalPlan) {
+    // Exact global retrieval is always first. Additional terms are conditional
+    // recall recovery, rather than a fixed fan-out that burns browser minutes.
+    if (Object.keys(vectorHits).length && rawAdsMap.size >= minRecall) break;
     await runVector(vector, limitPerVector);
-    // An exact brand search is usually the highest-recall page result and avoids
-    // paid remote-browser sessions for speculative alternate queries.
-    if (rawAdsMap.size && ['BRAND', 'PRODUCT', 'EXACT_BRAND'].includes(vector.type)) break;
   }
 
   const discoveredCompetitors = [];
@@ -67,7 +95,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     const pages = [...competitorPagesMap.entries()].filter(([name]) => name && !recursiveSpam.test(name))
       .sort((a, b) => b[1] - a[1]).slice(0, 2);
     for (const [pageName] of pages) {
-      if (uniqueVectors.some(vector => String(vector.query).toLowerCase() === pageName.toLowerCase())) continue;
+      if (retrievalPlan.some(vector => normalizedTerm(vector.query) === normalizedTerm(pageName))) continue;
       discoveredCompetitors.push(pageName);
       await runVector({ type: 'RECURSIVE_COMPETITOR', query: pageName }, 15);
     }
@@ -94,4 +122,4 @@ async function findComparables(searchPlan = {}, options = {}) {
   };
 }
 
-module.exports = { findComparables, queryMetaArchive };
+module.exports = { findComparables, queryMetaArchive, buildRetrievalPlan };

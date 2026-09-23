@@ -71,6 +71,9 @@ async function createCollectorContext(browser) {
   }
   const context = await browser.newContext({
     locale: 'en-US', viewport: { width: 1440, height: 1100 },
+    // The collector reads DOM and XHR payloads itself. Blocking service workers
+    // makes those requests visible to Playwright's routing/response handlers.
+    serviceWorkers: 'block',
     // Browserless residential proxying can terminate TLS with its managed CA.
     ignoreHTTPSErrors: browserConnectionMode() === 'managed-browserless',
     userAgent: process.env.META_BROWSER_USER_AGENT || undefined,
@@ -301,7 +304,12 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   let blockReason = null;
   const collect = ad => ads.set(ad.id, mergeAd(ads.get(ad.id), ad));
   try {
-    await page.route('**/*', route => route.request().resourceType() === 'font' ? route.abort() : route.continue());
+    await page.route('**/*', route => {
+      const type = route.request().resourceType();
+      // Search cards' copy/metadata arrives in the document and JSON payloads.
+      // Do not pay to render creative bytes; full media is fetched on demand.
+      return ['font', 'image', 'media'].includes(type) ? route.abort() : route.continue();
+    });
     page.on('response', response => {
       const contentType = response.headers()['content-type'] || '';
       if (!response.ok() || jsonReads >= 40 || !/(?:application|text)\/json/.test(contentType)) return;

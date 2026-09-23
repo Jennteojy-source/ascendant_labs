@@ -206,6 +206,10 @@ const server = http.createServer(async (req, res) => {
             status,
             mediaType,
             limitPerVector: 25,
+            // Exact global search is cheapest. Broaden terms only when recall
+            // is sparse; deploy-time tuning avoids product-specific rules.
+            minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
+            maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
             enableAgenticLoop: false,
           });
 

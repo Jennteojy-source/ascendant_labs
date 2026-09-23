@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { extractAdsFromPayload } = require('../lib/meta_browser_searcher');
 const { deduplicateAndRankAds } = require('../lib/ad_ranker');
 const { storedAssetPaths } = require('../lib/search_logger');
+const { buildRetrievalPlan, findComparables } = require('../lib/comparable_finder');
 
 test('nested Meta fields retain their primary text, headline, and description roles', () => {
   const payload = { data: { ads: [{
@@ -39,4 +40,34 @@ test('identical creative copy is deduplicated even when Ads Library returns anot
 test('canonical ad records expose the backing GCS object path', () => {
   const hash = 'a'.repeat(64);
   assert.deepEqual(storedAssetPaths({ thumbnailUrl: `/api/media/123/${hash}.jpg` }, '123'), [`ad-media/123/${hash}.jpg`]);
+});
+
+test('retrieval plan keeps exact global identity first and adds bounded relaxation', () => {
+  const plan = buildRetrievalPlan([
+    { type: 'EXACT_BRAND', query: 'Lyza Education' },
+    { type: 'PAGE_VARIATION', query: 'Lyza Education Official' },
+    { type: 'AFFILIATE_ANGLE', query: 'Lyza Education review' },
+  ], 6);
+  assert.deepEqual(plan.map(item => item.type), [
+    'EXACT_BRAND', 'PAGE_VARIATION', 'AFFILIATE_ANGLE', 'RELAXED_COMPACT', 'RELAXED_BRAND_TOKEN',
+  ]);
+  assert.equal(plan[0].query, 'Lyza Education');
+  assert.equal(plan.at(-1).query, 'Lyza');
+});
+
+test('fallback terms run only when exact global retrieval is sparse', async () => {
+  const calls = [];
+  const results = await findComparables({
+    vectors: [{ type: 'EXACT_BRAND', query: 'Example Brand' }, { type: 'PAGE_VARIATION', query: 'Example Brand Official' }],
+    minRecall: 2,
+    maxQueries: 3,
+    queryArchive: async term => {
+      calls.push(term);
+      return { data: term === 'Example Brand' ? [{ id: '123456789', page_name: 'Example Brand' }] : [
+        { id: '223456789', page_name: 'Example Brand' }, { id: '323456789', page_name: 'Example Brand' },
+      ], error: null, blocked: false };
+    },
+  });
+  assert.deepEqual(calls, ['Example Brand', 'Example Brand Official']);
+  assert.equal(results.totalRawAds, 3);
 });
