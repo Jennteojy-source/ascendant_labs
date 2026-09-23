@@ -50,10 +50,16 @@ function deduplicateAndRankAds(rawAds, options = {}) {
   for (const ad of rawAds) {
     const body = (ad.ad_creative_bodies && ad.ad_creative_bodies[0]) || '';
     const title = (ad.ad_creative_link_titles && ad.ad_creative_link_titles[0]) || '';
-    const pageName = ad.page_name || 'Unknown Page';
+    const description = (ad.ad_creative_link_descriptions && ad.ad_creative_link_descriptions[0]) || '';
+    const caption = (ad.ad_creative_link_captions && ad.ad_creative_link_captions[0]) || '';
+    const media = ad.browserMedia || {};
+    const asset = [media.videoUrl, media.thumbnailUrl, ...(media.creatives || []).flatMap(item => [item.videoUrl, item.thumbnailUrl])]
+      .filter(Boolean).map(value => String(value).split('?')[0]).sort().join('|');
 
-    // Hash normalized page + body snippet
-    const normText = `${pageName.toLowerCase()}:::${body.slice(0, 120).toLowerCase().replace(/\s+/g, ' ')}`;
+    // A creative is defined by its rendered copy and asset, not its ad set or
+    // advertiser page. This collapses repeated Ads Library entries reliably.
+    const normText = [body, title, description, caption, asset]
+      .map(value => String(value).toLowerCase().replace(/\s+/g, ' ').trim()).join(':::');
     const hash = crypto.createHash('md5').update(normText).digest('hex');
 
     if (!creativeGroups.has(hash)) {

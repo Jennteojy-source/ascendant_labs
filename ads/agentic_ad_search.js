@@ -10,7 +10,7 @@
  * 
  * Usage:
  *   node ads/agentic_ad_search.js "https://derila-ergo.com"
- *   node ads/agentic_ad_search.js "https://nordvpn.com" --page 1 --limit 10
+ *   node ads/agentic_ad_search.js "LYZA Education" --page 1 --limit 10
  *   node ads/agentic_ad_search.js "memory foam pillow" --status ACTIVE
  */
 
@@ -29,7 +29,7 @@ let input = '';
 let page = 1;
 let pageSize = 10;
 let status = 'ACTIVE';
-let countries = ['US', 'GB', 'CA', 'AU'];
+let countries = ['ALL'];
 let shouldSniff = true;
 let outputPath = '';
 
@@ -52,7 +52,7 @@ Options:
   --page, -p        Pagination page (default: 1)
   --limit, -l       Ads per page (default: 10)
   --status, -s      Ad delivery status: ACTIVE | ALL (default: ACTIVE)
-  --countries, -c   Comma-separated countries (default: US,GB,CA,AU)
+  --countries, -c   Comma-separated countries (default: ALL)
   --no-sniff        Skip Playwright media sniffing
   --output, -o      Save full JSON dossier to file
   `);

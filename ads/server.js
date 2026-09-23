@@ -23,7 +23,7 @@ const { sniffPageMedia, loadCache, getBrowser } = require('./lib/paginated_sniff
 const { browserConnectionMode } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
 const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/media_storage');
-const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession } = require('./lib/search_logger');
+const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession, upsertCanonicalAds } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
@@ -74,9 +74,6 @@ function serveStatic(res, filePath, contentType) {
   });
   stream.pipe(res);
 }
-
-// Global in-memory cache for recent searches: query -> rankedAds
-const searchCache = new Map();
 
 function attachMedia(item, media) {
   if (!item || !media || media.mediaType === 'unknown') return;
@@ -161,12 +158,11 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const {
         input,
-        countries = ['US', 'GB', 'CA', 'AU'],
+        countries = ['ALL'],
         status = 'ACTIVE',
         mediaType = 'ALL',
         page = 1,
         pageSize = 10,
-        useCache = true,
       } = body;
 
       if (!input) {
@@ -177,19 +173,15 @@ const server = http.createServer(async (req, res) => {
       const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
       const userAgent = req.headers['user-agent'];
       const searchParams = { countries, status, mediaType, page, pageSize };
-      const cacheKey = `${trimmedInput}::${countries.sort().join(',')}::${status}::${mediaType}`;
       let rankedAds = null;
       let queryProfile = null;
       let searchRes = null;
       const pipeline = { startedAt: new Date(searchStartTime).toISOString(), stages: {} };
 
       try {
-        // Check in-memory query cache
-        if (useCache && searchCache.has(cacheKey)) {
-          const cached = searchCache.get(cacheKey);
-          rankedAds = cached.rankedAds;
-          queryProfile = cached.queryProfile;
-        } else {
+        // A submitted search is always live. Media has its own durable cache,
+        // but never reuse a prior query's result set.
+        {
           // ─── Stage 1: AI Query Expansion ───────────────────────────
           const expansionStarted = Date.now();
           queryProfile = await expandQueryWithAI(trimmedInput);
@@ -213,7 +205,7 @@ const server = http.createServer(async (req, res) => {
             countries,
             status,
             mediaType,
-            limitPerVector: 50,
+            limitPerVector: 25,
             enableAgenticLoop: false,
           });
           pipeline.stages.discoveryMs = Date.now() - discoveryStarted;
@@ -240,7 +232,14 @@ const server = http.createServer(async (req, res) => {
             productKeywords: queryProfile.productKeywords || [targetBrand],
           };
 
-          rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          // Exact-brand page results have already passed deterministic relevance
+          // checks. Avoid a second Vertex request when every result is from the
+          // official brand; reserve listwise judging for mixed/ambiguous sets.
+          const hasOnlyOfficialBrandResults = rankedAds.length > 0 && rankedAds.every(ad =>
+            ad.ranking?.relevanceType === 'OFFICIAL_BRAND');
+          if (!hasOnlyOfficialBrandResults) {
+            rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          }
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {
@@ -250,7 +249,6 @@ const server = http.createServer(async (req, res) => {
             activeCount: rankedAds.filter(a => a.stats.isActive).length,
           });
 
-          searchCache.set(cacheKey, { rankedAds, queryProfile, timestamp: Date.now() });
         }
 
         // ─── Stage 4: Resolve + persist render-ready media ──────────
@@ -264,46 +262,12 @@ const server = http.createServer(async (req, res) => {
           uniqueVisualAds.push(item);
         }
 
-        // Wait for the visible first page, then archive only relevant/ranked creatives.
-        const readyLimit = Math.max(1, Math.min(20, Number(process.env.MEDIA_READY_AD_LIMIT) || 10));
-        const readyAds = uniqueVisualAds.slice(0, readyLimit);
-        const topAdsToPrewarm = readyAds
-          .filter(a => !a.media?.videoUrl && !a.media?.thumbnailUrl);
-
-        if (topAdsToPrewarm.length > 0) {
-          try {
-            const resolvedMedia = await Promise.race([
-              sniffPageMedia(topAdsToPrewarm),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Media extraction timeout')), 70000)),
-            ]);
-            if (resolvedMedia) {
-              for (const [adId, media] of Object.entries(resolvedMedia)) {
-                const matchedAd = uniqueVisualAds.find(a => String(a.id) === String(adId));
-                if (matchedAd) attachMedia(matchedAd, media);
-              }
-            }
-          } catch (e) {
-            logger.warn('Media extraction yielded to response', { error: e.message });
-          }
-        }
-
-        const persistable = Object.fromEntries(readyAds
-          .filter(ad => ad.media?.status === 'ready')
-          .map(ad => [String(ad.id), ad.media]));
-        const durableMedia = await Promise.race([
-          persistMediaBatch(persistable),
-          new Promise(resolve => setTimeout(() => resolve(persistable), 90000)),
-        ]);
-        await saveMediaBatch(durableMedia);
-        for (const [adId, media] of Object.entries(durableMedia)) {
-          attachMedia(uniqueVisualAds.find(ad => String(ad.id) === adId), media);
-        }
-        for (const ad of uniqueVisualAds.slice(readyLimit)) {
-          if (ad.media?.status === 'ready' && !ad.media.storageStatus) ad.media.storageStatus = 'pending';
-        }
+        // Return metadata immediately. Only cards that enter the viewport request
+        // media, which eliminates N remote-browser snapshot sessions per search.
+        const readyAds = uniqueVisualAds.filter(ad => ad.media?.status === 'ready');
         pipeline.stages.mediaMs = Date.now() - mediaStarted;
         pipeline.media = {
-          requested: readyAds.length,
+          requested: 0,
           ready: readyAds.filter(ad => ad.media?.status === 'ready').length,
           durable: readyAds.filter(ad => ['ready', 'partial'].includes(ad.media?.storageStatus)).length,
         };
@@ -317,8 +281,8 @@ const server = http.createServer(async (req, res) => {
         const affiliatePartnerCount = rankedAds.filter(a => a.ranking?.relationship === 'AFFILIATE_PARTNER' || a.ranking?.relevanceType === 'AFFILIATE_PARTNER').length;
         const reviewEditorialCount = rankedAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
 
-        // Log query and results to Firestore search_history table asynchronously
-        logSearchSession({
+        // Await this: every completed live search must be durably recorded.
+        await logSearchSession({
           query: input,
           status: searchRes?.hasPartialBlocks ? 'PARTIAL' : 'SUCCESS',
           isBlocked: false,
@@ -475,6 +439,9 @@ const server = http.createServer(async (req, res) => {
       const extractedMedia = await sniffPageMedia(ads, { forceRefresh: body.forceRefresh === true });
       const mediaMap = await persistMediaBatch(extractedMedia);
       await saveMediaBatch(mediaMap);
+      // A later-page preview is just as durable as a first-page preview: update
+      // its canonical Firestore ad record after the GCS object is persisted.
+      await upsertCanonicalAds(ads.map(ad => ({ ...ad, media: mediaMap[String(ad.id)] || ad.media })));
 
       logger.info('Media sniffing batch completed', {
         resolvedCount: Object.keys(mediaMap).length,
@@ -493,7 +460,7 @@ const server = http.createServer(async (req, res) => {
         tokenRequired: false,
         uptimeSec: Math.round(process.uptime()),
         cachedMediaCount: Object.keys(mediaCache).length,
-        cachedQueriesCount: searchCache.size,
+        cachedQueriesCount: 0,
         mediaStorage: storageStatus(),
       });
     }

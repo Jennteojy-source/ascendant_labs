@@ -44,10 +44,9 @@ Outbound WebSocket connection to a managed browser provider:
 - `BROWSERLESS_REGION`: optional `sfo`, `lon`, or `ams` (default: `sfo`).
 - `BROWSERLESS_PROXY_COUNTRY`: optional two-letter residential exit country (default: `us`).
 
-Selected ranked creatives are copied into a private Cloud Storage bucket and served through `/api/media/...` with immutable caching and video range requests:
+Creatives are copied into a private Cloud Storage bucket only when their card is viewed, then served through `/api/media/...` with immutable caching and video range requests:
 
 - `MEDIA_STORAGE_BUCKET`: optional bucket name (default: `ascendant-labs-45812-ad-media`).
-- `MEDIA_READY_AD_LIMIT`: number of top results prepared before the first render (default: `10`, maximum: `20`).
 - `MEDIA_PERSIST_CONCURRENCY`: simultaneous media copies (default: `2`, maximum: `4`).
 - `MEDIA_STORAGE_DISABLED=1`: disable durable copies and retain verified Meta CDN fallbacks.
 
@@ -59,4 +58,4 @@ Apply `storage-lifecycle.json` to the bucket to delete cached analysis media aft
 ### Local development fallback
 Fallback mode: launches local headless Chromium when no remote endpoints are configured.
 
-No Meta Ads Library API token is read or transmitted. `CAPI_ACCESS_TOKEN` belongs to the separate first-party conversion-event service under `functions/` and is not used by the collector.
+No Meta Ads Library API token is read or transmitted. Query expansion and reranking use Vertex AI with the Cloud Run service account; configure `VERTEX_GEMINI_MODEL` only to override the default `gemini-3.8-flash` model.

@@ -94,8 +94,11 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
 function asText(value) {
   if (typeof value === 'string') return value.trim();
   if (typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(asText).find(Boolean) || '';
   if (value && typeof value === 'object') {
-    for (const key of ['text', 'value', 'name', 'title', 'body']) {
+    // Meta changes the envelope often. These are the textual leaf keys used by
+    // current snapshot, creative, and GraphQL response shapes.
+    for (const key of ['text', 'value', 'text_content', 'textContent', 'name', 'title', 'body', 'description']) {
       const found = asText(value[key]);
       if (found) return found;
     }
@@ -104,8 +107,10 @@ function asText(value) {
 }
 
 function asTextArray(value) {
-  const values = Array.isArray(value) ? value : value == null ? [] : [value];
-  return [...new Set(values.map(asText).filter(Boolean))];
+  if (value == null) return [];
+  if (Array.isArray(value)) return [...new Set(value.flatMap(asTextArray).filter(Boolean))];
+  const text = asText(value);
+  return text ? [text] : [];
 }
 
 function asDate(value) {
@@ -134,14 +139,17 @@ function normalizePayloadAd(object) {
   const id = numericId(first(object, ['ad_archive_id', 'adArchiveId', 'ad_library_id', 'adLibraryId']))
     || (object.snapshot ? numericId(object.id) : null);
   if (!id) return null;
-  const body = first(snapshot, ['body', 'ad_creative_body', 'adCreativeBody'])
-    || first(object, ['ad_creative_bodies', 'adCreativeBodies', 'body']);
-  const title = first(snapshot, ['title', 'headline', 'link_title', 'linkTitle'])
-    || first(object, ['ad_creative_link_titles', 'adCreativeLinkTitles', 'title']);
-  const caption = first(snapshot, ['caption', 'link_caption', 'linkCaption'])
-    || first(object, ['ad_creative_link_captions', 'adCreativeLinkCaptions', 'caption']);
-  const description = first(snapshot, ['link_description', 'linkDescription', 'description'])
-    || first(object, ['ad_creative_link_descriptions', 'adCreativeLinkDescriptions', 'description']);
+  // Preserve the field identity. In particular, don't use a generic text value
+  // as a fallback for headline or description: that was causing primary text to
+  // appear in every copy slot for several Meta response shapes.
+  const body = first(snapshot, ['body', 'ad_creative_body', 'adCreativeBody', 'message'])
+    ?? first(object, ['ad_creative_bodies', 'adCreativeBodies', 'body', 'message']);
+  const title = first(snapshot, ['title', 'headline', 'link_title', 'linkTitle', 'link_headline'])
+    ?? first(object, ['ad_creative_link_titles', 'adCreativeLinkTitles', 'title', 'headline', 'link_headline']);
+  const caption = first(snapshot, ['caption', 'link_caption', 'linkCaption', 'link_url_caption'])
+    ?? first(object, ['ad_creative_link_captions', 'adCreativeLinkCaptions', 'caption', 'link_url_caption']);
+  const description = first(snapshot, ['link_description', 'linkDescription', 'description', 'link_desc'])
+    ?? first(object, ['ad_creative_link_descriptions', 'adCreativeLinkDescriptions', 'description', 'link_desc']);
   const start = first(object, ['start_date', 'startDate', 'ad_delivery_start_time', 'adDeliveryStartTime', 'creation_time']);
   const stop = first(object, ['end_date', 'endDate', 'ad_delivery_stop_time', 'adDeliveryStopTime']);
   const platforms = first(object, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms'])

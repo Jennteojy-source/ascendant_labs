@@ -1,6 +1,4 @@
 /**
  * Cloud Functions entry for Ascendant Labs
  */
-const affiliate = require("./routes/affiliate");
-
-exports.affiliateRedirect = affiliate.affiliateRedirect;
+// Affiliate redirect, VPN offer tracking, and click logging were retired.

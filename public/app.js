@@ -231,6 +231,7 @@ const state = {
   rawRankedAds: [],       // All ads returned by server
   currentProfile: null,
   currentFilter: 'ALL',   // 'ALL' | 'BRAND_AFFILIATE' | 'COMPETITOR'
+  filters: { platform: '', language: '', country: '', status: '', creative: '' },
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
 };
 
@@ -250,10 +251,18 @@ const paginationNav = document.getElementById('paginationNav');
 const prevPageBtn = document.getElementById('prevPageBtn');
 const nextPageBtn = document.getElementById('nextPageBtn');
 const pageNumbersList = document.getElementById('pageNumbersList');
+const resultsFilters = document.getElementById('resultsFilters');
+const filterResultCount = document.getElementById('filterResultCount');
+const filterInputs = {
+  platform: document.getElementById('platformFilter'), language: document.getElementById('languageFilter'),
+  country: document.getElementById('countryFilter'), status: document.getElementById('statusFilter'),
+  creative: document.getElementById('creativeFilter'),
+};
+let searchInFlight = false;
 
 // Quick Search from Suggestion Chips
 window.executeQuickSearch = function (query) {
-  if (!query) return;
+  if (!query || searchInFlight) return;
   if (searchInput) {
     searchInput.value = query;
     searchInput.blur(); // Dismiss mobile keyboard
@@ -283,11 +292,16 @@ document.addEventListener('DOMContentLoaded', () => {
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const val = searchInput.value.trim();
-    if (val) {
+    if (val && !searchInFlight) {
       searchInput.blur(); // Close mobile soft keyboard so results are immediately visible
       executeSearch(val, 1);
     }
   });
+
+  Object.entries(filterInputs).forEach(([key, input]) => input?.addEventListener('change', () => {
+    state.filters[key] = input.value;
+    applyFiltersAndRender(1);
+  }));
 
   // Pagination navigation
   prevPageBtn.addEventListener('click', () => {
@@ -309,6 +323,8 @@ async function fetchHealth() {
  * Execute Search Pipeline against Backend (4-Stage AI Pipeline)
  */
 async function executeSearch(targetInput, page = 1) {
+  if (searchInFlight) return;
+  searchInFlight = true;
   resetMediaSession();
   const searchGeneration = mediaGeneration;
   state.currentInput = targetInput;
@@ -318,8 +334,10 @@ async function executeSearch(targetInput, page = 1) {
   emptyState.style.display = 'none';
   adGrid.style.display = 'none';
   paginationNav.style.display = 'none';
+  resultsFilters.style.display = 'none';
   loadingState.style.display = 'block';
   searchSubmitBtn.disabled = true;
+  searchSubmitBtn.setAttribute('aria-busy', 'true');
 
   // Staged progress remains visible while the server validates and archives media.
   const steps = [
@@ -394,12 +412,13 @@ async function executeSearch(targetInput, page = 1) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         input: targetInput,
-        countries: ['US', 'GB', 'CA', 'AU'],
+        countries: ['ALL'],
         status: 'ALL',
         mediaType: 'ALL',
         page: 1,
         pageSize: 100,
-        useCache: true,
+        // Every submitted search is live; media remains separately durable in Storage.
+        useCache: false,
       }),
     });
 
@@ -409,6 +428,8 @@ async function executeSearch(targetInput, page = 1) {
 
     state.currentProfile = data.queryProfile;
     state.rawRankedAds = data.paginated.items;
+    resetResultFilters();
+    populateResultFilters(state.rawRankedAds);
 
     setActiveStep(4);
 
@@ -419,13 +440,10 @@ async function executeSearch(targetInput, page = 1) {
       }
     }
 
-    // One final batch check ensures visible cards are either ready or explicitly unavailable.
-    await preparePageMedia((state.rawRankedAds || []).slice(0, state.pageSize), 90000);
-    if (searchGeneration !== mediaGeneration) return;
-
-    // Now reveal the ad grid — creatives are already resolved and display instantly!
+    // Reveal results immediately; visible-card media is resolved lazily.
     loadingState.style.display = 'none';
     adGrid.style.display = 'grid';
+    resultsFilters.style.display = 'block';
 
     const fill = document.getElementById('pipelineMeterFill');
     if (fill) fill.style.width = '100%';
@@ -443,7 +461,31 @@ async function executeSearch(targetInput, page = 1) {
   } finally {
     stepTimers.forEach(t => clearTimeout(t));
     clearInterval(elapsedInterval);
+    searchInFlight = false;
     if (searchGeneration === mediaGeneration) searchSubmitBtn.disabled = false;
+    searchSubmitBtn.removeAttribute('aria-busy');
+  }
+}
+
+function resetResultFilters() {
+  state.filters = { platform: '', language: '', country: '', status: '', creative: '' };
+  Object.values(filterInputs).forEach(input => { if (input) input.value = ''; });
+}
+
+function populateResultFilters(ads) {
+  const values = {
+    platform: new Set(), language: new Set(), country: new Set(),
+  };
+  for (const ad of ads || []) {
+    (ad.stats?.platforms || []).forEach(value => values.platform.add(String(value)));
+    (ad.stats?.languages || []).forEach(value => values.language.add(String(value)));
+    (ad.stats?.countries || []).forEach(value => values.country.add(String(value)));
+  }
+  for (const [key, set] of Object.entries(values)) {
+    const input = filterInputs[key];
+    if (!input) continue;
+    input.replaceChildren(new Option(`All ${key === 'country' ? 'countries' : `${key}s`}`, ''));
+    [...set].sort().forEach(value => input.add(new Option(value, value)));
   }
 }
 
@@ -468,7 +510,19 @@ async function preparePageMedia(ads, timeoutMs = 90000) {
  */
 function applyFiltersAndRender(targetPage = 1) {
   state.currentPage = targetPage;
-  const items = [...state.rawRankedAds];
+  const normal = value => String(value || '').trim().toLowerCase();
+  const selected = state.filters;
+  const items = (state.rawRankedAds || []).filter(ad => {
+    const stats = ad.stats || {};
+    const has = (values, selectedValue) => !selectedValue || (values || []).some(value => normal(value) === normal(selectedValue));
+    const mediaType = normal(ad.media?.mediaType || ad.media?.creatives?.[0]?.mediaType);
+    return has(stats.platforms, selected.platform)
+      && has(stats.languages, selected.language)
+      && has(stats.countries, selected.country)
+      && (!selected.status || (selected.status === 'active') === Boolean(stats.isActive))
+      && (!selected.creative || mediaType === selected.creative);
+  });
+  if (filterResultCount) filterResultCount.textContent = `${items.length} of ${(state.rawRankedAds || []).length} creatives`;
 
   state.totalPages = Math.ceil(items.length / state.pageSize) || 1;
   const startIdx = (state.currentPage - 1) * state.pageSize;

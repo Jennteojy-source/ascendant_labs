@@ -1,22 +1,13 @@
 /** Browser-first multi-vector comparable ad finder. */
 const { searchMetaAds } = require('./meta_browser_searcher');
 
-const queryCache = new Map();
-const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
-
 async function queryMetaArchive(searchTerm, options = {}) {
   const countries = options.countries || ['ALL'];
   const status = options.status || 'ACTIVE';
   const limit = options.limit || 25;
   const mediaType = options.mediaType || 'ALL';
-  const key = `${String(searchTerm || '').trim().toLowerCase()}::${countries.slice().sort().join(',')}::${status}::${mediaType}::${limit}`;
-  const cached = queryCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return { data: cached.data, error: null, fromCache: true };
-  }
-  const result = await searchMetaAds(searchTerm, { countries, status, limit, mediaType });
-  if (result.data.length) queryCache.set(key, { data: result.data, timestamp: Date.now() });
-  return result;
+  // Queries intentionally remain live. Persisted media, not search results, is reused.
+  return searchMetaAds(searchTerm, { countries, status, limit, mediaType });
 }
 
 async function findComparables(searchPlan = {}, options = {}) {
@@ -32,7 +23,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     const term = String(vector.query || '').trim().toLowerCase();
     if (!term || seenTerms.has(term)) return false;
     seenTerms.add(term); return true;
-  }).slice(0, 4);
+  }).slice(0, 2);
   const spam = /novels? lover|novel drama|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
 
   async function runVector(vector, limit = limitPerVector) {
@@ -66,6 +57,9 @@ async function findComparables(searchPlan = {}, options = {}) {
   for (const vector of uniqueVectors) {
     const isCore = ['BRAND', 'PRODUCT', 'EXACT_BRAND', 'PRODUCT_NAME'].includes(vector.type);
     await runVector(vector, isCore ? Math.max(limitPerVector, 50) : limitPerVector);
+    // An exact brand search is usually the highest-recall page result and avoids
+    // paid remote-browser sessions for speculative alternate queries.
+    if (rawAdsMap.size && ['BRAND', 'PRODUCT', 'EXACT_BRAND'].includes(vector.type)) break;
   }
 
   const discoveredCompetitors = [];

@@ -26,10 +26,6 @@
           "serviceId": "ascendant-ads",
           "region": "us-central1"
         }
-      },
-      {
-        "source": "/r/**",
-        "function": "affiliateRedirect"
       }
     ]
   },

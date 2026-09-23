@@ -13,6 +13,7 @@ const { Firestore, FieldValue } = require('@google-cloud/firestore');
 const CACHE_DIR = path.resolve(__dirname, '../.cache');
 const LOCAL_HISTORY_FILE = path.join(CACHE_DIR, 'search_history.json');
 const COLLECTION_NAME = 'search_history';
+const ADS_COLLECTION_NAME = 'ad_library_ads';
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ascendant-labs-45812';
 
 if (!fs.existsSync(CACHE_DIR)) {
@@ -53,6 +54,7 @@ function sanitizeAdForStorage(ad) {
       headline: ad.copy?.headline || '',
       body: ad.copy?.body || '',
       caption: ad.copy?.caption || '',
+      description: ad.copy?.description || '',
     },
     stats: {
       flightDays: Number(ad.stats?.flightDays || 1),
@@ -61,11 +63,21 @@ function sanitizeAdForStorage(ad) {
       endDate: ad.stats?.endDate || null,
       scaleTier: ad.stats?.scaleTier || 'Active',
       reachEst: ad.stats?.reachEst || 'Standard',
+      languages: Array.isArray(ad.stats?.languages) ? ad.stats.languages : [],
+      countries: Array.isArray(ad.stats?.countries) ? ad.stats.countries : [],
+      platforms: Array.isArray(ad.stats?.platforms) ? ad.stats.platforms : [],
     },
     media: {
       mediaType: ad.media?.mediaType || 'IMAGE',
       thumbnailUrl: ad.media?.thumbnailUrl || null,
       videoUrl: ad.media?.videoUrl || null,
+      creatives: Array.isArray(ad.media?.creatives) ? ad.media.creatives.map(creative => ({
+        mediaType: creative.mediaType || 'unknown',
+        thumbnailUrl: creative.thumbnailUrl || null,
+        videoUrl: creative.videoUrl || null,
+      })) : [],
+      // These values identify the immutable GCS object backing /api/media URLs.
+      assetObjectPaths: storedAssetPaths(ad.media, String(ad.id || '')),
     },
     ranking: {
       rankScore: Number(ad.ranking?.rankScore || ad.ranking?.score || 50),
@@ -80,6 +92,45 @@ function sanitizeAdForStorage(ad) {
     } : null,
     variantCount: Number(ad.variantCount || 1),
   };
+}
+
+function storedAssetPaths(media, adId) {
+  const urls = [media?.thumbnailUrl, media?.videoUrl, ...(media?.creatives || []).flatMap(item => [item.thumbnailUrl, item.videoUrl])];
+  const expression = new RegExp(`^/api/media/${adId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([a-f0-9]{64}\\.(?:jpg|png|webp|gif|mp4|webm|mov))$`);
+  return [...new Set(urls.filter(Boolean).map(url => {
+    const match = expression.exec(String(url));
+    return match ? `ad-media/${adId}/${match[1]}` : null;
+  }).filter(Boolean))];
+}
+
+async function saveCanonicalAds(db, ads) {
+  const validAds = ads.filter(ad => /^\d{1,40}$/.test(ad.id));
+  for (let start = 0; start < validAds.length; start += 450) {
+    const batch = db.batch();
+    for (const ad of validAds.slice(start, start + 450)) {
+      batch.set(db.collection(ADS_COLLECTION_NAME).doc(ad.id), {
+        ...ad,
+        adLibraryId: ad.id,
+        storage: { bucket: process.env.MEDIA_STORAGE_BUCKET || `${PROJECT_ID}-ad-media`, assetObjectPaths: ad.media.assetObjectPaths || [] },
+        lastSeenAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+    await batch.commit();
+  }
+}
+
+async function upsertCanonicalAds(ads = []) {
+  const db = getFirestore();
+  if (!db || firestoreAvailable === false) return false;
+  try {
+    await saveCanonicalAds(db, (ads || []).map(sanitizeAdForStorage).filter(Boolean));
+    firestoreAvailable = true;
+    return true;
+  } catch (err) {
+    console.warn('[SearchLogger] Canonical ad write notice:', err.message);
+    firestoreAvailable = false;
+    return false;
+  }
 }
 
 /**
@@ -111,7 +162,9 @@ async function logSearchSession(sessionData = {}) {
   if (!trimmedQuery) return null;
 
   const id = `search_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const sanitizedAds = (ads || []).slice(0, 80).map(sanitizeAdForStorage).filter(Boolean);
+  const canonicalAds = (ads || []).map(sanitizeAdForStorage).filter(Boolean);
+  // Keep replay payload bounded; the session still references every canonical ad.
+  const sanitizedAds = canonicalAds.slice(0, 80);
 
   const topResultsSummary = sanitizedAds.slice(0, 10).map(ad => ({
     id: ad.id,
@@ -148,6 +201,7 @@ async function logSearchSession(sessionData = {}) {
       suggestedVectors: profile.suggestedVectors || [],
     } : null,
     topResultsSummary,
+    resultAdIds: canonicalAds.map(ad => ad.id),
     results: sanitizedAds,
     metadata: {
       collector: collector || ((process.env.BROWSERLESS_TOKEN || process.env.BROWSERLESS_API) ? 'managed-browserless'
@@ -202,6 +256,7 @@ async function logSearchSession(sessionData = {}) {
   if (db && firestoreAvailable !== false) {
     try {
       const docRef = db.collection(COLLECTION_NAME).doc(id);
+      await saveCanonicalAds(db, canonicalAds);
       await docRef.set({
         ...docData,
         createdAt: FieldValue.serverTimestamp(),
@@ -373,4 +428,7 @@ module.exports = {
   getRecentSearches,
   getSearchDiagnostics,
   getSearchSession,
+  sanitizeAdForStorage,
+  storedAssetPaths,
+  upsertCanonicalAds,
 };

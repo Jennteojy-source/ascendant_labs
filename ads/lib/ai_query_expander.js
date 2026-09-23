@@ -13,72 +13,7 @@
  *   4. Deterministic Rendering (frontend)
  */
 
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-
-function loadEnv() {
-  const envPath = path.resolve(__dirname, '../../functions/.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach((line) => {
-      const match = line.match(/^([^=]+)=(.*)$/);
-      if (match && !process.env[match[1].trim()]) {
-        process.env[match[1].trim()] = match[2].trim();
-      }
-    });
-  }
-}
-loadEnv();
-
-function callGemini(apiKey, prompt) {
-  const payload = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 1200,
-    },
-  });
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        hostname: 'generativelanguage.googleapis.com',
-        path: `/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-        timeout: 5000,
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (c) => (data += c));
-        res.on('end', () => {
-          if (res.statusCode === 200) {
-            try {
-              const json = JSON.parse(data);
-              resolve(json.candidates?.[0]?.content?.parts?.[0]?.text || '');
-            } catch (e) {
-              reject(e);
-            }
-          } else {
-            reject(new Error(`Gemini status ${res.statusCode}`));
-          }
-        });
-      }
-    );
-
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Gemini timeout'));
-    });
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
-  });
-}
+const { generateText } = require('./vertex_ai');
 
 function sanitizeSearchVectors(brandName, vectors = []) {
   const brand = String(brandName || '').trim();
@@ -108,11 +43,6 @@ function sanitizeSearchVectors(brandName, vectors = []) {
 async function expandQueryWithAI(userQuery) {
   const trimmed = (userQuery || '').trim();
   if (!trimmed) {
-    return buildFallbackExpansion(trimmed);
-  }
-
-  const apiKey = process.env.GEMINI_FREE_API_KEY;
-  if (!apiKey) {
     return buildFallbackExpansion(trimmed);
   }
 
@@ -156,7 +86,7 @@ Rules:
 - Keep queries concise (1-4 words max) for reliable matching in the public Meta Ads Library search UI.`;
 
   try {
-    const raw = await callGemini(apiKey, prompt);
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1200 });
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
 

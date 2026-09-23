@@ -71,7 +71,7 @@
                 type="text" 
                 id="searchInput" 
                 class="search-input" 
-                placeholder="Enter product or brand name (e.g. Derila, NordVPN)..." 
+                placeholder="Enter product or brand name (e.g. LYZA Education, Derila)..."
                 required 
                 autocomplete="off"
                 autocorrect="off"
@@ -103,6 +103,17 @@
         <h3 id="loadingTitle">Looking up ads...</h3>
         <p id="loadingSubhead">Finding live Facebook & Instagram ads and video previews.</p>
       </div>
+
+      <section class="results-filters" id="resultsFilters" style="display: none;" aria-label="Filter search results">
+        <div class="results-filter-heading"><strong>Filter results</strong><span id="filterResultCount"></span></div>
+        <div class="results-filter-controls">
+          <label>Platform <select id="platformFilter"><option value="">All platforms</option></select></label>
+          <label>Language <select id="languageFilter"><option value="">All languages</option></select></label>
+          <label>Country <select id="countryFilter"><option value="">All countries</option></select></label>
+          <label>Status <select id="statusFilter"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+          <label>Creative <select id="creativeFilter"><option value="">All creative types</option><option value="video">Video</option><option value="image">Image</option></select></label>
+        </div>
+      </section>
 
       <!-- 10-Item Paginated Ad Card Grid -->
       <div class="ad-grid" id="adGrid" style="display: none;"></div>

@@ -12,79 +12,13 @@
  * - Generates 1-sentence AI Strategic Insight for direct-response performance
  */
 
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-
-function loadEnv() {
-  const envPath = path.resolve(__dirname, '../../functions/.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach((line) => {
-      const match = line.match(/^([^=]+)=(.*)$/);
-      if (match && !process.env[match[1].trim()]) {
-        process.env[match[1].trim()] = match[2].trim();
-      }
-    });
-  }
-}
-loadEnv();
-
-function callGemini(apiKey, prompt) {
-  const payload = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 2500,
-    },
-  });
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        hostname: 'generativelanguage.googleapis.com',
-        path: `/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-        timeout: 7000,
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (c) => (data += c));
-        res.on('end', () => {
-          if (res.statusCode === 200) {
-            try {
-              const json = JSON.parse(data);
-              resolve(json.candidates?.[0]?.content?.parts?.[0]?.text || '');
-            } catch (e) {
-              reject(e);
-            }
-          } else {
-            reject(new Error(`Gemini status ${res.statusCode}`));
-          }
-        });
-      }
-    );
-
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Gemini timeout'));
-    });
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
-  });
-}
+const { generateText } = require('./vertex_ai');
 
 /**
  * Listwise evaluation of a batch of ads against a target profile
  */
 async function evaluateBatchWithAI(targetProfile, adsBatch) {
-  const apiKey = process.env.GEMINI_FREE_API_KEY;
-  if (!apiKey || adsBatch.length === 0) return null;
+  if (adsBatch.length === 0) return null;
 
   const promptAds = adsBatch.map((ad, idx) => ({
     index: idx + 1,
@@ -128,7 +62,7 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 ]`;
 
   try {
-    const raw = await callGemini(apiKey, prompt);
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 2500 });
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed)) {
