@@ -3,11 +3,6 @@
   "private": true,
   "scripts": {
     "test:media": "node --test ads/tests/media.test.js ads/tests/browser-search.test.js ads/tests/media-browser.test.js",
-    "spy": "node ads/affiliate_spy_engine.js",
-    "video:ad": "node ads/video_ad_generator.js",
-    "cb:ads": "node ads/find_clickbank_ads.js",
-    "cb:scaled": "node ads/get_top_active_scaling_ads.js",
-    "cb:marketplace": "node ads/scrape_clickbank_marketplace.js",
     "ad:search": "node ads/agentic_ad_search.js",
     "ad:server": "node ads/server.js",
     "deploy": "firebase deploy",
