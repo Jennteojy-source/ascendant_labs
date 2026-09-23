@@ -82,7 +82,7 @@ async function findComparables(searchPlan = {}, options = {}) {
   if (!rawAdsMap.size && discoveryErrors.length) {
     const blockedItem = discoveryErrors.find(item => item.blocked || /blocked/i.test(item.error));
     const error = new Error(blockedItem
-      ? 'Meta blocked the browser session. Configure a trusted remote browser with BROWSER_WS_ENDPOINT or BROWSER_CDP_ENDPOINT.'
+      ? 'Meta blocked the browser session. Configure the managed Browserless connection.'
       : `Ads Library browser search failed: ${discoveryErrors[0].error}`);
     error.isBlocked = Boolean(blockedItem);
     error.blockReason = blockedItem?.blockReason || (blockedItem ? 'Meta blocked the browser session' : null);

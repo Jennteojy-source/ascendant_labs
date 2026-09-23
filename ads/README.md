@@ -34,13 +34,16 @@ npm run ad:search -- "product or brand"
 npm run test:media
 ```
 
-## Browser deployment
+## Managed browser deployment
 
-The collector launches local Chromium by default. Meta commonly blocks fresh datacenter/headless sessions, so production should connect Playwright to a trusted persistent browser rather than rely on the Cloud Run container's IP.
+Production connects outbound to a managed browser service. The project does not open a Chrome debugging port, run a tunnel, or accept inbound browser-control connections.
 
-- `BROWSER_WS_ENDPOINT`: preferred Playwright WebSocket endpoint (`chromium.connect`).
-- `BROWSER_CDP_ENDPOINT`: Chrome DevTools endpoint for an existing Chromium session (`connectOverCDP`).
-- `BROWSER_REUSE_DEFAULT_CONTEXT=1`: reuse the remote browser's persistent default context and cookies.
-- `META_BROWSER_STORAGE_STATE`: optional Playwright storage-state JSON used when creating isolated contexts.
+Browserless is the default hosted provider:
+
+- `BROWSERLESS_TOKEN`: Browserless dashboard token. Store it as a Cloud Run secret.
+- `BROWSERLESS_REGION`: optional `sfo`, `lon`, or `ams` (default: `sfo`).
+- `BROWSERLESS_PROXY_COUNTRY`: optional two-letter residential exit country (default: `us`).
+
+For another managed provider, `BROWSER_WS_ENDPOINT` accepts an encrypted Playwright-native `wss://` endpoint. Plain HTTP endpoints are rejected. `BROWSER_REUSE_DEFAULT_CONTEXT=1` and `META_BROWSER_STORAGE_STATE` remain optional for providers that support persistent contexts.
 
 No Meta Ads Library API token is read or transmitted. `CAPI_ACCESS_TOKEN` belongs to the separate first-party conversion-event service under `functions/` and is not used by the collector.

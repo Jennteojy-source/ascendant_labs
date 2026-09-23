@@ -18,6 +18,7 @@ const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache, getBrowser } = require('./lib/paginated_sniffer');
+const { browserConnectionMode } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch } = require('./lib/firestore_cache');
 const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
@@ -352,7 +353,7 @@ const server = http.createServer(async (req, res) => {
 
         return sendJson(res, isBlocked ? 403 : 500, {
           error: isBlocked
-            ? 'Meta blocked the browser session. Configure a trusted remote browser with BROWSER_WS_ENDPOINT or BROWSER_CDP_ENDPOINT.'
+            ? 'Meta blocked the browser session. Configure the managed Browserless connection.'
             : `Search failed: ${err.message}`,
           status: searchStatus,
           isBlocked,
@@ -455,6 +456,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         status: 'OK',
         collector: 'playwright-public-library',
+        browserMode: browserConnectionMode(),
         tokenRequired: false,
         uptimeSec: Math.round(process.uptime()),
         cachedMediaCount: Object.keys(mediaCache).length,
@@ -487,8 +489,10 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(` Web UI:  ${path.join(WEB_DIR, 'index.html')}`);
   console.log(`========================================================================\n`);
 
-  // Pre-warm headless Chromium in background for instant 0-latency media sniffing
-  getBrowser()
-    .then(() => logger.info('Headless Chromium pre-warmed and ready for media sniffing'))
-    .catch((err) => logger.warn('Chromium pre-warm notice:', { error: err.message }));
+  // Avoid opening billable managed-browser sessions until a search needs one.
+  if (browserConnectionMode() === 'local-chromium') {
+    getBrowser()
+      .then(() => logger.info('Headless Chromium pre-warmed and ready for media sniffing'))
+      .catch((err) => logger.warn('Chromium pre-warm notice:', { error: err.message }));
+  }
 });

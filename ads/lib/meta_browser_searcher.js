@@ -11,16 +11,45 @@ const SEARCH_TIMEOUT_MS = 30000;
 const MAX_SCROLLS = 12;
 let browserPromise;
 
+function browserlessEndpoint(env = process.env) {
+  if (!env.BROWSERLESS_TOKEN) return null;
+  const region = /^(sfo|lon|ams)$/.test(env.BROWSERLESS_REGION || '')
+    ? env.BROWSERLESS_REGION : 'sfo';
+  const country = /^[a-z]{2}$/i.test(env.BROWSERLESS_PROXY_COUNTRY || '')
+    ? env.BROWSERLESS_PROXY_COUNTRY.toLowerCase() : 'us';
+  const endpoint = new URL(`wss://production-${region}.browserless.io/chromium/playwright`);
+  endpoint.searchParams.set('token', env.BROWSERLESS_TOKEN);
+  endpoint.searchParams.set('proxy', 'residential');
+  endpoint.searchParams.set('proxyCountry', country);
+  endpoint.searchParams.set('timeout', '110000');
+  return endpoint.href;
+}
+
+function managedPlaywrightEndpoint(env = process.env) {
+  const endpoint = browserlessEndpoint(env) || env.BROWSER_WS_ENDPOINT;
+  if (!endpoint) return null;
+  const parsed = new URL(endpoint);
+  if (parsed.protocol !== 'wss:') {
+    throw new Error('Managed browser endpoint must use encrypted wss:// transport');
+  }
+  return parsed.href;
+}
+
+function browserConnectionMode(env = process.env) {
+  if (env.BROWSERLESS_TOKEN) return 'managed-browserless';
+  if (env.BROWSER_WS_ENDPOINT) return 'managed-playwright';
+  return 'local-chromium';
+}
+
 async function getSearchBrowser() {
   if (!browserPromise) {
-    const connect = process.env.BROWSER_WS_ENDPOINT
-      ? chromium.connect(process.env.BROWSER_WS_ENDPOINT)
-      : process.env.BROWSER_CDP_ENDPOINT
-        ? chromium.connectOverCDP(process.env.BROWSER_CDP_ENDPOINT)
-        : chromium.launch({
-          headless: process.env.BROWSER_HEADLESS !== '0',
-          args: ['--no-sandbox', '--disable-dev-shm-usage'],
-        });
+    const endpoint = managedPlaywrightEndpoint();
+    const connect = endpoint
+      ? chromium.connect(endpoint, { timeout: 15000 })
+      : chromium.launch({
+        headless: process.env.BROWSER_HEADLESS !== '0',
+        args: ['--no-sandbox', '--disable-dev-shm-usage'],
+      });
     browserPromise = connect.then(browser => {
       browser.on('disconnected', () => { browserPromise = null; });
       return browser;
@@ -49,7 +78,8 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
   const url = new URL('https://www.facebook.com/ads/library/');
   url.searchParams.set('active_status', status);
   url.searchParams.set('ad_type', 'all');
-  url.searchParams.set('country', countries[0] || 'US');
+  const country = countries.includes('ALL') ? 'ALL' : (countries[0] || 'US');
+  url.searchParams.set('country', country);
   url.searchParams.set('q', String(searchTerm || '').trim());
   url.searchParams.set('search_type', 'keyword_unordered');
   url.searchParams.set('media_type', media);
@@ -267,10 +297,20 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     const response = await page.goto(buildAdsLibrarySearchUrl(searchTerm, options), {
       waitUntil: 'domcontentloaded', timeout: SEARCH_TIMEOUT_MS,
     });
-    if (response && [401, 403, 429].includes(response.status())) {
-      blocked = true;
-      blockReason = `Meta returned HTTP ${response.status()}`;
+
+    // Check if Meta served an initial rate-denial challenge (__rd_verify) with HTTP 403
+    const initialContent = await page.content().catch(() => '');
+    if (initialContent.includes('__rd_verify') || (response && response.status() === 403 && initialContent.includes('challenge'))) {
+      // Allow Meta's in-page challenge script to execute and trigger automatic page reload
+      await page.waitForNavigation({ timeout: 10000 }).catch(() => {});
     }
+
+    const currentUrl = page.url();
+    if (/\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(currentUrl)) {
+      blocked = true;
+      blockReason = `Redirected to ${currentUrl}`;
+    }
+
     await dismissConsent(page);
     let unchanged = 0;
     let previousCount = -1;
@@ -318,4 +358,5 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
 }
 
 module.exports = { buildAdsLibrarySearchUrl, extractAdsFromPayload, extractAdsFromDocument,
+  browserConnectionMode, browserlessEndpoint, managedPlaywrightEndpoint,
   createCollectorContext, getSearchBrowser, searchMetaAds };
