@@ -1274,8 +1274,50 @@ body {
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   flex: 1;
+}
+
+.copy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.copy-section:not(:last-child) {
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(203, 213, 225, 0.7);
+}
+
+.copy-label-tag {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.3;
+}
+
+.copy-label-tag.tag-primary {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.copy-label-tag.tag-headline {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.copy-label-tag.tag-desc {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
 }
 
 .hook-archetype-pill {
@@ -1394,20 +1436,41 @@ body {
 }
 
 .ad-headline {
-  font-size: 0.88rem;
+  font-size: 0.90rem;
   font-weight: 700;
   line-height: 1.35;
-  color: var(--text-primary);
+  color: #0f172a;
+  margin: 0;
+  word-break: break-word;
 }
 
 .ad-body-text {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  line-height: 1.45;
+  font-size: 0.84rem;
+  color: #1e293b;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: all 0.2s ease;
+}
+
+.ad-body-text.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.ad-desc-snippet {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+  font-style: italic;
+  word-break: break-word;
 }
 
 .show-more-btn {
@@ -1418,8 +1481,9 @@ body {
   font-weight: 600;
   cursor: pointer;
   align-self: flex-start;
-  padding: 0;
-  margin-top: 2px;
+  padding: 3px 0 0 0;
+  margin: 0;
+  transition: color 0.15s ease;
 }
 
 .show-more-btn:hover {

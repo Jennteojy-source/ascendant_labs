@@ -640,10 +640,24 @@ function renderAdGrid(ads) {
       ` : ''}
 
       <div class="card-copy-content">
-        <h4 class="ad-headline" id="headline-${ad.id}" style="${ad.copy.headline ? '' : 'display:none;'}">${ad.copy.headline || ''}</h4>
-        <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body || ''}</p>
-        <p class="ad-desc-snippet" id="desc-snippet-${ad.id}" style="${linkDesc ? '' : 'display:none;'}">${linkDesc || ''}</p>
-        ${ad.copy.body.length > 110 ? `<button class="show-more-btn" onclick="event.stopPropagation(); toggleCopy('${ad.id}')">Read more</button>` : ''}
+        <!-- 1. Primary Text (Post Copy) -->
+        <div class="copy-section copy-section-body" id="body-wrap-${ad.id}" style="${ad.copy.body ? '' : 'display:none;'}">
+          <span class="copy-label-tag tag-primary">Primary Text</span>
+          <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body || ''}</p>
+          ${ad.copy.body && ad.copy.body.length > 110 ? `<button type="button" class="show-more-btn" id="show-more-btn-${ad.id}" onclick="event.stopPropagation(); toggleCopy('${ad.id}')">Read more</button>` : ''}
+        </div>
+
+        <!-- 2. Headline / Title -->
+        <div class="copy-section copy-section-headline" id="headline-wrap-${ad.id}" style="${ad.copy.headline ? '' : 'display:none;'}">
+          <span class="copy-label-tag tag-headline">Headline</span>
+          <h4 class="ad-headline" id="headline-${ad.id}">${ad.copy.headline || ''}</h4>
+        </div>
+
+        <!-- 3. Link Description -->
+        <div class="copy-section copy-section-desc" id="desc-wrap-${ad.id}" style="${linkDesc ? '' : 'display:none;'}">
+          <span class="copy-label-tag tag-desc">Description</span>
+          <p class="ad-desc-snippet" id="desc-snippet-${ad.id}">${linkDesc || ''}</p>
+        </div>
       </div>
     `;
 
@@ -807,25 +821,31 @@ window.flipCardVariant = function (adId, direction) {
   ad.activeVariantIndex = (ad.activeVariantIndex + direction + total) % total;
   const v = ad.variants[ad.activeVariantIndex];
 
-  // Update headline with subtle fade
-  const headlineEl = document.getElementById(`headline-${adId}`);
-  if (headlineEl) {
-    headlineEl.textContent = v.headline || '';
-    headlineEl.style.display = v.headline ? 'block' : 'none';
-  }
-
-  // Update body text
+  // Update primary body text
   const bodyEl = document.getElementById(`body-text-${adId}`);
+  const bodyWrap = document.getElementById(`body-wrap-${adId}`);
+  const moreBtn = document.getElementById(`show-more-btn-${adId}`);
   if (bodyEl) {
     bodyEl.textContent = v.body || '';
+    bodyEl.classList.remove('expanded');
   }
+  if (bodyWrap) bodyWrap.style.display = v.body ? 'flex' : 'none';
+  if (moreBtn) {
+    moreBtn.textContent = 'Read more';
+    moreBtn.style.display = (v.body && v.body.length > 110) ? 'inline-block' : 'none';
+  }
+
+  // Update headline
+  const headlineEl = document.getElementById(`headline-${adId}`);
+  const headlineWrap = document.getElementById(`headline-wrap-${adId}`);
+  if (headlineEl) headlineEl.textContent = v.headline || '';
+  if (headlineWrap) headlineWrap.style.display = v.headline ? 'flex' : 'none';
 
   // Update description snippet
   const descEl = document.getElementById(`desc-snippet-${adId}`);
-  if (descEl) {
-    descEl.textContent = v.description || '';
-    descEl.style.display = v.description ? 'block' : 'none';
-  }
+  const descWrap = document.getElementById(`desc-wrap-${adId}`);
+  if (descEl) descEl.textContent = v.description || '';
+  if (descWrap) descWrap.style.display = v.description ? 'flex' : 'none';
 
   // Update counter badge
   const counterEl = document.getElementById(`var-counter-${adId}`);
@@ -859,17 +879,18 @@ window.openOutboundUrl = function (adId) {
 };
 
 /**
- * Toggle Body Copy Read More
+ * Toggle Body Copy Read More / Show Less
  */
 window.toggleCopy = function (adId) {
   const p = document.getElementById(`body-text-${adId}`);
-  const btn = p.nextElementSibling;
-  if (p.style.webkitLineClamp === 'unset') {
-    p.style.webkitLineClamp = '3';
-    btn.textContent = 'Read Full Copy';
+  const btn = document.getElementById(`show-more-btn-${adId}`);
+  if (!p) return;
+  if (p.classList.contains('expanded')) {
+    p.classList.remove('expanded');
+    if (btn) btn.textContent = 'Read more';
   } else {
-    p.style.webkitLineClamp = 'unset';
-    btn.textContent = 'Show Less';
+    p.classList.add('expanded');
+    if (btn) btn.textContent = 'Show less';
   }
 };
 
