@@ -3,7 +3,7 @@
  * Facebook Ads Library ClickBank Affiliate Finder
  * Ascendant Labs
  * 
- * Queries the Meta Ad Library API for ads promoting ClickBank affiliate hoplinks,
+ * Searches the public Meta Ad Library in a browser for ClickBank affiliate ads,
  * filters out official ClickBank brand ads, and outputs Ad IDs, affiliate hoplinks,
  * and review URLs.
  * 
@@ -13,30 +13,7 @@
  *   node ads/find_clickbank_ads.js --active-only
  */
 
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
-
-function loadEnv() {
-  const envPath = path.resolve(__dirname, '../functions/.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach(line => {
-      const match = line.match(/^([^=]+)=(.*)$/);
-      if (match) {
-        process.env[match[1].trim()] = match[2].trim();
-      }
-    });
-  }
-}
-
-loadEnv();
-
-const token = process.env.USER_TOKEN || process.env.ACCESS_CODE;
-if (!token) {
-  console.error("Error: USER_TOKEN or ACCESS_CODE not found in functions/.env");
-  process.exit(1);
-}
+const { queryMetaArchive } = require('./lib/comparable_finder');
 
 const args = process.argv.slice(2);
 let limit = 50;
@@ -54,22 +31,6 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-function fetchAds(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', reject);
-  });
-}
-
 async function run() {
   console.log(`=======================================================`);
   console.log(` FACEBOOK ADS LIBRARY CLICKBANK AFFILIATE FINDER`);
@@ -78,38 +39,10 @@ async function run() {
   console.log(` Active Only: ${activeOnly}`);
   console.log(`=======================================================\n`);
 
-  const fields = [
-    'id',
-    'page_id',
-    'page_name',
-    'ad_creation_time',
-    'ad_delivery_start_time',
-    'ad_delivery_stop_time',
-    'ad_snapshot_url',
-    'ad_creative_bodies',
-    'ad_creative_link_captions',
-    'ad_creative_link_descriptions',
-    'ad_creative_link_titles',
-    'publisher_platforms'
-  ].join(',');
-
-  const query = new URLSearchParams({
-    access_token: token,
-    ad_reached_countries: JSON.stringify(countries),
-    ad_type: 'ALL',
-    search_terms: searchTerm,
-    limit: limit.toString(),
-    fields: fields
+  const response = await queryMetaArchive(searchTerm, {
+    countries, status: activeOnly ? 'ACTIVE' : 'ALL', limit, mediaType: 'ALL',
   });
-
-  const url = `https://graph.facebook.com/v20.0/ads_archive?${query.toString()}`;
-  const response = await fetchAds(url);
-
-  if (response.error) {
-    console.error("Graph API Error:", response.error);
-    process.exit(1);
-  }
-
+  if (response.error && !response.data.length) console.warn('Browser search notice:', response.error);
   const rawAds = response.data || [];
   console.log(`Fetched ${rawAds.length} raw ads.\n`);
 

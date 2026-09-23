@@ -391,6 +391,8 @@ const server = http.createServer(async (req, res) => {
       const mediaCache = loadCache();
       return sendJson(res, 200, {
         status: 'OK',
+        collector: 'playwright-public-library',
+        tokenRequired: false,
         uptimeSec: Math.round(process.uptime()),
         cachedMediaCount: Object.keys(mediaCache).length,
         cachedQueriesCount: searchCache.size,

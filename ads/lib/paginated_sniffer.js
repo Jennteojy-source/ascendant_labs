@@ -1,29 +1,7 @@
 /** Ad-specific creative extraction with bounded concurrency and refreshes. */
-const fs = require('fs');
-const path = require('path');
-const { chromium } = require('playwright');
 const cache = require('./firestore_cache');
 const { mediaResult, extractStructuredMedia, inspectAdDocument, destinationUrl } = require('./media_resolver');
-
-const envPath = path.resolve(__dirname, '../../functions/.env');
-if (fs.existsSync(envPath)) {
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const match = line.match(/^([^=]+)=(.*)$/);
-    if (match && !process.env[match[1].trim()]) process.env[match[1].trim()] = match[2].trim();
-  }
-}
-
-let browserPromise;
-async function getBrowser() {
-  if (!browserPromise) {
-    browserPromise = chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
-      .then(browser => {
-        browser.on('disconnected', () => { browserPromise = null; });
-        return browser;
-      }).catch(error => { browserPromise = null; throw error; });
-  }
-  return browserPromise;
-}
+const { getSearchBrowser: getBrowser, createCollectorContext } = require('./meta_browser_searcher');
 
 function snapshotTarget(adId, supplied) {
   if (!/^\d{1,40}$/.test(String(adId))) return null;
@@ -37,17 +15,15 @@ function snapshotTarget(adId, supplied) {
       return url.href;
     } catch { return null; }
   }
-  const token = process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
-  const url = new URL(token ? 'https://www.facebook.com/ads/archive/render_ad/' : 'https://www.facebook.com/ads/library/');
+  const url = new URL('https://www.facebook.com/ads/library/');
   url.searchParams.set('id', adId);
-  if (token) url.searchParams.set('access_token', token);
   return url.href;
 }
 
 async function sniffSingleAd(browser, adId, supplied) {
   const target = snapshotTarget(adId, supplied);
   if (!target) return mediaResult([], null, 'invalid_request');
-  const context = await browser.newContext({ viewport: { width: 1000, height: 900 }, locale: 'en-US' });
+  const { context, owned } = await createCollectorContext(browser);
   const page = await context.newPage();
   let structured = mediaResult([], 'structured');
   let best = mediaResult([], 'dom');
@@ -115,7 +91,8 @@ async function sniffSingleAd(browser, adId, supplied) {
   } catch {
     return mediaResult([], null, 'retryable_failure');
   } finally {
-    await context.close().catch(() => {});
+    if (owned) await context.close().catch(() => {});
+    else await page.close().catch(() => {});
     await Promise.allSettled([...reads]);
   }
 }

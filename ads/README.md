@@ -1,6 +1,6 @@
 # 📁 Ascendant Labs Ads & Creative Asset Directory
 
-This directory contains all Meta Ad intelligence, ClickBank marketplace analytics, creative generation suites, and performance spy tooling for Ascendant Labs ClickBank affiliate campaigns.
+This directory contains browser-first Meta Ad intelligence, ClickBank marketplace analytics, creative generation suites, and performance spy tooling for Ascendant Labs ClickBank affiliate campaigns. Ad discovery uses the public Ads Library through Playwright and does not require an Ads Library API token.
 
 ---
 
@@ -9,14 +9,13 @@ This directory contains all Meta Ad intelligence, ClickBank marketplace analytic
 ```text
 ads/
 ├── README.md                           # This index file
-├── affiliate_spy_engine.js             # General Meta Ad Library spy engine (flight time, CTR, CPC, spend)
+├── affiliate_spy_engine.js             # Browser-first Meta Ad Library spy engine
 ├── ad_effectiveness_estimator.js       # Scoring & CTR/spend estimator algorithms
 ├── find_clickbank_ads.js               # Meta Ads Library scraper for ClickBank hoplinks & affiliate campaigns
 ├── get_top_active_scaling_ads.js       # Filters top active high-scale ads across ClickBank offers
 ├── get_english_active_scaled_ads.js    # Discovers top active scaled ads in US/UK/CA/AU/NZ
 ├── scrape_clickbank_marketplace.js     # ClickBank Marketplace catalog extractor
 ├── spy_clickbank_offers.js             # Automated offer intelligence crawler
-├── meta_marketing_api.js               # Meta Graph API Campaign & Funnel Analyzer
 ├── clickbank_affiliate_ads.json        # 500+ Scraped Meta affiliate ads promoting ClickBank hoplinks
 ├── clickbank_marketplace_full.json     # ClickBank marketplace offers dataset
 ├── prodentim/                          # ProDentim campaign creative & copy suite
@@ -31,7 +30,8 @@ ads/
 │       ├── clickbank_ad_creative_generation.md
 │       └── brain_training_for_dogs_playbook.md
 ├── lib/
-│   ├── meta_insights_client.js
+│   ├── meta_browser_searcher.js         # Public Library search + JSON/DOM extraction
+│   ├── paginated_sniffer.js             # Per-ad image/video refresh and caching
 │   ├── llm_evaluator.js
 │   ├── report_generator.js
 │   └── funnel_inspector.js
@@ -69,3 +69,14 @@ npm run cb:marketplace
 ### 4. Creative Suites:
 - **ProDentim**: See [`ads/prodentim/`](prodentim/README.md) for 27 visual creatives, video hooks, and 5 copy angles.
 - **Brain Training for Dogs**: See [`ads/creatives/brain_training_for_dogs/`](creatives/brain_training_for_dogs/) and [`ads/prompts/clickbank_affiliate/brain_training_for_dogs_playbook.md`](prompts/clickbank_affiliate/brain_training_for_dogs_playbook.md).
+
+## Browser deployment
+
+The collector launches local Chromium by default. Meta commonly blocks fresh datacenter/headless sessions, so production should connect Playwright to a trusted persistent browser rather than rely on the Cloud Run container's IP.
+
+- `BROWSER_WS_ENDPOINT`: preferred Playwright WebSocket endpoint (`chromium.connect`).
+- `BROWSER_CDP_ENDPOINT`: Chrome DevTools endpoint for an existing Chromium session (`connectOverCDP`).
+- `BROWSER_REUSE_DEFAULT_CONTEXT=1`: reuse the remote browser's persistent default context and cookies.
+- `META_BROWSER_STORAGE_STATE`: optional Playwright storage-state JSON used when creating isolated contexts.
+
+No Meta Ads Library API token is read or transmitted. `CAPI_ACCESS_TOKEN` belongs to the separate first-party conversion-event service under `functions/` and is not used by the collector.

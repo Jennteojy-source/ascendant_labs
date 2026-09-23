@@ -16,9 +16,9 @@
  */
 
 const fs = require('fs');
-const https = require('https');
 const path = require('path');
 const { inspectFullFunnel } = require('./lib/funnel_inspector');
+const { queryMetaArchive } = require('./lib/comparable_finder');
 
 function loadEnv() {
   const envPath = path.resolve(__dirname, '../functions/.env');
@@ -31,25 +31,6 @@ function loadEnv() {
   }
 }
 loadEnv();
-
-const token = process.env.USER_TOKEN;
-if (!token) {
-  console.error("Error: USER_TOKEN not found in functions/.env");
-  process.exit(1);
-}
-
-// 1. HTTP Fetcher with Timeout & Error Handling
-function fetchJson(url) {
-  return new Promise((resolve) => {
-    https.get(url, { timeout: 12000 }, res => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch (e) { resolve({}); }
-      });
-    }).on('error', () => resolve({})).on('timeout', () => resolve({}));
-  });
-}
 
 // 2. Affiliate URL & Tracker Intelligence Parser (AdPlexity Methodology)
 function parseAffiliateInput(inputUrl) {
@@ -246,7 +227,7 @@ function evaluateAdPerformance(ad, publisherScaleCount = 1) {
     verified_meta_data: {
       real_eu_reach: ad.eu_total_reach || (reach > 0 ? reach : null),
       real_impressions_range: ad.impressions ? `${ad.impressions.lower_bound || 0} - ${ad.impressions.upper_bound || 0}` : null,
-      data_source: 'Meta Ad Library Graph API (Verified Transparency Data)'
+      data_source: 'Public Meta Ad Library browser extraction'
     },
     estimated_metrics: {
       estimated_ctr: `${estCtr.toFixed(2)}%`,
@@ -353,40 +334,13 @@ async function spyOnAffiliateProgram(inputUrl, options = {}) {
     }
   }
 
-  const fields = [
-    'id',
-    'page_id',
-    'page_name',
-    'ad_creation_time',
-    'ad_delivery_start_time',
-    'ad_delivery_stop_time',
-    'eu_total_reach',
-    'impressions',
-    'ad_snapshot_url',
-    'ad_creative_bodies',
-    'ad_creative_link_captions',
-    'ad_creative_link_titles',
-    'publisher_platforms',
-    'languages'
-  ].join(',');
-
   const adsMap = new Map();
 
-  console.log(`[2/4] Querying Meta Ads Archive across specified target markets...`);
+  console.log(`[2/4] Searching the public Meta Ads Library in browser mode...`);
   console.log(`  Search Vectors:   ${intel.search_terms.join(', ')}`);
 
   for (const term of intel.search_terms) {
-    const params = new URLSearchParams({
-      access_token: token,
-      ad_reached_countries: JSON.stringify(searchCountries),
-      ad_active_status: activeStatus,
-      search_terms: term,
-      fields: fields,
-      limit: queryLimit.toString()
-    });
-
-    const url = `https://graph.facebook.com/v20.0/ads_archive?${params.toString()}`;
-    const res = await fetchJson(url);
+    const res = await queryMetaArchive(term, { countries: searchCountries, status: activeStatus, limit: queryLimit });
     const data = res.data || [];
     let added = 0;
     data.forEach(ad => {
@@ -431,11 +385,11 @@ async function spyOnAffiliateProgram(inputUrl, options = {}) {
     console.log(`     Active Status: ${ad.status} [${ad.flight_dates.duration_days} days active: ${ad.flight_dates.start} -> ${ad.flight_dates.stop}]`);
     console.log(`     Where Active:  Platforms: [${ad.where_active.platforms.join(', ')}] | Languages: [${ad.where_active.languages.join(', ')}]`);
     if (ad.verified_meta_data.real_eu_reach) {
-      console.log(`     Real Reach:    ${ad.verified_meta_data.real_eu_reach.toLocaleString()} verified users (Meta EU Transparency API)`);
+      console.log(`     Real Reach:    ${ad.verified_meta_data.real_eu_reach.toLocaleString()} disclosed users`);
     } else if (ad.verified_meta_data.real_impressions_range) {
-      console.log(`     Real Impr:     ${ad.verified_meta_data.real_impressions_range} (Meta Transparency Data)`);
+      console.log(`     Real Impr:     ${ad.verified_meta_data.real_impressions_range} (public transparency data)`);
     } else {
-      console.log(`     Real Impr:     Not disclosed by Meta API for standard Tier-1 commercial ads`);
+      console.log(`     Real Impr:     Not disclosed in the public Library for this ad`);
     }
     console.log(`     Est. Metrics:  CTR: ${ad.estimated_metrics.estimated_ctr} | CPC: ${ad.estimated_metrics.estimated_cpc} | Clicks: ${ad.estimated_metrics.estimated_clicks}`);
     console.log(`     Est. Scale:    ${ad.estimated_metrics.estimated_global_impressions} global impr | Spend: ${ad.estimated_metrics.estimated_spend}`);

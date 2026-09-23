@@ -5,7 +5,7 @@
  * 
  * Takes a product or offer website, crawls all internal links to learn about
  * the product/service, downloads high-res reference images, conducts deep
- * research on Facebook Ads Library via Meta Graph API, and outputs a complete
+ * research in the public Facebook Ads Library via Playwright, and outputs a complete
  * creative campaign suite with Video AI prompts, voice-overs, captions, and copy.
  * 
  * Usage:
@@ -30,7 +30,7 @@ async function runMetaVideoAdGenerator(targetUrl, options = {}) {
   console.log(` Product URL:    ${targetUrl}`);
   console.log(` Crawl Limit:   ${options.maxPages || 6} internal pages`);
   console.log(` Max Images:    ${options.maxImages || 8} reference assets`);
-  console.log(` Meta Ad Spy:   ${options.skipSpy ? 'Skipped' : 'Enabled (Graph API)'}`);
+  console.log(` Meta Ad Spy:   ${options.skipSpy ? 'Skipped' : 'Enabled (public browser)'}`);
   console.log(`========================================================================\n`);
 
   // 1. Establish project directory
@@ -60,7 +60,7 @@ async function runMetaVideoAdGenerator(targetUrl, options = {}) {
 
   const { productIntel, downloadedAssets } = crawlResult;
 
-  // 3. Step 3: Deep Research in Facebook Ads Library via API
+  // 3. Step 3: Deep Research in the public Facebook Ads Library
   let adResearch = {
     totalAdsScanned: 0,
     activeAdsCount: 0,
@@ -69,7 +69,7 @@ async function runMetaVideoAdGenerator(targetUrl, options = {}) {
   };
 
   if (!options.skipSpy) {
-    console.log(`\n[Phase 2/3] Performing Deep Facebook Ads Library Competitor Intelligence...`);
+    console.log(`\n[Phase 2/3] Performing browser-based Facebook Ads Library research...`);
     const searchKeywords = [
       domainSlug,
       `${domainSlug} deal`,
@@ -83,7 +83,7 @@ async function runMetaVideoAdGenerator(targetUrl, options = {}) {
         limitPerTerm: options.limitPerTerm || 25
       });
     } catch (err) {
-      console.warn(`  [Notice] Meta Ad Library API research notice: ${err.message}`);
+      console.warn(`  [Notice] Meta Ad Library browser research notice: ${err.message}`);
     }
   } else {
     console.log(`\n[Phase 2/3] Facebook Ads Library Research skipped by user flag.`);
@@ -150,7 +150,7 @@ Options:
   -i, --max-images <number> Max reference images to download (default: 8)
   -c, --countries <codes>   Comma-separated target country codes (default: US,GB,CA,AU)
   -o, --output <path>       Custom output directory path
-  --skip-spy                Skip Meta Ads Library API competitor query
+  --skip-spy                Skip public Meta Ads Library browser research
   -h, --help                Show this help message
 
 Examples:

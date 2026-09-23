@@ -8,7 +8,7 @@
  * 
  * This is Stage 1 of the 4-stage search pipeline:
  *   1. AI Query Expansion (this module)
- *   2. Agentic Facebook Ads Library Search (comparable_finder.js)
+ *   2. Browser-based Facebook Ads Library Search (comparable_finder.js)
  *   3. AI Ranking & Filtering (ai_reranker.js)
  *   4. Deterministic Rendering (frontend)
  */
@@ -134,7 +134,7 @@ Return ONLY a valid raw JSON object (no markdown, no backticks):
 
 Rules:
 - STRICT: NO RIVAL COMPETITOR BRANDS. Every search vector MUST contain the target brand or product name.
-- Keep queries concise (1-4 words max) for optimal Meta Ads Library Graph API matching.`;
+- Keep queries concise (1-4 words max) for reliable matching in the public Meta Ads Library search UI.`;
 
   try {
     const raw = await callGemini(apiKey, prompt);

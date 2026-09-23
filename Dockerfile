@@ -1,7 +1,7 @@
 # Production Dockerfile for Google Cloud Run
 # Ascendant Labs — Competitor Meta Ad Intelligence Platform
 
-FROM mcr.microsoft.com/playwright:v1.50.0-noble
+FROM mcr.microsoft.com/playwright:v1.63.0-noble
 
 # Set working directory
 WORKDIR /app
@@ -9,14 +9,11 @@ WORKDIR /app
 # Set production environment variables
 ENV NODE_ENV=production \
     PORT=8080 \
-    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm install --omit=dev
-
-# Ensure Playwright Chromium browser and its OS libraries are available
-RUN npx playwright install chromium
+RUN npm ci --omit=dev
 
 # Copy application source files
 COPY ads/ ./ads/

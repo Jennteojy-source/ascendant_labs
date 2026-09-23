@@ -96,7 +96,7 @@ function buildCreativeCampaignSuite(campaignDir, { productIntel, downloadedAsset
       researchMd += `- **Ad Library**: [View on Facebook Ad Library](${h.libraryUrl})\n\n`;
     });
   } else {
-    researchMd += `*No direct competitor ads discovered or Meta API token not provided. Using direct-response algorithmic defaults.*\n\n`;
+    researchMd += `*No direct competitor ads were discovered in the public Library browser session. Using direct-response algorithmic defaults.*\n\n`;
   }
 
   const marketResearchMdPath = path.join(researchDir, 'meta_ads_inspiration.md');

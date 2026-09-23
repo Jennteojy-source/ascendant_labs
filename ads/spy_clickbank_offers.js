@@ -4,7 +4,7 @@
  * Ascendant Labs
  * 
  * Takes the extracted ClickBank marketplace offers, resolves their merchant
- * sales pages, queries Meta's Ad Library for all live & historical campaigns,
+ * sales pages, searches Meta's public Ad Library in a browser,
  * and correlates marketplace metrics (Gravity, CVR, EPC) with real-world Meta ad performance.
  * 
  * Usage:
@@ -14,9 +14,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
 const { traceRedirectChain } = require('./lib/funnel_inspector');
 const { evaluateAdPerformance, parseAffiliateInput } = require('./affiliate_spy_engine');
+const { queryMetaArchive } = require('./lib/comparable_finder');
 
 function loadEnv() {
   const envPath = path.resolve(__dirname, '../functions/.env');
@@ -30,68 +30,23 @@ function loadEnv() {
 }
 loadEnv();
 
-const token = process.env.USER_TOKEN;
-if (!token) {
-  console.error("Error: USER_TOKEN not found in functions/.env");
-  process.exit(1);
-}
-
-function fetchJson(url) {
-  return new Promise((resolve) => {
-    https.get(url, { timeout: 12000 }, res => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch (e) { resolve({}); }
-      });
-    }).on('error', () => resolve({})).on('timeout', () => resolve({}));
-  });
-}
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function searchMetaAds(searchTerms, countries = ['US', 'CA', 'GB', 'AU'], limit = 30) {
-  const fields = [
-    'id',
-    'page_id',
-    'page_name',
-    'ad_creation_time',
-    'ad_delivery_start_time',
-    'ad_delivery_stop_time',
-    'eu_total_reach',
-    'impressions',
-    'ad_snapshot_url',
-    'ad_creative_bodies',
-    'ad_creative_link_captions',
-    'ad_creative_link_titles',
-    'publisher_platforms',
-    'languages'
-  ].join(',');
-
   const adsMap = new Map();
 
   for (const term of searchTerms) {
     if (!term || term.trim().length < 3) continue;
-    const params = new URLSearchParams({
-      access_token: token,
-      ad_reached_countries: JSON.stringify(countries),
-      ad_active_status: 'ALL',
-      search_terms: term.trim(),
-      fields: fields,
-      limit: limit.toString()
-    });
-
-    const url = `https://graph.facebook.com/v20.0/ads_archive?${params.toString()}`;
-    const res = await fetchJson(url);
+    const res = await queryMetaArchive(term.trim(), { countries, status: 'ALL', limit });
     const data = res.data || [];
     data.forEach(ad => {
       if (ad && ad.id && !adsMap.has(ad.id)) {
         adsMap.set(ad.id, ad);
       }
     });
-    await sleep(250); // slight pause to respect rate limits
+    await sleep(250); // avoid opening public Library sessions too aggressively
   }
 
   return Array.from(adsMap.values());

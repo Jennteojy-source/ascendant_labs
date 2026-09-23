@@ -311,7 +311,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       },
       discoveryVectors: ad.discoveryVectors || ['KEYWORD'],
       matchedQueries: ad.matchedQueries || [],
-      media: null, // populated on demand by sniffer
+      media: ad.browserMedia || null, // browser discovery may already include fresh creative media
     });
   }
 

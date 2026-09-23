@@ -1,276 +1,86 @@
-/**
- * Multi-Vector Comparable Ad Finder
- * Ascendant Labs / Agentic Meta Ad Search Engine
- * 
- * Executes multi-vector searches against Meta Graph API (ads_archive):
- * - Vector A: Ads Search (niche, keywords, problem-solution hooks)
- * - Vector B: Advertiser Search (competitor brand pages)
- * - Vector C: Destination Domain & URL Search
- * 
- * Recursively discovers competitor pages running scaling campaigns.
- */
+/** Browser-first multi-vector comparable ad finder. */
+const { searchMetaAds } = require('./meta_browser_searcher');
 
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
+const queryCache = new Map();
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 
-function loadEnv() {
-  const envPath = path.resolve(__dirname, '../../functions/.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach((line) => {
-      const match = line.match(/^([^=]+)=(.*)$/);
-      if (match && !process.env[match[1].trim()]) {
-        process.env[match[1].trim()] = match[2].trim();
-      }
-    });
-  }
-}
-loadEnv();
-
-const USER_TOKEN =
-  process.env.USER_TOKEN || process.env.META_ACCESS_TOKEN || process.env.CAPI_ACCESS_TOKEN;
-
-function fetchJson(url) {
-  return new Promise((resolve) => {
-    https
-      .get(url, { timeout: 15000 }, (res) => {
-        let data = '';
-        res.on('data', (c) => (data += c));
-        res.on('end', () => {
-          try {
-            resolve(JSON.parse(data));
-          } catch (e) {
-            resolve({ error: { message: 'Failed to parse JSON: ' + e.message } });
-          }
-        });
-      })
-      .on('error', (err) => resolve({ error: { message: err.message } }))
-      .on('timeout', () => resolve({ error: { message: 'Request timeout' } }));
-  });
-}
-
-const metaQueryCache = new Map();
-const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2-hour TTL
-
-/**
- * Query Meta Graph API ads_archive for a single search term
- */
 async function queryMetaArchive(searchTerm, options = {}) {
-  if (!USER_TOKEN) {
-    throw new Error('USER_TOKEN missing from functions/.env');
-  }
-
   const countries = options.countries || ['US'];
-  const status = options.status || 'ACTIVE'; // ACTIVE | ALL
+  const status = options.status || 'ACTIVE';
   const limit = options.limit || 25;
-  const mediaType = options.mediaType || 'ALL'; // ALL | VIDEO | IMAGE
-
-  const normTerm = (searchTerm || '').trim().toLowerCase();
-  const countriesKey = countries.slice().sort().join(',');
-  const cacheKey = `${normTerm}::${countriesKey}::${status}::${mediaType}::${limit}`;
-
-  if (metaQueryCache.has(cacheKey)) {
-    const cached = metaQueryCache.get(cacheKey);
-    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return { data: cached.data || [], error: null, fromCache: true };
-    }
+  const mediaType = options.mediaType || 'ALL';
+  const key = `${String(searchTerm || '').trim().toLowerCase()}::${countries.slice().sort().join(',')}::${status}::${mediaType}::${limit}`;
+  const cached = queryCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return { data: cached.data, error: null, fromCache: true };
   }
-
-  const fields = [
-    'id',
-    'page_id',
-    'page_name',
-    'ad_creation_time',
-    'ad_delivery_start_time',
-    'ad_delivery_stop_time',
-    'ad_snapshot_url',
-    'ad_creative_bodies',
-    'ad_creative_link_titles',
-    'ad_creative_link_captions',
-    'ad_creative_link_descriptions',
-    'publisher_platforms',
-    'languages',
-    'eu_total_reach',
-    'impressions',
-    'spend',
-  ].join(',');
-
-  const params = new URLSearchParams({
-    access_token: USER_TOKEN,
-    ad_reached_countries: JSON.stringify(countries),
-    fields,
-    limit: String(limit),
-  });
-
-  if (status !== 'ALL') {
-    params.set('ad_active_status', status);
-  }
-  if (mediaType && mediaType !== 'ALL') {
-    params.set('media_type', mediaType);
-  }
-  if (searchTerm) {
-    params.set('search_terms', searchTerm);
-  }
-
-  const url = `https://graph.facebook.com/v21.0/ads_archive?${params.toString()}`;
-  const res = await fetchJson(url);
-
-  if (res.error) {
-    const errMsg = res.error.message || JSON.stringify(res.error);
-    const isRateLimit =
-      res.error.code === 17 ||
-      res.error.code === 4 ||
-      res.error.code === 80004 ||
-      /request limit|rate limit|too many requests|reduce the amount of data/i.test(errMsg);
-
-    if (isRateLimit) {
-      console.warn(`[Meta API Rate Limit] Query "${searchTerm}" hit rate limit. Checking stale cache...`);
-      if (metaQueryCache.has(cacheKey)) {
-        const fallback = metaQueryCache.get(cacheKey);
-        return { data: fallback.data || [], error: null, fromCacheFallback: true };
-      }
-    }
-    return { data: [], error: errMsg };
-  }
-
-  const results = res.data || [];
-  metaQueryCache.set(cacheKey, { data: results, timestamp: Date.now() });
-  return { data: results, error: null };
+  const result = await searchMetaAds(searchTerm, { countries, status, limit, mediaType });
+  if (result.data.length) queryCache.set(key, { data: result.data, timestamp: Date.now() });
+  return result;
 }
 
-/**
- * Execute Multi-Vector Search for Comparables
- */
 async function findComparables(searchPlan = {}, options = {}) {
   const merged = { ...(typeof searchPlan === 'object' ? searchPlan : {}), ...(typeof options === 'object' ? options : {}) };
-  const {
-    vectors = [], // array of { type, query }
-    countries = ['US', 'GB', 'CA', 'AU'],
-    status = 'ACTIVE',
-    limitPerVector = 20,
-    mediaType = 'ALL',
-    enableAgenticLoop = true,
-  } = merged;
-
-  const rawAdsMap = new Map(); // adId -> rawAd
+  const { vectors = [], countries = ['US', 'GB', 'CA', 'AU'], status = 'ACTIVE',
+    limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true } = merged;
+  const rawAdsMap = new Map();
   const vectorHits = {};
-  const competitorPagesMap = new Map(); // pageName -> count of ads
-
-  // Deduplicate search vectors by query string to prevent redundant API calls
+  const competitorPagesMap = new Map();
+  const discoveryErrors = [];
   const seenTerms = new Set();
-  const uniqueVectors = [];
-  for (const v of vectors) {
-    const term = (v.query || '').trim().toLowerCase();
-    if (term && term.length >= 1 && !seenTerms.has(term)) {
-      seenTerms.add(term);
-      uniqueVectors.push(v);
+  const uniqueVectors = vectors.filter(vector => {
+    const term = String(vector.query || '').trim().toLowerCase();
+    if (!term || seenTerms.has(term)) return false;
+    seenTerms.add(term); return true;
+  }).slice(0, 4);
+  const spam = /novels? lover|novel drama|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
+
+  async function runVector(vector, limit = limitPerVector) {
+    const term = String(vector.query || '').trim();
+    if (!term) return;
+    vectorHits[term] = vectorHits[term] || 0;
+    const result = await queryMetaArchive(term, { countries, status, limit, mediaType });
+    if (result.error && !result.data.length) {
+      discoveryErrors.push({ term, error: result.error });
+      console.warn(`[BrowserSearch] "${term}": ${result.error}`);
     }
-  }
-
-  // Known clickbait spam pages that hijack general keywords
-  const spamPageRegex = /novels? lover|novel drama|good2go|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
-
-  // 1. Run Search Vectors
-  for (const vector of uniqueVectors) {
-    const term = vector.query ? vector.query.trim() : '';
-    if (!term || term.length < 1) continue;
-
-    vectorHits[term] = 0;
-    const isCoreVector = vector.type === 'BRAND' || vector.type === 'PRODUCT';
-    const effectiveLimit = isCoreVector ? Math.max(limitPerVector, 75) : limitPerVector;
-    const { data, error } = await queryMetaArchive(term, {
-      countries,
-      status,
-      limit: effectiveLimit,
-      mediaType,
-    });
-
-    if (error) {
-      console.warn(`[ComparableFinder] Notice for query "${term}": ${error}`);
-      continue;
-    }
-
-    for (const ad of data) {
-      if (!ad.id) continue;
-      if (ad.page_name && spamPageRegex.test(ad.page_name)) continue;
-
-      if (!rawAdsMap.has(ad.id)) {
-        rawAdsMap.set(ad.id, {
-          ...ad,
-          discoveryVectors: [vector.type || 'KEYWORD'],
-          matchedQueries: [term],
-        });
-      } else {
-        const existing = rawAdsMap.get(ad.id);
-        if (!existing.discoveryVectors.includes(vector.type)) {
-          existing.discoveryVectors.push(vector.type);
-        }
-        if (!existing.matchedQueries.includes(term)) {
-          existing.matchedQueries.push(term);
-        }
+    for (const ad of result.data) {
+      if (!ad.id || spam.test(ad.page_name || '')) continue;
+      const existing = rawAdsMap.get(ad.id);
+      if (!existing) rawAdsMap.set(ad.id, { ...ad, discoveryVectors: [vector.type || 'KEYWORD'], matchedQueries: [term] });
+      else {
+        existing.discoveryVectors = [...new Set([...existing.discoveryVectors, vector.type || 'KEYWORD'])];
+        existing.matchedQueries = [...new Set([...existing.matchedQueries, term])];
+        if (!existing.browserMedia && ad.browserMedia) existing.browserMedia = ad.browserMedia;
       }
-
       vectorHits[term]++;
-
-      // Track competitor pages
-      if (ad.page_name) {
-        competitorPagesMap.set(
-          ad.page_name,
-          (competitorPagesMap.get(ad.page_name) || 0) + 1
-        );
-      }
+      if (ad.page_name) competitorPagesMap.set(ad.page_name, (competitorPagesMap.get(ad.page_name) || 0) + 1);
     }
   }
 
-  // 2. Recursive Agentic Competitor Discovery Loop
-  // If top competitor pages emerge with multiple scaling ads, search their specific page names
+  for (const vector of uniqueVectors) {
+    const isCore = ['BRAND', 'PRODUCT', 'EXACT_BRAND', 'PRODUCT_NAME'].includes(vector.type);
+    await runVector(vector, isCore ? Math.max(limitPerVector, 50) : limitPerVector);
+  }
+
   const discoveredCompetitors = [];
-  if (enableAgenticLoop && competitorPagesMap.size > 0) {
-    // Sort pages by ad count and ensure they are not fiction/spam, generic SaaS, or self
-    const spamPagePatterns = /novel|fiction|story|werewolf|billionaire|manga|comic|casino|slots|horoscope|zodiac|psychic|tarot|loan|constant contact|mailchimp|klaviyo|shopify|wordpress/i;
-    const sortedPages = Array.from(competitorPagesMap.entries())
-      .filter(([pageName]) => {
-        if (!pageName || pageName.length < 3) return false;
-        if (spamPagePatterns.test(pageName)) return false;
-        const isSelf = vectors.some(v => v.query && v.query.toLowerCase() === pageName.toLowerCase());
-        return !isSelf;
-      })
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3); // top 3 verified competitor pages
-
-    for (const [competitorPage] of sortedPages) {
-      discoveredCompetitors.push(competitorPage);
-      const { data } = await queryMetaArchive(competitorPage, {
-        countries,
-        status,
-        limit: 15,
-        mediaType,
-      });
-
-      for (const ad of data) {
-        if (!ad.id) continue;
-        if (!rawAdsMap.has(ad.id)) {
-          rawAdsMap.set(ad.id, {
-            ...ad,
-            discoveryVectors: ['RECURSIVE_COMPETITOR'],
-            matchedQueries: [competitorPage],
-          });
-        }
-      }
+  if (enableAgenticLoop && competitorPagesMap.size) {
+    const recursiveSpam = /novel|fiction|manga|comic|casino|slots|horoscope|tarot|loan|mailchimp|shopify|wordpress/i;
+    const pages = [...competitorPagesMap.entries()].filter(([name]) => name && !recursiveSpam.test(name))
+      .sort((a, b) => b[1] - a[1]).slice(0, 2);
+    for (const [pageName] of pages) {
+      if (uniqueVectors.some(vector => String(vector.query).toLowerCase() === pageName.toLowerCase())) continue;
+      discoveredCompetitors.push(pageName);
+      await runVector({ type: 'RECURSIVE_COMPETITOR', query: pageName }, 15);
     }
   }
-
-  const allAds = Array.from(rawAdsMap.values());
-  return {
-    totalRawAds: allAds.length,
-    vectorHits,
-    discoveredCompetitors,
-    ads: allAds,
-  };
+  if (!rawAdsMap.size && discoveryErrors.length) {
+    const blocked = discoveryErrors.some(item => /blocked/i.test(item.error));
+    if (blocked) throw new Error('Meta blocked the browser session. Configure a trusted remote browser with BROWSER_WS_ENDPOINT or BROWSER_CDP_ENDPOINT.');
+    throw new Error(`Ads Library browser search failed: ${discoveryErrors[0].error}`);
+  }
+  return { totalRawAds: rawAdsMap.size, vectorHits, discoveredCompetitors,
+    discoveryErrors, ads: [...rawAdsMap.values()] };
 }
 
-module.exports = {
-  findComparables,
-  queryMetaArchive,
-};
+module.exports = { findComparables, queryMetaArchive };

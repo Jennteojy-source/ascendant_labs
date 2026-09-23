@@ -7,8 +7,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
 const { evaluateAdPerformance } = require('./affiliate_spy_engine');
+const { queryMetaArchive } = require('./lib/comparable_finder');
 
 function loadEnv() {
   const envPath = path.resolve(__dirname, '../functions/.env');
@@ -22,47 +22,12 @@ function loadEnv() {
 }
 loadEnv();
 
-const token = process.env.USER_TOKEN;
-if (!token) {
-  console.error("Error: USER_TOKEN not found in functions/.env");
-  process.exit(1);
-}
-
-function fetchJson(url) {
-  return new Promise((resolve) => {
-    https.get(url, { timeout: 15000 }, res => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch (e) { resolve({}); }
-      });
-    }).on('error', () => resolve({})).on('timeout', () => resolve({}));
-  });
-}
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Search across Tier-1 English countries specifically
 async function queryEnglishActiveAds(vendor, title, domain) {
-  const fields = [
-    'id',
-    'page_id',
-    'page_name',
-    'ad_creation_time',
-    'ad_delivery_start_time',
-    'ad_delivery_stop_time',
-    'eu_total_reach',
-    'impressions',
-    'ad_snapshot_url',
-    'ad_creative_bodies',
-    'ad_creative_link_captions',
-    'ad_creative_link_titles',
-    'publisher_platforms',
-    'languages'
-  ].join(',');
-
   const cleanVendor = vendor.toLowerCase();
   const searchTerms = [cleanVendor];
   if (domain) searchTerms.push(domain.replace(/^https?:\/\//, '').replace(/\/.*$/, ''));
@@ -76,17 +41,7 @@ async function queryEnglishActiveAds(vendor, title, domain) {
   const adsMap = new Map();
 
   for (const term of searchTerms) {
-    const params = new URLSearchParams({
-      access_token: token,
-      ad_reached_countries: JSON.stringify(['US', 'CA', 'GB', 'AU', 'NZ']),
-      ad_active_status: 'ACTIVE',
-      search_terms: term,
-      fields: fields,
-      limit: '50'
-    });
-
-    const url = `https://graph.facebook.com/v20.0/ads_archive?${params.toString()}`;
-    const res = await fetchJson(url);
+    const res = await queryMetaArchive(term, { countries: ['US', 'CA', 'GB', 'AU', 'NZ'], status: 'ACTIVE', limit: 50 });
     const data = res.data || [];
     
     data.forEach(ad => {
