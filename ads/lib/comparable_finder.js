@@ -6,8 +6,9 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const status = options.status || 'ACTIVE';
   const limit = options.limit || 25;
   const mediaType = options.mediaType || 'ALL';
+  const searchType = options.searchType || 'keyword_unordered';
   // Queries intentionally remain live. Persisted media, not search results, is reused.
-  return searchMetaAds(searchTerm, { countries, status, limit, mediaType });
+  return searchMetaAds(searchTerm, { countries, status, limit, mediaType, searchType });
 }
 
 function normalizedTerm(value) {
@@ -87,7 +88,8 @@ async function findComparables(searchPlan = {}, options = {}) {
     const term = String(vector.query || '').trim();
     if (!term) return;
     const remainingMs = Math.max(5000, deadlineMs - (Date.now() - startedAt));
-    const result = await queryArchive(term, { countries, status, limit, mediaType, timeoutMs: remainingMs });
+    const searchType = vector.searchType || options.searchType || 'keyword_unordered';
+    const result = await queryArchive(term, { countries, status, limit, mediaType, searchType, timeoutMs: remainingMs });
     collectResult(vector, result);
   }
 

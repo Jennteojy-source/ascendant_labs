@@ -88,6 +88,8 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
   const status = String(options.status || 'ACTIVE').toLowerCase() === 'all' ? 'all' : 'active';
   const requestedMedia = String(options.mediaType || 'ALL').toLowerCase();
   const media = ['video', 'image', 'all'].includes(requestedMedia) ? requestedMedia : 'all';
+  const searchType = String(options.searchType || 'keyword_unordered').toLowerCase() === 'keyword_exact_phrase'
+    ? 'keyword_exact_phrase' : 'keyword_unordered';
   const url = new URL('https://www.facebook.com/ads/library/');
   url.searchParams.set('active_status', status);
   url.searchParams.set('ad_type', 'all');
@@ -96,7 +98,7 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
     : (countries[0] || 'ALL');
   url.searchParams.set('country', country);
   url.searchParams.set('q', String(searchTerm || '').trim());
-  url.searchParams.set('search_type', 'keyword_unordered');
+  url.searchParams.set('search_type', searchType);
   url.searchParams.set('media_type', media);
   return url.href;
 }

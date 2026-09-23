@@ -239,6 +239,7 @@ const server = http.createServer(async (req, res) => {
             targetBrand,
             coreKeywords,
             targetDomain: '',
+            searchQuery: trimmedInput,
           });
 
           const evalProfile = {

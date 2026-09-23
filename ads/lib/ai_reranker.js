@@ -31,7 +31,7 @@ async function evaluateBatchWithAI(targetProfile, adsBatch) {
 
   const prompt = `You are a World-Class Direct Response Meta Ad Creative Strategist and Product Ad Judge.
 Target Product to Analyze:
-- Canonical Brand: "${targetProfile.brandName}"
+- Canonical Brand / Query: "${targetProfile.brandName}"
 - Core Product / Mechanism: "${targetProfile.coreProduct || ''}"
 - Category: "${targetProfile.category || ''}"
 
@@ -39,24 +39,25 @@ Candidate Ads:
 ${JSON.stringify(promptAds, null, 2)}
 
 Task:
-Your goal is to locate and verify ALL AD CREATIVES RUNNING FOR THIS EXACT PRODUCT OR BRAND.
 Evaluate each candidate ad to determine its relationship to "${targetProfile.brandName}":
 - "relationship":
   - "OFFICIAL_BRAND": Published by the brand's official page (e.g. page name contains "${targetProfile.brandName}").
   - "AFFILIATE_PARTNER": Published by a third-party media buyer, affiliate, deals page, or partner actively selling/promoting "${targetProfile.brandName}".
   - "REVIEW_EDITORIAL": Published by a review site, magazine, comparison blog, or advertorial explicitly featuring/recommending "${targetProfile.brandName}".
-  - "UNRELATED": An ad promoting a completely different product, a rival competitor brand, or unrelated noise.
+  - "RELATED_OFFER": An ad in the same niche, competing product, related direct-response offer, or relevant advertiser creative.
+  - "UNRELATED": Spam, completely unrelated fiction, webnovel junk, or noise.
 - "relevanceScore": Integer from 0 to 100:
   - 95-100: Official brand ad
   - 85-94: Affiliate or partner promoting this exact product
   - 75-84: Review, advertorial, or unboxing featuring this exact product
-  - 0-30: Promotes an unrelated product or competitor
+  - 50-74: Related offer, competitor, or relevant category creative
+  - 0-30: Pure spam or unrelated junk
 
 Return ONLY a valid raw JSON array (no markdown, no backticks):
 [
   {
     "id": "ad_id",
-    "relationship": "OFFICIAL_BRAND" | "AFFILIATE_PARTNER" | "REVIEW_EDITORIAL" | "UNRELATED",
+    "relationship": "OFFICIAL_BRAND" | "AFFILIATE_PARTNER" | "REVIEW_EDITORIAL" | "RELATED_OFFER" | "UNRELATED",
     "relevanceScore": 95
   }
 ]`;
@@ -105,6 +106,14 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
     }
   }
 
+  // Check if any high-confidence product/brand ads exist in the batch
+  const hasHighConfidenceAds = candidateAds.some(ad => {
+    const evalData = aiEvaluationsMap.get(String(ad.id));
+    const score = evalData ? Number(evalData.relevanceScore) : (ad.ranking?.relevanceScore || 0);
+    const rel = evalData ? evalData.relationship : (ad.ranking?.relevanceType || '');
+    return ['OFFICIAL_BRAND', 'AFFILIATE_PARTNER', 'REVIEW_EDITORIAL'].includes(rel) || score >= 75;
+  });
+
   const rerankedList = [];
 
   for (const ad of candidateAds) {
@@ -114,34 +123,22 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
     let relationship = aiEval ? aiEval.relationship : null;
     let relevanceScore = aiEval ? Number(aiEval.relevanceScore) : null;
 
-    // Fallback if AI call failed for this ad
+    // Fallback if AI call failed or returned null for this ad
     if (!aiEval) {
-      const targetBrandLower = (targetProfile.brandName || '').toLowerCase();
-      const text = `${ad.pageName || ad.page_name || ''} ${(ad.copy?.headline || '')} ${(ad.copy?.body || '')}`.toLowerCase();
-      const isPageBrand = (ad.pageName || ad.page_name || '').toLowerCase().includes(targetBrandLower);
-      const isReview = /\b(review|reviewed|vs|tested|ratings?|hands-on|discount|coupon)\b/i.test(text);
-
-      if (isPageBrand) {
-        relationship = 'OFFICIAL_BRAND';
-        relevanceScore = 95;
-      } else if (targetBrandLower && text.includes(targetBrandLower)) {
-        if (isReview) {
-          relationship = 'REVIEW_EDITORIAL';
-          relevanceScore = 85;
-        } else {
-          relationship = 'AFFILIATE_PARTNER';
-          relevanceScore = 88;
-        }
-      } else {
-        relationship = 'UNRELATED';
-        relevanceScore = 0;
-      }
+      relationship = ad.ranking?.relevanceType || 'DISCOVERED';
+      relevanceScore = ad.ranking?.relevanceScore || 45;
     }
 
-    // Filter out unrelated / noise ads when higher-confidence product ads are present
-    if (relationship === 'UNRELATED' || (relevanceScore !== null && relevanceScore < 40)) {
+    // Filter out truly unrelated noise only if higher-confidence product ads are present
+    if (hasHighConfidenceAds && (relationship === 'UNRELATED' || (relevanceScore !== null && relevanceScore < 40))) {
       continue;
     }
+
+    // When no official brand ads exist, retain discovered candidate ads cleanly
+    const effectiveRelevanceType = (!relationship || relationship === 'UNRELATED')
+      ? (ad.ranking?.relevanceType || 'DISCOVERED')
+      : relationship;
+    const effectiveRelevanceScore = Math.max(relevanceScore || 0, ad.ranking?.relevanceScore || 45);
 
     const flightDays = ad.stats?.flightDays || 1;
     const isActive = ad.stats?.isActive !== false;
@@ -168,7 +165,7 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
 
     const flightScore = Math.min(150, flightDays * 3.5);
     const variantBonus = Math.min(40, (variantCount - 1) * 8);
-    const totalScore = Math.round(activeBonus + impressionScore + flightScore + variantBonus + (relevanceScore * 2));
+    const totalScore = Math.round(activeBonus + impressionScore + flightScore + variantBonus + (effectiveRelevanceScore * 2));
 
     // Update stats with refined impressionTier
     if (ad.stats) {
@@ -181,9 +178,9 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
       ranking: {
         ...(ad.ranking || {}),
         rankScore: totalScore,
-        relevanceScore,
-        relationship,
-        relevanceType: relationship,
+        relevanceScore: effectiveRelevanceScore,
+        relationship: effectiveRelevanceType,
+        relevanceType: effectiveRelevanceType,
       },
     });
   }

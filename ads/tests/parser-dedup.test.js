@@ -154,3 +154,66 @@ test('EU transparency and flight dates are never assigned when no secondary copy
   assert.equal(ranked[0].copy.headline, '');
   assert.equal(ranked[0].copy.description, '');
 });
+
+test('affiliate and niche offer queries retain candidate ads instead of dropping to zero', () => {
+  const rawAds = [
+    {
+      id: '800000001',
+      page_name: 'Bio Switch Nutrition',
+      ad_creative_bodies: ['A retired Army Ranger built a box that pulls up to 30 gallons of drinking water a day straight out of the air.'],
+      ad_creative_link_titles: ['No well. No plumbing. Water Freedom generator.'],
+      ad_delivery_start_time: '2026-06-01T00:00:00.000Z',
+    },
+    {
+      id: '800000002',
+      page_name: 'Water Freedom System',
+      ad_creative_bodies: ['Get complete water independence with our system.'],
+      ad_creative_link_titles: ['Official Water Freedom System'],
+      ad_delivery_start_time: '2026-06-01T00:00:00.000Z',
+    },
+    {
+      id: '800000003',
+      page_name: 'Romance Lovers Club',
+      ad_creative_bodies: ['Chapter 12: The billionaire alpha werewolf forced her to marry him.'],
+      ad_creative_link_titles: ['Read Full Novel'],
+      ad_delivery_start_time: '2026-06-01T00:00:00.000Z',
+    },
+  ];
+
+  const results = deduplicateAndRankAds(rawAds, {
+    targetBrand: 'Water Freedom System',
+    coreKeywords: ['water freedom system', 'water generator'],
+    searchQuery: 'water freedom system',
+  });
+
+  // Romance spam should be filtered out
+  assert.equal(results.length, 2);
+  // Official brand ad ranks first
+  assert.equal(results[0].id, '800000002');
+  assert.equal(results[0].ranking.relevanceType, 'OFFICIAL_BRAND');
+  // Affiliate / related offer ad is retained and ranked
+  assert.equal(results[1].id, '800000001');
+  assert.equal(results[1].ranking.relevanceType, 'RELATED_OFFER');
+});
+
+test('queries with multi-word terms like yu sleep retain discovered ads rather than returning empty', () => {
+  const rawAds = [
+    {
+      id: '700000001',
+      page_name: 'Siddhayu',
+      ad_creative_bodies: ['Ayurveda that works for better sleep.'],
+      ad_creative_link_titles: ['Sleep Yogue formula'],
+      ad_delivery_start_time: '2026-04-15T00:00:00.000Z',
+    },
+  ];
+
+  const results = deduplicateAndRankAds(rawAds, {
+    targetBrand: 'Yu Sleep',
+    coreKeywords: ['Yu Sleep Natural Sleep Drink Mix'],
+    searchQuery: 'yu sleep',
+  });
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, '700000001');
+  assert.ok(['RELATED_OFFER', 'DISCOVERED'].includes(results[0].ranking.relevanceType));
+});

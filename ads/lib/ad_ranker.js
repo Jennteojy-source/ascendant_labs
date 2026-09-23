@@ -208,6 +208,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const targetBrand = (options.targetBrand || '').toLowerCase().trim();
     const coreKeywords = (options.coreKeywords || []).map(k => String(k).toLowerCase().trim()).filter(Boolean);
     const targetDomain = (options.targetDomain || '').toLowerCase().trim();
+    const rawQuery = (options.searchQuery || '').toLowerCase().trim();
 
     const stopWords = new Set(['the', 'and', 'for', 'with', 'best', 'review', 'free', 'online', 'pro', 'official', 'new', 'top', 'vpn', 'app']);
     const meaningfulKeywords = coreKeywords.filter(k => k.length >= 1 && !stopWords.has(k));
@@ -226,6 +227,13 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     }
     const domainMatched = targetDomain && targetDomain.length > 2 && combinedContent.includes(targetDomain);
 
+    let queryInPageOrCopy = false;
+    if (rawQuery && rawQuery.length >= 2) {
+      const qEscaped = rawQuery.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const qRegex = new RegExp(`\\b${qEscaped}\\b`, 'i');
+      queryInPageOrCopy = qRegex.test(combinedContent) || !!(ad.page_name && qRegex.test(ad.page_name));
+    }
+
     let keywordMatches = 0;
     for (const kw of meaningfulKeywords) {
       const kwRegex = new RegExp(`\\b${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
@@ -234,12 +242,23 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       }
     }
 
+    const queryTokens = (rawQuery ? rawQuery.split(/[^a-z0-9]+/i) : []).filter(t => t.length >= 2 && !stopWords.has(t));
+    const brandTokens = (targetBrand ? targetBrand.split(/[^a-z0-9]+/i) : []).filter(t => t.length >= 2 && !stopWords.has(t));
+    const allTokens = [...new Set([...queryTokens, ...brandTokens])];
+    let tokenMatches = 0;
+    for (const tok of allTokens) {
+      const tokRegex = new RegExp(`\\b${tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+      if (tokRegex.test(combinedContent)) {
+        tokenMatches++;
+      }
+    }
+
     const isReviewAdvertorial = /\b(review|reviewed|vs|tested|ratings?|top \d|best \d|scam|legit|hands-on|discount code|promo code|coupon|worth it)\b/i.test(combinedContent);
 
     if (brandInPage) {
       relevanceType = 'OFFICIAL_BRAND';
       relevanceScore = 100;
-    } else if (brandInCopy || domainMatched) {
+    } else if (brandInCopy || domainMatched || (queryInPageOrCopy && rawQuery && rawQuery === targetBrand)) {
       if (isReviewAdvertorial) {
         relevanceType = 'REVIEW_EDITORIAL';
         relevanceScore = 90;
@@ -247,11 +266,23 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         relevanceType = 'AFFILIATE_PARTNER';
         relevanceScore = 85;
       }
+    } else if (queryInPageOrCopy) {
+      relevanceType = 'RELATED_OFFER';
+      relevanceScore = 80;
+    } else if (keywordMatches > 0 || (allTokens.length > 0 && tokenMatches >= Math.min(2, allTokens.length))) {
+      relevanceType = 'RELATED_OFFER';
+      relevanceScore = 70;
+    } else if (tokenMatches > 0) {
+      relevanceType = 'RELATED_OFFER';
+      relevanceScore = 60;
     } else {
-      // Discard unrelated ads completely
-      relevanceType = 'UNRELATED';
-      relevanceScore = 0;
-      continue;
+      const hasSubstance = Boolean(body || headline || ad.browserMedia?.creatives?.length || ad.browserMedia?.thumbnailUrl || ad.browserMedia?.videoUrl);
+      if (hasSubstance) {
+        relevanceType = 'DISCOVERED';
+        relevanceScore = 45;
+      } else {
+        continue;
+      }
     }
 
     // Dual-Metric Ranking Formula:
@@ -310,6 +341,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       id: ad.id,
       pageId: ad.page_id,
       pageName: ad.page_name || 'Advertiser',
+      page_name: ad.page_name || 'Advertiser',
       adLibraryUrl: `https://www.facebook.com/ads/library/?id=${ad.id}`,
       adSnapshotUrl: ad.ad_snapshot_url || null,
       destinationUrl,
