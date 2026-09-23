@@ -19,7 +19,7 @@ const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache, getBrowser } = require('./lib/paginated_sniffer');
 const { getCachedMediaBatch } = require('./lib/firestore_cache');
-const { logSearchSession, getRecentSearches, getSearchSession } = require('./lib/search_logger');
+const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
@@ -153,166 +153,229 @@ const server = http.createServer(async (req, res) => {
       }
 
       const trimmedInput = (input || '').trim();
+      const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      const searchParams = { countries, status, mediaType, page, pageSize };
       const cacheKey = `${trimmedInput}::${countries.sort().join(',')}::${status}::${mediaType}`;
       let rankedAds = null;
       let queryProfile = null;
+      let searchRes = null;
 
-      // Check in-memory query cache
-      if (useCache && searchCache.has(cacheKey)) {
-        const cached = searchCache.get(cacheKey);
-        rankedAds = cached.rankedAds;
-        queryProfile = cached.queryProfile;
-      } else {
-        // ─── Stage 1: AI Query Expansion ───────────────────────────
-        queryProfile = await expandQueryWithAI(trimmedInput);
+      try {
+        // Check in-memory query cache
+        if (useCache && searchCache.has(cacheKey)) {
+          const cached = searchCache.get(cacheKey);
+          rankedAds = cached.rankedAds;
+          queryProfile = cached.queryProfile;
+        } else {
+          // ─── Stage 1: AI Query Expansion ───────────────────────────
+          queryProfile = await expandQueryWithAI(trimmedInput);
 
-        const searchVectors = queryProfile.searchVectors;
-        const targetBrand = queryProfile.brandName;
-        const coreKeywords = [queryProfile.coreProduct, ...(queryProfile.competitors || [])];
+          const searchVectors = queryProfile.searchVectors;
+          const targetBrand = queryProfile.brandName;
+          const coreKeywords = [queryProfile.coreProduct, ...(queryProfile.competitors || [])];
 
-        logger.info('Stage 1 — AI Query Expansion complete', {
-          input: trimmedInput,
-          brandName: targetBrand,
-          vectorCount: searchVectors.length,
-          source: queryProfile.source,
-        });
+          logger.info('Stage 1 — AI Query Expansion complete', {
+            input: trimmedInput,
+            brandName: targetBrand,
+            vectorCount: searchVectors.length,
+            source: queryProfile.source,
+          });
 
-        // ─── Stage 2: Agentic Facebook Ads Library Search ─────────
-        const searchRes = await findComparables({
-          vectors: searchVectors,
-          countries,
-          status,
-          mediaType,
-          limitPerVector: 50,
-          enableAgenticLoop: false,
-        });
+          // ─── Stage 2: Agentic Facebook Ads Library Search ─────────
+          searchRes = await findComparables({
+            vectors: searchVectors,
+            countries,
+            status,
+            mediaType,
+            limitPerVector: 50,
+            enableAgenticLoop: false,
+          });
 
-        logger.info('Stage 2 — Agentic Ads Library search complete', {
-          totalRawAds: searchRes.totalRawAds,
-          discoveredCompetitors: searchRes.discoveredCompetitors,
-        });
+          logger.info('Stage 2 — Agentic Ads Library search complete', {
+            totalRawAds: searchRes.totalRawAds,
+            discoveredCompetitors: searchRes.discoveredCompetitors,
+          });
 
-        // ─── Stage 3: AI Ranking & Filtering ──────────────────────
-        rankedAds = deduplicateAndRankAds(searchRes.ads, {
-          countries,
-          targetBrand,
-          coreKeywords,
-          targetDomain: '',
-        });
+          // ─── Stage 3: AI Ranking & Filtering ──────────────────────
+          rankedAds = deduplicateAndRankAds(searchRes.ads, {
+            countries,
+            targetBrand,
+            coreKeywords,
+            targetDomain: '',
+          });
 
-        const evalProfile = {
-          brandName: targetBrand,
-          category: queryProfile.category || 'Direct Response Offer',
-          coreProduct: queryProfile.coreProduct || targetBrand,
-          primaryPainPoints: queryProfile.painPoints || [],
-          productKeywords: queryProfile.productKeywords || [targetBrand],
-        };
+          const evalProfile = {
+            brandName: targetBrand,
+            category: queryProfile.category || 'Direct Response Offer',
+            coreProduct: queryProfile.coreProduct || targetBrand,
+            primaryPainPoints: queryProfile.painPoints || [],
+            productKeywords: queryProfile.productKeywords || [targetBrand],
+          };
 
-        rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
 
-        logger.info('Stage 3 — AI ranking complete', {
-          input: trimmedInput,
-          targetBrand,
-          totalAdsFound: rankedAds.length,
-          activeCount: rankedAds.filter(a => a.stats.isActive).length,
-        });
+          logger.info('Stage 3 — AI ranking complete', {
+            input: trimmedInput,
+            targetBrand,
+            totalAdsFound: rankedAds.length,
+            activeCount: rankedAds.filter(a => a.stats.isActive).length,
+          });
 
-        searchCache.set(cacheKey, { rankedAds, queryProfile, timestamp: Date.now() });
-      }
-
-      // ─── Stage 4: Deterministic Rendering (Hydrate + Paginate) ──
-      const allAdIds = (rankedAds || []).map(a => String(a.id));
-      const mediaCache = await getCachedMediaBatch(allAdIds);
-      const uniqueVisualAds = [];
-
-      for (const item of rankedAds) {
-        if (mediaCache[item.id]) {
-          item.media = mediaCache[item.id];
-          if (item.media.destinationUrl) {
-            item.destinationUrl = item.media.destinationUrl;
-            try {
-              item.displayDomain = new URL(item.media.destinationUrl).hostname.replace(/^www\./, '');
-            } catch (e) {}
-          }
-          if (item.media.ctaText) {
-            item.ctaText = item.media.ctaText;
-          }
+          searchCache.set(cacheKey, { rankedAds, queryProfile, timestamp: Date.now() });
         }
-        uniqueVisualAds.push(item);
-      }
 
-      // Resolve media for top uncached Page 1 ads so search response arrives pre-hydrated with creatives
-      const topAdsToPrewarm = uniqueVisualAds
-        .slice(0, 4)
-        .filter(a => !a.media?.videoUrl && !a.media?.thumbnailUrl);
+        // ─── Stage 4: Deterministic Rendering (Hydrate + Paginate) ──
+        const allAdIds = (rankedAds || []).map(a => String(a.id));
+        const mediaCache = await getCachedMediaBatch(allAdIds);
+        const uniqueVisualAds = [];
 
-      if (topAdsToPrewarm.length > 0) {
-        try {
-          const resolvedMedia = await Promise.race([
-            sniffPageMedia(topAdsToPrewarm),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Prewarm timeout')), 3500)),
-          ]);
-          if (resolvedMedia) {
-            for (const [adId, media] of Object.entries(resolvedMedia)) {
-              const matchedAd = uniqueVisualAds.find(a => String(a.id) === String(adId));
-              if (matchedAd && media && media.mediaType !== 'unknown') {
-                matchedAd.media = media;
-                if (media.destinationUrl) {
-                  matchedAd.destinationUrl = media.destinationUrl;
-                  try {
-                    matchedAd.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
-                  } catch (e) {}
-                }
-                if (media.ctaText) matchedAd.ctaText = media.ctaText;
-              }
+        for (const item of rankedAds) {
+          if (mediaCache[item.id]) {
+            item.media = mediaCache[item.id];
+            if (item.media.destinationUrl) {
+              item.destinationUrl = item.media.destinationUrl;
+              try {
+                item.displayDomain = new URL(item.media.destinationUrl).hostname.replace(/^www\./, '');
+              } catch (e) {}
+            }
+            if (item.media.ctaText) {
+              item.ctaText = item.media.ctaText;
             }
           }
-        } catch (e) {
-          // Soft timeout, client sniffer completes it smoothly
+          uniqueVisualAds.push(item);
         }
+
+        // Resolve media for top uncached Page 1 ads so search response arrives pre-hydrated with creatives
+        const topAdsToPrewarm = uniqueVisualAds
+          .slice(0, 4)
+          .filter(a => !a.media?.videoUrl && !a.media?.thumbnailUrl);
+
+        if (topAdsToPrewarm.length > 0) {
+          try {
+            const resolvedMedia = await Promise.race([
+              sniffPageMedia(topAdsToPrewarm),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Prewarm timeout')), 3500)),
+            ]);
+            if (resolvedMedia) {
+              for (const [adId, media] of Object.entries(resolvedMedia)) {
+                const matchedAd = uniqueVisualAds.find(a => String(a.id) === String(adId));
+                if (matchedAd && media && media.mediaType !== 'unknown') {
+                  matchedAd.media = media;
+                  if (media.destinationUrl) {
+                    matchedAd.destinationUrl = media.destinationUrl;
+                    try {
+                      matchedAd.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
+                    } catch (e) {}
+                  }
+                  if (media.ctaText) matchedAd.ctaText = media.ctaText;
+                }
+              }
+            }
+          } catch (e) {
+            // Soft timeout, client sniffer completes it smoothly
+          }
+        }
+
+        // Paginate
+        const paginated = paginateAds(uniqueVisualAds, page, pageSize);
+
+        const activeCount = rankedAds.filter(a => a.stats.isActive).length;
+        const highScaleCount = rankedAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;
+        const officialBrandCount = rankedAds.filter(a => a.ranking?.relationship === 'OFFICIAL_BRAND' || a.ranking?.relevanceType === 'OFFICIAL_BRAND').length;
+        const affiliatePartnerCount = rankedAds.filter(a => a.ranking?.relationship === 'AFFILIATE_PARTNER' || a.ranking?.relevanceType === 'AFFILIATE_PARTNER').length;
+        const reviewEditorialCount = rankedAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
+
+        // Log query and results to Firestore search_history table asynchronously
+        logSearchSession({
+          query: input,
+          status: searchRes?.hasPartialBlocks ? 'PARTIAL' : 'SUCCESS',
+          isBlocked: false,
+          searchType: 'ai_expanded',
+          searchParams,
+          profile: queryProfile,
+          ads: uniqueVisualAds,
+          totalFound: rankedAds.length,
+          returnedCount: uniqueVisualAds.length,
+          vectorHits: searchRes?.vectorHits || {},
+          discoveryErrors: searchRes?.discoveryErrors || [],
+          latencyMs: Date.now() - searchStartTime,
+          clientIp,
+          userAgent,
+        }).catch(err => console.warn('[Server] Log search notice:', err.message));
+
+        return sendJson(res, 200, {
+          queryProfile,
+          paginated,
+          stats: {
+            totalUniqueCreatives: rankedAds.length,
+            activeCount,
+            inactiveCount: rankedAds.length - activeCount,
+            highScaleCount,
+            officialBrandCount,
+            affiliatePartnerCount,
+            reviewEditorialCount,
+          },
+        });
+      } catch (err) {
+        const isBlocked = Boolean(err.isBlocked || /blocked/i.test(err.message));
+        const blockReason = err.blockReason || (isBlocked ? 'Meta blocked the browser session' : null);
+        const searchStatus = isBlocked ? 'BLOCKED' : 'ERROR';
+
+        logger.error('Search request failed or blocked', {
+          query: trimmedInput,
+          status: searchStatus,
+          isBlocked,
+          blockReason,
+          error: err.message,
+        });
+
+        // Always log blocked or failed searches to Firestore!
+        await logSearchSession({
+          query: input,
+          status: searchStatus,
+          isBlocked,
+          blockReason,
+          errorMessage: err.message,
+          searchType: 'ai_expanded',
+          searchParams,
+          profile: queryProfile,
+          ads: [],
+          totalFound: 0,
+          returnedCount: 0,
+          vectorHits: err.vectorHits || searchRes?.vectorHits || {},
+          discoveryErrors: err.discoveryErrors || searchRes?.discoveryErrors || [],
+          latencyMs: Date.now() - searchStartTime,
+          clientIp,
+          userAgent,
+        }).catch(logErr => console.warn('[Server] Log failed search notice:', logErr.message));
+
+        return sendJson(res, isBlocked ? 403 : 500, {
+          error: isBlocked
+            ? 'Meta blocked the browser session. Configure a trusted remote browser with BROWSER_WS_ENDPOINT or BROWSER_CDP_ENDPOINT.'
+            : `Search failed: ${err.message}`,
+          status: searchStatus,
+          isBlocked,
+          blockReason,
+        });
       }
-
-      // Paginate
-      const paginated = paginateAds(uniqueVisualAds, page, pageSize);
-
-      const activeCount = rankedAds.filter(a => a.stats.isActive).length;
-      const highScaleCount = rankedAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;
-      const officialBrandCount = rankedAds.filter(a => a.ranking?.relationship === 'OFFICIAL_BRAND' || a.ranking?.relevanceType === 'OFFICIAL_BRAND').length;
-      const affiliatePartnerCount = rankedAds.filter(a => a.ranking?.relationship === 'AFFILIATE_PARTNER' || a.ranking?.relevanceType === 'AFFILIATE_PARTNER').length;
-      const reviewEditorialCount = rankedAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
-
-      // Log query and results to Firestore search_history table asynchronously
-      logSearchSession({
-        query: input,
-        searchType: 'ai_expanded',
-        profile: queryProfile,
-        ads: uniqueVisualAds,
-        totalFound: rankedAds.length,
-        latencyMs: Date.now() - searchStartTime,
-        clientIp: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
-        userAgent: req.headers['user-agent'],
-      }).catch(err => console.warn('[Server] Log search notice:', err.message));
-
-      return sendJson(res, 200, {
-        queryProfile,
-        paginated,
-        stats: {
-          totalUniqueCreatives: rankedAds.length,
-          activeCount,
-          inactiveCount: rankedAds.length - activeCount,
-          highScaleCount,
-          officialBrandCount,
-          affiliatePartnerCount,
-          reviewEditorialCount,
-        },
-      });
     }
 
     // 4. API Route: Search History (Review past queries)
     if (req.method === 'GET' && (pathname === '/api/search-history' || pathname === '/api/history')) {
       const limit = parseInt(parsedUrl.searchParams.get('limit') || '30', 10);
-      const history = await getRecentSearches(limit);
+      const statusFilter = parsedUrl.searchParams.get('status') || undefined;
+      const isBlockedParam = parsedUrl.searchParams.get('isBlocked');
+      const isBlockedFilter = isBlockedParam !== null ? isBlockedParam === 'true' : undefined;
+      const history = await getRecentSearches(limit, { status: statusFilter, isBlocked: isBlockedFilter });
       return sendJson(res, 200, { history });
+    }
+
+    // 5. API Route: Search Diagnostics (System health, block rate, and recent logs)
+    if (req.method === 'GET' && (pathname === '/api/search-diagnostics' || pathname === '/api/diagnostics')) {
+      const limit = parseInt(parsedUrl.searchParams.get('limit') || '50', 10);
+      const diagnostics = await getSearchDiagnostics(limit);
+      return sendJson(res, 200, diagnostics);
     }
 
     // 5. API Route: Replay Search Session (Instant zero-latency replay from Firestore)

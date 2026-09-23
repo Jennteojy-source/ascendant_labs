@@ -249,6 +249,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   const pendingReads = new Set();
   let jsonReads = 0;
   let blocked = false;
+  let blockReason = null;
   const collect = ad => ads.set(ad.id, mergeAd(ads.get(ad.id), ad));
   try {
     await page.route('**/*', route => route.request().resourceType() === 'font' ? route.abort() : route.continue());
@@ -266,7 +267,10 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     const response = await page.goto(buildAdsLibrarySearchUrl(searchTerm, options), {
       waitUntil: 'domcontentloaded', timeout: SEARCH_TIMEOUT_MS,
     });
-    if (response && [401, 403, 429].includes(response.status())) blocked = true;
+    if (response && [401, 403, 429].includes(response.status())) {
+      blocked = true;
+      blockReason = `Meta returned HTTP ${response.status()}`;
+    }
     await dismissConsent(page);
     let unchanged = 0;
     let previousCount = -1;
@@ -280,7 +284,12 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
       }
       const bodyText = await page.locator('body').innerText({ timeout: 2000 }).catch(() => '');
       if (/log in to continue|security check|temporarily blocked|automated behavior/i.test(bodyText)
-          || /\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())) blocked = true;
+          || /\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())) {
+        blocked = true;
+        blockReason = /\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())
+          ? `Redirected to ${page.url()}`
+          : 'Security challenge / checkpoint detected on page';
+      }
       if (ads.size === previousCount) unchanged++; else unchanged = 0;
       previousCount = ads.size;
       if (unchanged >= 3) break;
@@ -289,9 +298,19 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     }
     await Promise.allSettled([...pendingReads]);
     (await page.evaluate(extractAdsFromDocument).catch(() => [])).map(domAdToRecord).forEach(collect);
-    return { data: [...ads.values()].slice(0, limit), error: blocked ? 'Meta blocked the browser session' : null, blocked };
+    return {
+      data: [...ads.values()].slice(0, limit),
+      error: blocked ? (blockReason || 'Meta blocked the browser session') : null,
+      blocked,
+      blockReason: blocked ? (blockReason || 'Meta blocked the browser session') : null,
+    };
   } catch (error) {
-    return { data: [...ads.values()].slice(0, limit), error: error.message, blocked };
+    return {
+      data: [...ads.values()].slice(0, limit),
+      error: error.message,
+      blocked,
+      blockReason: blocked ? (blockReason || error.message) : null,
+    };
   } finally {
     if (owned) await context.close().catch(() => {});
     else await page.close().catch(() => {});

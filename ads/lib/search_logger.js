@@ -83,15 +83,25 @@ function sanitizeAdForStorage(ad) {
 }
 
 /**
- * Log a completed search session to Firestore & local disk
+ * Log a completed or attempted search session to Firestore & local disk.
+ * Supports status: 'SUCCESS' | 'BLOCKED' | 'ERROR' | 'PARTIAL'
  */
 async function logSearchSession(sessionData = {}) {
   const {
     query = '',
-    searchType = 'auto',
+    status = 'SUCCESS',
+    isBlocked = false,
+    blockReason = null,
+    errorMessage = null,
+    searchType = 'ai_expanded',
+    searchParams = null,
     profile = null,
     ads = [],
     totalFound = 0,
+    returnedCount = 0,
+    vectorHits = {},
+    discoveryErrors = [],
+    collector = null,
     latencyMs = 0,
     clientIp = null,
     userAgent = null,
@@ -103,13 +113,33 @@ async function logSearchSession(sessionData = {}) {
   const id = `search_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const sanitizedAds = (ads || []).slice(0, 80).map(sanitizeAdForStorage).filter(Boolean);
 
+  const topResultsSummary = sanitizedAds.slice(0, 10).map(ad => ({
+    id: ad.id,
+    pageName: ad.pageName,
+    headline: ad.copy?.headline || '',
+    ctaText: ad.ctaText,
+    mediaType: ad.media?.mediaType || 'unknown',
+    hasMedia: !!(ad.media?.thumbnailUrl || ad.media?.videoUrl),
+    isActive: ad.stats?.isActive !== false,
+    scaleTier: ad.stats?.scaleTier || 'Standard',
+  }));
+
+  const effectiveStatus = isBlocked ? 'BLOCKED' : status;
+
   const docData = {
     id,
     query: trimmedQuery,
     normalizedQuery: trimmedQuery.toLowerCase(),
+    status: effectiveStatus,
+    isBlocked: Boolean(isBlocked),
+    blockReason: blockReason || null,
+    errorMessage: errorMessage || null,
     searchType,
-    totalFound: totalFound || sanitizedAds.length,
-    returnedCount: sanitizedAds.length,
+    searchParams: searchParams || null,
+    totalFound: totalFound !== undefined ? totalFound : sanitizedAds.length,
+    returnedCount: returnedCount !== undefined ? returnedCount : sanitizedAds.length,
+    vectorHits: vectorHits || {},
+    discoveryErrors: discoveryErrors || [],
     profile: profile ? {
       brandName: profile.brandName || '',
       domain: profile.domain || '',
@@ -117,9 +147,12 @@ async function logSearchSession(sessionData = {}) {
       coreProduct: profile.coreProduct || '',
       suggestedVectors: profile.suggestedVectors || [],
     } : null,
+    topResultsSummary,
     results: sanitizedAds,
     metadata: {
-      latencyMs,
+      collector: collector || (process.env.BROWSER_WS_ENDPOINT ? 'remote-ws' : process.env.BROWSER_CDP_ENDPOINT ? 'remote-cdp' : 'headless-chromium'),
+      environment: process.env.K_SERVICE ? 'cloud-run' : 'local',
+      latencyMs: Number(latencyMs) || 0,
       clientIp: clientIp || null,
       userAgent: userAgent ? userAgent.substring(0, 200) : null,
       loggedAt: new Date().toISOString(),
@@ -140,11 +173,20 @@ async function logSearchSession(sessionData = {}) {
     localHistory.unshift({
       id: docData.id,
       query: docData.query,
+      status: docData.status,
+      isBlocked: docData.isBlocked,
+      blockReason: docData.blockReason,
+      errorMessage: docData.errorMessage,
       timestamp: docData.metadata.loggedAt,
       totalFound: docData.totalFound,
+      returnedCount: docData.returnedCount,
       brandName: docData.profile?.brandName || docData.query,
       category: docData.profile?.category || '',
-      resultsCount: docData.returnedCount,
+      vectorHits: docData.vectorHits,
+      discoveryErrors: docData.discoveryErrors,
+      collector: docData.metadata.collector,
+      latencyMs: docData.metadata.latencyMs,
+      topResultsSummary: docData.topResultsSummary,
       results: docData.results,
       profile: docData.profile,
     });
@@ -164,7 +206,7 @@ async function logSearchSession(sessionData = {}) {
         createdAt: FieldValue.serverTimestamp(),
       });
       firestoreAvailable = true;
-      console.log(`[SearchLogger] Logged query "${trimmedQuery}" to Firestore (${docData.returnedCount} ads, ID: ${id})`);
+      console.log(`[SearchLogger] Logged query "${trimmedQuery}" to Firestore (${docData.returnedCount} ads, status: ${effectiveStatus}, ID: ${id})`);
       return id;
     } catch (err) {
       console.warn('[SearchLogger] Firestore write notice (saved locally):', err.message);
@@ -178,29 +220,44 @@ async function logSearchSession(sessionData = {}) {
 /**
  * Retrieve recent search queries for review / replay list
  */
-async function getRecentSearches(limit = 25) {
+async function getRecentSearches(limit = 25, options = {}) {
   const db = getFirestore();
   if (db && firestoreAvailable !== false) {
     try {
+      const fetchLimit = (options.status || typeof options.isBlocked === 'boolean') ? Math.max(limit * 3, 60) : limit;
       const snapshot = await db.collection(COLLECTION_NAME)
         .orderBy('createdAt', 'desc')
-        .limit(limit)
+        .limit(fetchLimit)
         .get();
 
       if (!snapshot.empty) {
         firestoreAvailable = true;
-        return snapshot.docs.map(doc => {
+        let docs = snapshot.docs.map(doc => {
           const d = doc.data();
           return {
             id: doc.id,
             query: d.query,
+            status: d.status || (d.isBlocked ? 'BLOCKED' : 'SUCCESS'),
+            isBlocked: Boolean(d.isBlocked),
+            blockReason: d.blockReason || null,
+            errorMessage: d.errorMessage || null,
             totalFound: d.totalFound || (d.results ? d.results.length : 0),
+            returnedCount: d.returnedCount || (d.results ? d.results.length : 0),
             brandName: d.profile?.brandName || d.query,
             category: d.profile?.category || '',
             domain: d.profile?.domain || '',
+            vectorHits: d.vectorHits || {},
+            discoveryErrors: d.discoveryErrors || [],
+            collector: d.metadata?.collector || 'unknown',
+            latencyMs: d.metadata?.latencyMs || 0,
+            topResultsSummary: d.topResultsSummary || [],
             timestamp: d.metadata?.loggedAt || (d.createdAt?.toDate ? d.createdAt.toDate().toISOString() : new Date().toISOString()),
           };
         });
+
+        if (options.status) docs = docs.filter(item => item.status === options.status);
+        if (typeof options.isBlocked === 'boolean') docs = docs.filter(item => item.isBlocked === options.isBlocked);
+        return docs.slice(0, limit);
       }
     } catch (err) {
       console.warn('[SearchLogger] Firestore getRecentSearches notice, using local cache:', err.message);
@@ -211,20 +268,61 @@ async function getRecentSearches(limit = 25) {
   // Fallback to local history
   if (fs.existsSync(LOCAL_HISTORY_FILE)) {
     try {
-      const list = JSON.parse(fs.readFileSync(LOCAL_HISTORY_FILE, 'utf8'));
+      let list = JSON.parse(fs.readFileSync(LOCAL_HISTORY_FILE, 'utf8'));
+      if (options.status) list = list.filter(item => item.status === options.status);
+      if (typeof options.isBlocked === 'boolean') list = list.filter(item => item.isBlocked === options.isBlocked);
       return list.slice(0, limit).map(item => ({
         id: item.id,
         query: item.query,
-        totalFound: item.totalFound,
+        status: item.status || (item.isBlocked ? 'BLOCKED' : 'SUCCESS'),
+        isBlocked: Boolean(item.isBlocked),
+        blockReason: item.blockReason || null,
+        errorMessage: item.errorMessage || null,
+        totalFound: item.totalFound || 0,
+        returnedCount: item.returnedCount || 0,
         brandName: item.brandName,
         category: item.category,
         domain: item.profile?.domain || '',
+        vectorHits: item.vectorHits || {},
+        discoveryErrors: item.discoveryErrors || [],
+        collector: item.collector || 'unknown',
+        latencyMs: item.latencyMs || 0,
+        topResultsSummary: item.topResultsSummary || [],
         timestamp: item.timestamp,
       }));
     } catch (e) {}
   }
 
   return [];
+}
+
+/**
+ * Retrieve high-level search diagnostics & metrics
+ */
+async function getSearchDiagnostics(limit = 50) {
+  const recent = await getRecentSearches(limit);
+  const totalSearches = recent.length;
+  const blockedCount = recent.filter(r => r.isBlocked || r.status === 'BLOCKED').length;
+  const successCount = recent.filter(r => r.status === 'SUCCESS' && !r.isBlocked).length;
+  const errorCount = recent.filter(r => r.status === 'ERROR').length;
+  const lastBlocked = recent.find(r => r.isBlocked || r.status === 'BLOCKED');
+  const lastSearch = recent[0] || null;
+
+  return {
+    summary: {
+      totalLogged: totalSearches,
+      successCount,
+      blockedCount,
+      errorCount,
+      blockedRate: totalSearches ? `${Math.round((blockedCount / totalSearches) * 100)}%` : '0%',
+      lastSearchAt: lastSearch?.timestamp || null,
+      lastBlockedAt: lastBlocked?.timestamp || null,
+      lastBlockReason: lastBlocked?.blockReason || null,
+      activeCollector: process.env.BROWSER_WS_ENDPOINT ? 'remote-ws' : process.env.BROWSER_CDP_ENDPOINT ? 'remote-cdp' : 'headless-chromium',
+      environment: process.env.K_SERVICE ? 'cloud-run' : 'local',
+    },
+    recentSearches: recent,
+  };
 }
 
 /**
@@ -271,5 +369,6 @@ async function getSearchSession(id) {
 module.exports = {
   logSearchSession,
   getRecentSearches,
+  getSearchDiagnostics,
   getSearchSession,
 };

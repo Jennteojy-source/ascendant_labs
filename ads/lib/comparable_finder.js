@@ -41,7 +41,12 @@ async function findComparables(searchPlan = {}, options = {}) {
     vectorHits[term] = vectorHits[term] || 0;
     const result = await queryMetaArchive(term, { countries, status, limit, mediaType });
     if (result.error && !result.data.length) {
-      discoveryErrors.push({ term, error: result.error });
+      discoveryErrors.push({
+        term,
+        error: result.error,
+        blocked: Boolean(result.blocked),
+        blockReason: result.blockReason || null,
+      });
       console.warn(`[BrowserSearch] "${term}": ${result.error}`);
     }
     for (const ad of result.data) {
@@ -75,12 +80,25 @@ async function findComparables(searchPlan = {}, options = {}) {
     }
   }
   if (!rawAdsMap.size && discoveryErrors.length) {
-    const blocked = discoveryErrors.some(item => /blocked/i.test(item.error));
-    if (blocked) throw new Error('Meta blocked the browser session. Configure a trusted remote browser with BROWSER_WS_ENDPOINT or BROWSER_CDP_ENDPOINT.');
-    throw new Error(`Ads Library browser search failed: ${discoveryErrors[0].error}`);
+    const blockedItem = discoveryErrors.find(item => item.blocked || /blocked/i.test(item.error));
+    const error = new Error(blockedItem
+      ? 'Meta blocked the browser session. Configure a trusted remote browser with BROWSER_WS_ENDPOINT or BROWSER_CDP_ENDPOINT.'
+      : `Ads Library browser search failed: ${discoveryErrors[0].error}`);
+    error.isBlocked = Boolean(blockedItem);
+    error.blockReason = blockedItem?.blockReason || (blockedItem ? 'Meta blocked the browser session' : null);
+    error.discoveryErrors = discoveryErrors;
+    error.vectorHits = vectorHits;
+    throw error;
   }
-  return { totalRawAds: rawAdsMap.size, vectorHits, discoveredCompetitors,
-    discoveryErrors, ads: [...rawAdsMap.values()] };
+  return {
+    totalRawAds: rawAdsMap.size,
+    vectorHits,
+    discoveredCompetitors,
+    discoveryErrors,
+    isBlocked: false,
+    hasPartialBlocks: discoveryErrors.some(e => e.blocked),
+    ads: [...rawAdsMap.values()],
+  };
 }
 
 module.exports = { findComparables, queryMetaArchive };
