@@ -60,6 +60,9 @@ function normalizeCreative(item) {
     height: Number(item.height) > 0 ? Number(item.height) : null,
     destinationUrl: destinationUrl(item.destinationUrl),
     ctaText: typeof item.ctaText === 'string' ? item.ctaText.slice(0, 100) : null,
+    title: typeof item.title === 'string' ? item.title.trim() : null,
+    body: typeof item.body === 'string' ? item.body.trim() : null,
+    displayFormat: typeof item.displayFormat === 'string' ? item.displayFormat : null,
   };
 }
 
@@ -72,7 +75,7 @@ function assetFingerprint(value) {
     const u = new URL(value, 'https://example.com');
     const pathname = u.pathname;
     const filename = pathname.split('/').filter(Boolean).pop() || '';
-    const metaId = filename.match(/^(\d{7,30})/);
+    const metaId = filename.match(/(?:^|[_\-.])(\d{7,30})(?:[_\-.]|$)/);
     if (metaId) return `meta:${metaId[1]}`;
     const fbid = u.searchParams.get('fbid') || u.searchParams.get('id');
     if (fbid && /^\d{7,30}$/.test(fbid)) return `meta:${fbid}`;
@@ -82,7 +85,7 @@ function assetFingerprint(value) {
   }
 }
 
-function deduplicateCreatives(items) {
+function deduplicateCreatives(items, options = {}) {
   const byFingerprint = new Map();
   const videoPosterFingerprints = new Set();
   for (const c of items) {
@@ -113,27 +116,82 @@ function deduplicateCreatives(items) {
           imageSources: [...new Set([...(c.imageSources || []), ...(existing.imageSources || [])])],
           videoSources: [...new Set([...(c.videoSources || []), ...(existing.videoSources || [])])],
         });
+      } else {
+        existing.imageSources = [...new Set([...(existing.imageSources || []), ...(c.imageSources || [])])];
       }
     }
   }
-  return [...byFingerprint.values()];
+
+  const collapsed = [...byFingerprint.values()];
+  const imageCreatives = collapsed.filter(c => !c.videoUrl && (c.thumbnailUrl || c.imageSources?.length));
+  const otherCreatives = collapsed.filter(c => c.videoUrl || (!c.thumbnailUrl && !c.imageSources?.length));
+
+  if (imageCreatives.length <= 1) return collapsed;
+
+  // In Meta Ads, DCO (Dynamic Creative Optimization / Advantage+ flexible ads) generates multiple
+  // placement crops (1:1 feed, 9:16 stories, 4:5, 1.91:1) of the SAME single image creative.
+  // When multiple image creatives share the same creative signature (same destination URL,
+  // same title/headline, same body text, same CTA, or displayFormat === 'DCO'), they are
+  // placement size variants of the same creative and must be collapsed to a single slide.
+  const isDCO = options.displayFormat === 'DCO'
+    || imageCreatives.some(x => x.displayFormat === 'DCO');
+
+  const byVariantSignature = new Map();
+  const dedupedImages = [];
+
+  for (const c of imageCreatives) {
+    const normUrl = (c.destinationUrl || '').trim();
+    const normTitle = (c.title || '').trim().toLowerCase();
+    const normBody = (c.body || '').trim().toLowerCase();
+    const hasVariantInfo = Boolean(normUrl || normTitle || normBody);
+    const variantKey = `${normUrl}::${normTitle}::${normBody}`;
+
+    const allIdenticalCopy = hasVariantInfo && imageCreatives.every(x =>
+      `${(x.destinationUrl || '').trim()}::${(x.title || '').trim().toLowerCase()}::${(x.body || '').trim().toLowerCase()}` === variantKey
+    );
+
+    if (hasVariantInfo && (isDCO || allIdenticalCopy)) {
+      if (!byVariantSignature.has(variantKey)) {
+        byVariantSignature.set(variantKey, c);
+      } else {
+        const existing = byVariantSignature.get(variantKey);
+        const existingArea = (existing.width || 0) * (existing.height || 0);
+        const newArea = (c.width || 0) * (c.height || 0);
+        if (newArea > existingArea || (!existing.width && c.width)) {
+          byVariantSignature.set(variantKey, {
+            ...c,
+            imageSources: [...new Set([...(c.imageSources || []), ...(existing.imageSources || [])])],
+          });
+        } else {
+          existing.imageSources = [...new Set([...(existing.imageSources || []), ...(c.imageSources || [])])];
+        }
+      }
+    } else {
+      dedupedImages.push(c);
+    }
+  }
+
+  const finalImages = byVariantSignature.size > 0 ? [...byVariantSignature.values(), ...dedupedImages] : dedupedImages;
+  return [...otherCreatives, ...finalImages];
 }
 
-function mediaResult(items, source, status = 'unavailable') {
+function mediaResult(items, source, status = 'unavailable', options = {}) {
   const normalized = items.map(normalizeCreative).filter(Boolean);
-  const creatives = deduplicateCreatives(normalized).slice(0, 20);
+  const creatives = deduplicateCreatives(normalized, options).slice(0, 20);
   return {
     schemaVersion: MEDIA_SCHEMA_VERSION, source,
     status: creatives.length ? 'ready' : status,
     ...(creatives[0] || { mediaType: 'unknown', thumbnailUrl: null, videoUrl: null }),
     creatives,
+    displayFormat: options.displayFormat || creatives[0]?.displayFormat || null,
   };
 }
 
 function extractStructuredMedia(payload, adId) {
   const items = [];
   let visited = 0;
-  const read = (object) => {
+  let rootDisplayFormat = null;
+  const read = (object, displayFormat = null) => {
     if (!object || typeof object !== 'object') return;
     const videoSources = [object.video_sd_url, object.videoSdUrl, object.video_hd_url, object.videoHdUrl];
     const imageSources = [object.video_preview_image_url, object.videoPreviewImageUrl,
@@ -143,25 +201,50 @@ function extractStructuredMedia(payload, adId) {
       mediaType: videoSources.some(Boolean) || object.video_preview_image_url || object.videoPreviewImageUrl ? 'video' : 'image',
       destinationUrl: object.link_url || object.linkUrl,
       ctaText: object.cta_text || object.ctaText,
+      title: object.title || object.link_title || object.linkTitle,
+      body: object.body || object.ad_creative_body || object.adCreativeBody,
+      displayFormat,
       width: object.width, height: object.height,
     });
     if (creative) items.push(creative);
-    // Only known creative collections; never recursively harvest arbitrary profile assets.
-    for (const key of ['cards', 'videos', 'images']) {
-      if (Array.isArray(object[key])) object[key].forEach(read);
+
+    const fmt = object.display_format || object.displayFormat || displayFormat;
+    if (Array.isArray(object.cards)) {
+      object.cards.forEach(child => read(child, fmt));
+    }
+    if (Array.isArray(object.videos)) {
+      object.videos.forEach(v => read(v, fmt));
+    }
+    // Meta Ads Library snapshot.images are responsive sizes of the main image, NOT separate carousel cards.
+    if (!Array.isArray(object.cards) && Array.isArray(object.images)) {
+      if (!creative) {
+        object.images.forEach(img => read(img, fmt));
+      } else {
+        for (const img of object.images) {
+          const extra = [img.video_preview_image_url, img.videoPreviewImageUrl,
+            img.resized_image_url, img.resizedImageUrl, img.original_image_url, img.originalImageUrl]
+            .map(mediaUrl).filter(v => v && !isAvatarUrl(v) && !isUrlExpired(v));
+          creative.imageSources.push(...extra);
+        }
+        creative.imageSources = [...new Set(creative.imageSources)];
+      }
     }
   };
   const walk = (value, depth = 0) => {
     if (!value || typeof value !== 'object' || depth > 50 || ++visited > 20000) return;
     const id = value.ad_archive_id ?? value.adArchiveID ?? value.ad_archiveId;
     if (id != null) {
-      if (String(id) === String(adId)) read(value.snapshot || value);
+      if (String(id) === String(adId)) {
+        const snap = value.snapshot || value;
+        rootDisplayFormat = snap.display_format || snap.displayFormat || value.display_format || value.displayFormat || null;
+        read(snap, rootDisplayFormat);
+      }
       return; // A different ad's subtree is not evidence for this ad.
     }
     Object.values(value).forEach(v => walk(v, depth + 1));
   };
   walk(payload);
-  return mediaResult(items, 'structured');
+  return mediaResult(items, 'structured', 'unavailable', { displayFormat: rootDisplayFormat });
 }
 
 // Runs inside a Playwright frame. Keep self-contained (no Node closures).

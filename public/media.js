@@ -17,7 +17,7 @@
       const u = new URL(value, location.origin);
       const pathname = u.pathname;
       const filename = pathname.split('/').filter(Boolean).pop() || '';
-      const metaId = filename.match(/^(\d{7,30})/);
+      const metaId = filename.match(/(?:^|[_\-.])(\d{7,30})(?:[_\-.]|$)/);
       if (metaId) return `meta:${metaId[1]}`;
       const fbid = u.searchParams.get('fbid') || u.searchParams.get('id');
       if (fbid && /^\d{7,30}$/.test(fbid)) return `meta:${fbid}`;
@@ -27,7 +27,7 @@
     }
   }
 
-  function deduplicateCreatives(items) {
+  function deduplicateCreatives(items, options = {}) {
     const byFingerprint = new Map();
     const videoPosterFingerprints = new Set();
     for (const c of items) {
@@ -58,10 +58,59 @@
             imageSources: [...new Set([...(c.imageSources || []), ...(existing.imageSources || [])])],
             videoSources: [...new Set([...(c.videoSources || []), ...(existing.videoSources || [])])],
           });
+        } else {
+          existing.imageSources = [...new Set([...(existing.imageSources || []), ...(c.imageSources || [])])];
         }
       }
     }
-    return [...byFingerprint.values()];
+
+    const collapsed = [...byFingerprint.values()];
+    const imageCreatives = collapsed.filter(c => !c.videoUrl && (c.thumbnailUrl || c.imageSources?.length));
+    const otherCreatives = collapsed.filter(c => c.videoUrl || (!c.thumbnailUrl && !c.imageSources?.length));
+
+    if (imageCreatives.length <= 1) return collapsed;
+
+    const isDCO = options.displayFormat === 'DCO'
+      || options.media?.displayFormat === 'DCO'
+      || imageCreatives.some(x => x.displayFormat === 'DCO');
+
+    const byVariantSignature = new Map();
+    const dedupedImages = [];
+
+    for (const c of imageCreatives) {
+      const normUrl = (c.destinationUrl || '').trim();
+      const normTitle = (c.title || '').trim().toLowerCase();
+      const normBody = (c.body || '').trim().toLowerCase();
+      const hasVariantInfo = Boolean(normUrl || normTitle || normBody);
+      const variantKey = `${normUrl}::${normTitle}::${normBody}`;
+
+      const allIdenticalCopy = hasVariantInfo && imageCreatives.every(x =>
+        `${(x.destinationUrl || '').trim()}::${(x.title || '').trim().toLowerCase()}::${(x.body || '').trim().toLowerCase()}` === variantKey
+      );
+
+      if (hasVariantInfo && (isDCO || allIdenticalCopy)) {
+        if (!byVariantSignature.has(variantKey)) {
+          byVariantSignature.set(variantKey, c);
+        } else {
+          const existing = byVariantSignature.get(variantKey);
+          const existingArea = (existing.width || 0) * (existing.height || 0);
+          const newArea = (c.width || 0) * (c.height || 0);
+          if (newArea > existingArea || (!existing.width && c.width)) {
+            byVariantSignature.set(variantKey, {
+              ...c,
+              imageSources: [...new Set([...(c.imageSources || []), ...(existing.imageSources || [])])],
+            });
+          } else {
+            existing.imageSources = [...new Set([...(existing.imageSources || []), ...(c.imageSources || [])])];
+          }
+        }
+      } else {
+        dedupedImages.push(c);
+      }
+    }
+
+    const finalImages = byVariantSignature.size > 0 ? [...byVariantSignature.values(), ...dedupedImages] : dedupedImages;
+    return [...otherCreatives, ...finalImages];
   }
 
   function render(container, options) {
@@ -70,7 +119,7 @@
     const { media, onRefresh } = options;
     const rawCreatives = (media?.creatives?.length ? media.creatives : media ? [media] : [])
       .filter(c => c.videoUrl || c.thumbnailUrl || c.videoSources?.length || c.imageSources?.length);
-    const creatives = deduplicateCreatives(rawCreatives);
+    const creatives = deduplicateCreatives(rawCreatives, options);
     const index = Math.max(0, Math.min(options.index || 0, creatives.length - 1));
     const creative = creatives[index];
     let disposed = false;

@@ -126,3 +126,86 @@ test('deduplicates multiple resized resolutions of the same image asset', () => 
   assert.equal(result.creatives[0].thumbnailUrl, c3.thumbnailUrl);
   assert.equal(result.creatives[1].thumbnailUrl, diffImage.thumbnailUrl);
 });
+
+test('deduplicates DCO placement crops of the same image creative into a single creative', () => {
+  // Simulates Meta DCO (Dynamic Creative Optimization) where 4 placement crops of the same image
+  // are generated with different CDN photo IDs, identical destination URL (with utm_content=image_01),
+  // identical headline, and identical body text (e.g. FemiCore ad).
+  const crop1 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/814509154_1063217983358526_n.jpg?stp=dst-jpg_s600x600',
+    destinationUrl: 'https://womenscareinsights.com/?utm_source=meta&utm_medium=paid&utm_campaign=femicore_meta_01&utm_content=image_01',
+    ctaText: 'See Details',
+    title: 'FemiCore: Ingredients & Research Guide',
+    body: 'Looking for real information before trying a supplement? We broke down the ingredients, research, and reviews behind FemiCore.',
+    displayFormat: 'DCO',
+    width: 600, height: 600,
+  };
+  const crop2 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/813583495_1788153722310123_n.jpg?stp=dst-jpg_s600x600',
+    destinationUrl: 'https://womenscareinsights.com/?utm_source=meta&utm_medium=paid&utm_campaign=femicore_meta_01&utm_content=image_01',
+    ctaText: 'See Details',
+    title: 'FemiCore: Ingredients & Research Guide',
+    body: 'Looking for real information before trying a supplement? We broke down the ingredients, research, and reviews behind FemiCore.',
+    displayFormat: 'DCO',
+    width: 1080, height: 1920,
+  };
+  const crop3 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/811904400_1751955042560280_n.jpg?stp=dst-jpg_s600x600',
+    destinationUrl: 'https://womenscareinsights.com/?utm_source=meta&utm_medium=paid&utm_campaign=femicore_meta_01&utm_content=image_01',
+    ctaText: 'See Details',
+    title: 'FemiCore: Ingredients & Research Guide',
+    body: 'Looking for real information before trying a supplement? We broke down the ingredients, research, and reviews behind FemiCore.',
+    displayFormat: 'DCO',
+    width: 1080, height: 1350,
+  };
+  const crop4 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/813715739_1058808550256544_n.jpg?stp=dst-jpg_s600x600',
+    destinationUrl: 'https://womenscareinsights.com/?utm_source=meta&utm_medium=paid&utm_campaign=femicore_meta_01&utm_content=image_01',
+    ctaText: 'See Details',
+    title: 'FemiCore: Ingredients & Research Guide',
+    body: 'Looking for real information before trying a supplement? We broke down the ingredients, research, and reviews behind FemiCore.',
+    displayFormat: 'DCO',
+    width: 1200, height: 628,
+  };
+
+  const result = mediaResult([crop1, crop2, crop3, crop4], 'structured', 'unavailable', { displayFormat: 'DCO' });
+  // All 4 placement crops collapsed to 1 single creative
+  assert.equal(result.creatives.length, 1);
+  assert.equal(result.creatives[0].title, 'FemiCore: Ingredients & Research Guide');
+  // Kept highest area crop (1080x1920)
+  assert.equal(result.creatives[0].thumbnailUrl, crop2.thumbnailUrl);
+  // Preserved fallback image sources
+  assert.equal(result.creatives[0].imageSources.length, 4);
+});
+
+test('preserves genuine multi-card carousel ads with distinct card titles', () => {
+  const card1 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/753356757_1003311539143079_n.jpg',
+    destinationUrl: 'https://clny.co/cadburyafrica',
+    ctaText: 'See Details',
+    title: 'Cadbury Dairy Milk',
+    displayFormat: 'CAROUSEL',
+  };
+  const card2 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/752838643_1709997353551499_n.jpg',
+    destinationUrl: 'https://clny.co/cadburyafrica',
+    ctaText: 'See Details',
+    title: 'Cadbury Top Deck',
+    displayFormat: 'CAROUSEL',
+  };
+  const card3 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/751611383_1023480323982502_n.jpg',
+    destinationUrl: 'https://clny.co/cadburyafrica',
+    ctaText: 'See Details',
+    title: 'Cadbury Wholenut',
+    displayFormat: 'CAROUSEL',
+  };
+
+  const result = mediaResult([card1, card2, card3], 'structured', 'unavailable', { displayFormat: 'CAROUSEL' });
+  // Distinct carousel cards are preserved
+  assert.equal(result.creatives.length, 3);
+  assert.equal(result.creatives[0].title, 'Cadbury Dairy Milk');
+  assert.equal(result.creatives[1].title, 'Cadbury Top Deck');
+  assert.equal(result.creatives[2].title, 'Cadbury Wholenut');
+});
+

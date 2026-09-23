@@ -209,6 +209,7 @@ function normalizePayloadAd(object) {
     eu_total_reach: first(object, ['eu_total_reach', 'euTotalReach']),
     impressions: first(object, ['impressions']),
     spend: first(object, ['spend']),
+    display_format: first(snapshot, ['display_format', 'displayFormat']) || first(object, ['display_format', 'displayFormat']) || null,
     browserMedia: media.status === 'ready' ? media : null,
   };
 }

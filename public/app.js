@@ -533,6 +533,7 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
   const generation = mediaGeneration;
   AdMedia.render(box, {
     adId: String(ad.id), media: currentMedia(ad), index: creativeIndices.get(String(ad.id)) || 0,
+    displayFormat: ad.display_format || currentMedia(ad)?.displayFormat || null,
     onIndexChange: index => creativeIndices.set(String(ad.id), index),
     onRefresh: async manual => {
       const id = String(ad.id);
