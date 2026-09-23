@@ -96,3 +96,33 @@ test('media ingestion validates bytes and replaces expiring CDN URLs with stable
   assert.equal(saved.length, 1);
   assert.equal(saved[0].options.metadata.cacheControl, 'public, max-age=31536000, immutable');
 });
+
+test('deduplicates multiple resized resolutions of the same image asset', () => {
+  const c1 = {
+    thumbnailUrl: 'https://scontent-iad3-1.xx.fbcdn.net/v/t39.35426-6/48591234_1234567890_n.jpg?stp=dst-jpg_s600x600',
+    width: 600, height: 600,
+  };
+  const c2 = {
+    thumbnailUrl: 'https://scontent-iad3-1.xx.fbcdn.net/v/t39.35426-6/48591234_1234567890_n.jpg?stp=dst-jpg_s960x960',
+    width: 960, height: 960,
+  };
+  const c3 = {
+    thumbnailUrl: 'https://scontent-iad3-1.xx.fbcdn.net/v/t39.35426-6/48591234_1234567890_n.jpg?stp=dst-jpg_s1200x1200',
+    width: 1200, height: 1200,
+  };
+  const c4 = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/48591234_1234567890_n.jpg',
+    width: 300, height: 300,
+  };
+  const diffImage = {
+    thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t39.35426-6/99998888_1234567890_n.jpg',
+    width: 800, height: 800,
+  };
+  const result = mediaResult([c1, c2, c3, c4, diffImage], 'structured');
+  // 4 identical bottle images + 1 different image = 2 unique creatives
+  assert.equal(result.creatives.length, 2);
+  // Kept the highest resolution for the first image
+  assert.equal(result.creatives[0].width, 1200);
+  assert.equal(result.creatives[0].thumbnailUrl, c3.thumbnailUrl);
+  assert.equal(result.creatives[1].thumbnailUrl, diffImage.thumbnailUrl);
+});

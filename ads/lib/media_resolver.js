@@ -63,15 +63,65 @@ function normalizeCreative(item) {
   };
 }
 
+function assetFingerprint(value) {
+  if (!value || typeof value !== 'string') return '';
+  const matchProxy = value.match(/\/api\/media\/\d+\/([a-f0-9]+)/i);
+  if (matchProxy) return matchProxy[1].toLowerCase();
+
+  try {
+    const u = new URL(value, 'https://example.com');
+    const pathname = u.pathname;
+    const filename = pathname.split('/').filter(Boolean).pop() || '';
+    const metaId = filename.match(/^(\d{7,30})/);
+    if (metaId) return `meta:${metaId[1]}`;
+    const fbid = u.searchParams.get('fbid') || u.searchParams.get('id');
+    if (fbid && /^\d{7,30}$/.test(fbid)) return `meta:${fbid}`;
+    return pathname.toLowerCase();
+  } catch {
+    return value.split('?')[0].toLowerCase();
+  }
+}
+
+function deduplicateCreatives(items) {
+  const byFingerprint = new Map();
+  const videoPosterFingerprints = new Set();
+  for (const c of items) {
+    if (c && c.videoUrl && c.thumbnailUrl) {
+      const posterFp = assetFingerprint(c.thumbnailUrl);
+      if (posterFp) videoPosterFingerprints.add(posterFp);
+    }
+  }
+  for (const c of items) {
+    if (!c) continue;
+    if (!c.videoUrl && c.thumbnailUrl) {
+      const imgFp = assetFingerprint(c.thumbnailUrl);
+      if (videoPosterFingerprints.has(imgFp)) continue;
+    }
+    const key = c.videoUrl
+      ? `v:${assetFingerprint(c.videoUrl)}`
+      : `i:${assetFingerprint(c.thumbnailUrl || c.imageSources?.[0])}`;
+    if (!key || key === 'i:' || key === 'v:') continue;
+    if (!byFingerprint.has(key)) {
+      byFingerprint.set(key, c);
+    } else {
+      const existing = byFingerprint.get(key);
+      const existingArea = (existing.width || 0) * (existing.height || 0);
+      const newArea = (c.width || 0) * (c.height || 0);
+      if (newArea > existingArea || (!existing.width && c.width)) {
+        byFingerprint.set(key, {
+          ...c,
+          imageSources: [...new Set([...(c.imageSources || []), ...(existing.imageSources || [])])],
+          videoSources: [...new Set([...(c.videoSources || []), ...(existing.videoSources || [])])],
+        });
+      }
+    }
+  }
+  return [...byFingerprint.values()];
+}
+
 function mediaResult(items, source, status = 'unavailable') {
-  const seen = new Set();
-  const creatives = items.map(normalizeCreative).filter(c => {
-    if (!c) return false;
-    const key = `${c.videoUrl || ''}|${c.thumbnailUrl || ''}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 20);
+  const normalized = items.map(normalizeCreative).filter(Boolean);
+  const creatives = deduplicateCreatives(normalized).slice(0, 20);
   return {
     schemaVersion: MEDIA_SCHEMA_VERSION, source,
     status: creatives.length ? 'ready' : status,
