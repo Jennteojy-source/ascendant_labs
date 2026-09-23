@@ -15,7 +15,7 @@
 window.AdMedia = window.AdMedia || (() => {
   const instances = new WeakMap();
   const url = value => {
-    try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
+    try { const u = new URL(value, location.origin); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
     catch { return null; }
   };
   const sources = values => [...new Set(values.map(url).filter(Boolean))];
@@ -310,6 +310,7 @@ async function fetchHealth() {
  */
 async function executeSearch(targetInput, page = 1) {
   resetMediaSession();
+  const searchGeneration = mediaGeneration;
   state.currentInput = targetInput;
   state.currentPage = page;
 
@@ -320,18 +321,20 @@ async function executeSearch(targetInput, page = 1) {
   loadingState.style.display = 'block';
   searchSubmitBtn.disabled = true;
 
-  // Unified 4-stage loading progress matching the backend pipeline
+  // Staged progress remains visible while the server validates and archives media.
   const steps = [
-    { label: 'Analyzing your query with AI...', delay: 0 },
-    { label: 'Searching Meta Ad Library...', delay: 1800 },
-    { label: 'Ranking & filtering winning ads...', delay: 4200 },
-    { label: 'Rendering ad creatives & video previews...', delay: 6500 },
+    { label: 'Understanding your product...', detail: 'Building strict brand and product search vectors.', delay: 0 },
+    { label: 'Searching live Meta ads...', detail: 'Collecting current campaigns from the public Ads Library.', delay: 2200 },
+    { label: 'Verifying relevance with AI...', detail: 'Removing unrelated brands, noise, and duplicate creatives.', delay: 9000 },
+    { label: 'Extracting images and videos...', detail: 'Resolving every creative needed for this results page.', delay: 18000 },
+    { label: 'Preparing seamless previews...', detail: 'Caching selected media for stable, fast playback.', delay: 30000 },
   ];
 
   loadingState.innerHTML = `
     <div class="spinner"></div>
     <h3 id="loadingTitle">${steps[0].label}</h3>
-    <p id="loadingSubhead">Extracting live Facebook & Instagram ad intelligence.</p>
+    <p id="loadingSubhead">${steps[0].detail}</p>
+    <div class="pipeline-meter" aria-hidden="true"><span id="pipelineMeterFill"></span></div>
     <div class="loading-progress" id="loadingProgress">
       ${steps.map((s, i) => `
         <div class="loading-step ${i === 0 ? 'active' : ''}" id="loadStep${i}">
@@ -369,11 +372,15 @@ async function executeSearch(targetInput, page = 1) {
         stepEl.querySelector('.step-icon').textContent = '●';
         const title = document.getElementById('loadingTitle');
         if (title) title.textContent = steps[j].label;
+        const subhead = document.getElementById('loadingSubhead');
+        if (subhead) subhead.textContent = steps[j].detail;
       } else {
         stepEl.classList.remove('active', 'done');
         stepEl.querySelector('.step-icon').textContent = '○';
       }
     }
+    const fill = document.getElementById('pipelineMeterFill');
+    if (fill) fill.style.width = `${Math.min(94, 8 + (stepIndex + 1) * (86 / steps.length))}%`;
   }
 
   steps.forEach((s, i) => {
@@ -398,14 +405,12 @@ async function executeSearch(targetInput, page = 1) {
 
     const data = await response.json();
     if (data.error) throw new Error(data.error);
+    if (searchGeneration !== mediaGeneration) return;
 
     state.currentProfile = data.queryProfile;
     state.rawRankedAds = data.paginated.items;
 
-    // Transition loading step explicitly to Rendering Creatives
-    setActiveStep(3);
-    const subhead = document.getElementById('loadingSubhead');
-    if (subhead) subhead.textContent = 'Buffering high-resolution video and creative previews for instant display...';
+    setActiveStep(4);
 
     // Populate any media already resolved by backend
     for (const ad of state.rawRankedAds || []) {
@@ -414,40 +419,16 @@ async function executeSearch(targetInput, page = 1) {
       }
     }
 
-    // Pre-resolve media for top ads on Page 1 before revealing grid so they display IMMEDIATELY
-    const topPageAds = (state.rawRankedAds || []).slice(0, 6);
-    const uncachedTopAds = topPageAds.filter(a => !state.resolvedMediaMap[String(a.id)]);
-
-    if (uncachedTopAds.length > 0) {
-      try {
-        const sniffRes = await fetch('/api/sniff-page', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ads: uncachedTopAds.map(a => ({ id: String(a.id), adSnapshotUrl: a.adSnapshotUrl || null })),
-          }),
-          signal: AbortSignal.timeout(6500),
-        });
-        if (sniffRes.ok) {
-          const sniffData = await sniffRes.json();
-          if (sniffData.mediaMap) {
-            Object.assign(state.resolvedMediaMap, sniffData.mediaMap);
-            for (const item of state.rawRankedAds) {
-              if (sniffData.mediaMap[String(item.id)]) {
-                item.media = sniffData.mediaMap[String(item.id)];
-              }
-            }
-          }
-        }
-      } catch (sniffErr) {
-        console.warn('[Search] Pre-render media sniff yielded to display:', sniffErr.message);
-      }
-    }
+    // One final batch check ensures visible cards are either ready or explicitly unavailable.
+    await preparePageMedia((state.rawRankedAds || []).slice(0, state.pageSize), 90000);
+    if (searchGeneration !== mediaGeneration) return;
 
     // Now reveal the ad grid — creatives are already resolved and display instantly!
     loadingState.style.display = 'none';
     adGrid.style.display = 'grid';
 
+    const fill = document.getElementById('pipelineMeterFill');
+    if (fill) fill.style.width = '100%';
     applyFiltersAndRender(1);
     fetchHealth();
   } catch (err) {
@@ -462,7 +443,23 @@ async function executeSearch(targetInput, page = 1) {
   } finally {
     stepTimers.forEach(t => clearTimeout(t));
     clearInterval(elapsedInterval);
-    searchSubmitBtn.disabled = false;
+    if (searchGeneration === mediaGeneration) searchSubmitBtn.disabled = false;
+  }
+}
+
+async function preparePageMedia(ads, timeoutMs = 90000) {
+  const candidates = (ads || []).filter(ad => {
+    const media = state.resolvedMediaMap[String(ad.id)] || ad.media;
+    return !media || media.status !== 'ready' || ['pending', 'fallback'].includes(media.storageStatus);
+  }).slice(0, 10);
+  if (!candidates.length) return;
+  try {
+    await Promise.race([
+      Promise.all(candidates.map(ad => requestAdMedia(ad))),
+      new Promise(resolve => setTimeout(resolve, timeoutMs)),
+    ]);
+  } catch (error) {
+    console.warn('[Media] Page preparation completed with fallbacks:', error.message);
   }
 }
 
@@ -917,7 +914,18 @@ function renderPagination() {
   }
 }
 
-function changePage(newPage) {
+async function changePage(newPage) {
+  if (newPage < 1 || newPage > state.totalPages || newPage === state.currentPage) return;
+  const start = (newPage - 1) * state.pageSize;
+  const pageAds = state.rawRankedAds.slice(start, start + state.pageSize);
+  adGrid.style.display = 'none';
+  paginationNav.style.display = 'none';
+  loadingState.style.display = 'block';
+  loadingState.innerHTML = `<div class="spinner"></div><h3>Preparing page ${newPage}...</h3>
+    <p>Stabilizing image and video previews before they appear.</p>`;
+  await preparePageMedia(pageAds, 90000);
+  loadingState.style.display = 'none';
+  adGrid.style.display = 'grid';
   applyFiltersAndRender(newPage);
   const targetEl = document.getElementById('resultsSection') || document.getElementById('adGrid');
   if (targetEl) {

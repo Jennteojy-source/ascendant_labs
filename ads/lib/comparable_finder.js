@@ -5,7 +5,7 @@ const queryCache = new Map();
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 
 async function queryMetaArchive(searchTerm, options = {}) {
-  const countries = options.countries || ['US'];
+  const countries = options.countries || ['ALL'];
   const status = options.status || 'ACTIVE';
   const limit = options.limit || 25;
   const mediaType = options.mediaType || 'ALL';
@@ -21,7 +21,7 @@ async function queryMetaArchive(searchTerm, options = {}) {
 
 async function findComparables(searchPlan = {}, options = {}) {
   const merged = { ...(typeof searchPlan === 'object' ? searchPlan : {}), ...(typeof options === 'object' ? options : {}) };
-  const { vectors = [], countries = ['US', 'GB', 'CA', 'AU'], status = 'ACTIVE',
+  const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
     limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true } = merged;
   const rawAdsMap = new Map();
   const vectorHits = {};

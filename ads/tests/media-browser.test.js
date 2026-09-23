@@ -35,7 +35,8 @@ async function appPage(t, ads, sniff = async () => ({})) {
       body: fs.readFileSync(path.resolve(__dirname, '../../public', name), 'utf8') });
   });
   await page.goto('http://127.0.0.1/');
-  await page.evaluate(() => executeSearch('Example product'));
+  await page.evaluate(() => { executeSearch('Example product'); });
+  await page.waitForFunction(() => state.rawRankedAds.length > 0);
   t.after(() => assert.deepEqual(errors, [], 'no browser JavaScript errors'));
   return page;
 }
@@ -139,8 +140,9 @@ test('late extraction from an earlier search cannot overwrite the new search', a
   let started;
   const began = new Promise(resolve => { started = resolve; });
   const held = new Promise(resolve => { release = resolve; });
-  let calls = 0;
-  const page = await appPage(t, [ad('123', null)], async () => {
+  let calls = 0; const requestModes = [];
+  const page = await appPage(t, [ad('123', null)], async body => {
+    requestModes.push(Boolean(body.forceRefresh));
     if (++calls === 1) { started(); await held; return { '123': mediaResult([{ thumbnailUrl: image }], 'structured') }; }
     return { '123': mediaResult([{ thumbnailUrl: alternate }], 'structured') };
   });
@@ -148,7 +150,7 @@ test('late extraction from an earlier search cannot overwrite the new search', a
   await page.evaluate(() => executeSearch('A different search'));
   release();
   await page.waitForFunction(() => document.querySelector('#media-box-123 img')?.src.includes('second.jpg'));
-  assert.equal(calls, 2);
+  assert.equal(calls, 2, `request modes: ${requestModes.join(',')}`);
   assert.equal(await page.evaluate(() => state.resolvedMediaMap['123'].thumbnailUrl), alternate);
 });
 

@@ -2,7 +2,7 @@
 (() => {
   const instances = new WeakMap();
   const url = value => {
-    try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
+    try { const u = new URL(value, location.origin); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
     catch { return null; }
   };
   const sources = values => [...new Set(values.map(url).filter(Boolean))];

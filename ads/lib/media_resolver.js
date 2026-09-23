@@ -1,6 +1,7 @@
 // Pure extraction/validation shared by the collector, cache, and regression tests.
 const MEDIA_SCHEMA_VERSION = 2;
 const MEDIA_CACHE_TTL_MS = 60 * 60 * 1000;
+const DURABLE_MEDIA_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 function httpUrl(value) {
   if (typeof value !== 'string') return null;
@@ -16,6 +17,7 @@ function isAvatarUrl(value) {
 }
 
 function mediaUrl(value) {
+  if (typeof value === 'string' && /^\/api\/media\/\d{1,40}\/[a-f0-9]{64}\.(?:jpg|png|webp|gif|mp4|webm|mov)$/.test(value)) return value;
   const raw = httpUrl(value);
   if (!raw) return null;
   const url = new URL(raw);
@@ -26,6 +28,7 @@ function mediaUrl(value) {
 
 function isUrlExpired(value, now = Date.now()) {
   if (!value) return false;
+  if (typeof value === 'string' && value.startsWith('/api/media/')) return false;
   try {
     const hint = new URL(value).searchParams.get('oe');
     return !!hint && /^[\da-f]+$/i.test(hint) && parseInt(hint, 16) * 1000 <= now + 60000;
@@ -188,6 +191,6 @@ function inspectAdDocument(adId) {
   return { items, links, cta, json, scoped: true };
 }
 
-module.exports = { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, httpUrl, mediaUrl,
+module.exports = { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, DURABLE_MEDIA_CACHE_TTL_MS, httpUrl, mediaUrl,
   isAvatarUrl, isUrlExpired, destinationUrl, normalizeCreative, mediaResult,
   extractStructuredMedia, inspectAdDocument };

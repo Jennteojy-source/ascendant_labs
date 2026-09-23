@@ -1691,6 +1691,25 @@ body {
   text-align: left;
 }
 
+.pipeline-meter {
+  width: min(520px, 86vw);
+  height: 7px;
+  margin: 20px auto 18px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.pipeline-meter span {
+  display: block;
+  width: 10%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-primary), #f09a6e);
+  transition: width 700ms ease;
+}
+
 .loading-step {
   display: flex;
   align-items: center;

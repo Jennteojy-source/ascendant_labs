@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { extractStructuredMedia, isAvatarUrl, destinationUrl, mediaResult } = require('../lib/media_resolver');
 const { normalizeCacheEntry } = require('../lib/firestore_cache');
 const { snapshotTarget, createMediaSniffer } = require('../lib/paginated_sniffer');
+const { fetchAllowedMedia, objectName, persistMedia, publicMediaUrl } = require('../lib/media_storage');
 const image = 'https://scontent.xx.fbcdn.net/v/t51.2885-15/creative.jpg';
 const video = 'https://video.xx.fbcdn.net/creative.mp4';
 
@@ -68,4 +69,30 @@ test('simultaneous requests share an ad extraction and the process-wide concurre
   await sniff([{ id: '1' }], { forceRefresh: true });
   await sniff([{ id: '1' }], { forceRefresh: true });
   assert.equal(calls.filter(id => id === '1').length, 2, 'one immediate forced refresh, then cooldown');
+});
+
+test('durable media paths are content-addressed and cannot escape the ad prefix', () => {
+  const hash = 'a'.repeat(64);
+  assert.equal(objectName('123', hash, 'mp4'), `ad-media/123/${hash}.mp4`);
+  assert.equal(publicMediaUrl(`ad-media/123/${hash}.mp4`), `/api/media/123/${hash}.mp4`);
+  assert.equal(objectName('../123', hash, 'mp4'), null);
+  assert.equal(objectName('123', hash, 'html'), null);
+});
+
+test('media ingestion validates bytes and replaces expiring CDN URLs with stable app URLs', async () => {
+  const saved = [];
+  const bucket = { file: name => ({
+    exists: async () => [false],
+    save: async (buffer, options) => saved.push({ name, buffer, options }),
+  }) };
+  const fetch = async () => new Response(Buffer.from('jpeg test data'), {
+    status: 200, headers: { 'content-type': 'image/jpeg', 'content-length': '14' },
+  });
+  const downloaded = await fetchAllowedMedia(image, 'image', { fetch });
+  assert.equal(downloaded.contentType, 'image/jpeg');
+  const durable = await persistMedia('123', mediaResult([{ thumbnailUrl: image }], 'structured'), { bucket, fetch });
+  assert.equal(durable.storageStatus, 'ready');
+  assert.match(durable.thumbnailUrl, /^\/api\/media\/123\/[a-f0-9]{64}\.jpg$/);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].options.metadata.cacheControl, 'public, max-age=31536000, immutable');
 });

@@ -150,7 +150,7 @@ async function logSearchSession(sessionData = {}) {
     topResultsSummary,
     results: sanitizedAds,
     metadata: {
-      collector: collector || (process.env.BROWSERLESS_TOKEN ? 'managed-browserless'
+      collector: collector || ((process.env.BROWSERLESS_TOKEN || process.env.BROWSERLESS_API) ? 'managed-browserless'
         : process.env.BROWSER_WS_ENDPOINT ? 'managed-playwright' : 'headless-chromium'),
       environment: process.env.K_SERVICE ? 'cloud-run' : 'local',
       latencyMs: Number(latencyMs) || 0,
@@ -319,7 +319,7 @@ async function getSearchDiagnostics(limit = 50) {
       lastSearchAt: lastSearch?.timestamp || null,
       lastBlockedAt: lastBlocked?.timestamp || null,
       lastBlockReason: lastBlocked?.blockReason || null,
-      activeCollector: process.env.BROWSERLESS_TOKEN ? 'managed-browserless'
+      activeCollector: (process.env.BROWSERLESS_TOKEN || process.env.BROWSERLESS_API) ? 'managed-browserless'
         : process.env.BROWSER_WS_ENDPOINT ? 'managed-playwright' : 'headless-chromium',
       environment: process.env.K_SERVICE ? 'cloud-run' : 'local',
     },

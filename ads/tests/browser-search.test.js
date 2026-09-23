@@ -5,7 +5,7 @@ const { buildAdsLibrarySearchUrl, browserConnectionMode, browserlessEndpoint, ma
   extractAdsFromPayload, extractAdsFromDocument } = require('../lib/meta_browser_searcher');
 
 test('Browserless configuration uses an encrypted managed Playwright endpoint', () => {
-  const env = { BROWSERLESS_TOKEN: 'test token', BROWSERLESS_REGION: 'lon',
+  const env = { BROWSERLESS_API: 'test token', BROWSERLESS_REGION: 'lon',
     BROWSERLESS_PROXY_COUNTRY: 'gb' };
   const endpoint = new URL(browserlessEndpoint(env));
   assert.equal(browserConnectionMode(env), 'managed-browserless');

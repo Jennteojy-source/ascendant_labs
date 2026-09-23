@@ -2,7 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 const { Firestore } = require('@google-cloud/firestore');
-const { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, mediaResult, isAvatarUrl, isUrlExpired } = require('./media_resolver');
+const { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, DURABLE_MEDIA_CACHE_TTL_MS,
+  mediaResult, isAvatarUrl, isUrlExpired } = require('./media_resolver');
 
 const CACHE_DIR = path.resolve(__dirname, '../.cache');
 const FALLBACK_CACHE_FILE = path.join(CACHE_DIR, 'media_cache.json');
@@ -14,8 +15,9 @@ let retryFirestoreAt = 0;
 
 function normalizeCacheEntry(entry, now = Date.now()) {
   // Old entries were selected from unscoped network traffic; do not perpetuate them.
+  const ttl = ['ready', 'partial'].includes(entry?.storageStatus) ? DURABLE_MEDIA_CACHE_TTL_MS : MEDIA_CACHE_TTL_MS;
   if (!entry || entry.schemaVersion !== MEDIA_SCHEMA_VERSION || !Number.isFinite(entry.cachedAt)
-      || now - entry.cachedAt > MEDIA_CACHE_TTL_MS || entry.cachedAt > now + 60000) return null;
+      || now - entry.cachedAt > ttl || entry.cachedAt > now + 60000) return null;
   const items = (entry.creatives || [entry]).map(c => ({ ...c,
     thumbnailUrl: isUrlExpired(c.thumbnailUrl, now) ? null : c.thumbnailUrl,
     imageSources: (c.imageSources || []).filter(u => !isUrlExpired(u, now)),

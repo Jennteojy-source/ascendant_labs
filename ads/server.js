@@ -12,6 +12,8 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
+require('./lib/local_env').loadLocalEnv();
+
 const { profilePDP } = require('./lib/pdp_profiler');
 const { expandQueryWithAI } = require('./lib/ai_query_expander');
 const { findComparables } = require('./lib/comparable_finder');
@@ -19,7 +21,8 @@ const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache, getBrowser } = require('./lib/paginated_sniffer');
 const { browserConnectionMode } = require('./lib/meta_browser_searcher');
-const { getCachedMediaBatch } = require('./lib/firestore_cache');
+const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
+const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/media_storage');
 const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
 
@@ -75,6 +78,16 @@ function serveStatic(res, filePath, contentType) {
 // Global in-memory cache for recent searches: query -> rankedAds
 const searchCache = new Map();
 
+function attachMedia(item, media) {
+  if (!item || !media || media.mediaType === 'unknown') return;
+  item.media = media;
+  if (media.destinationUrl) {
+    item.destinationUrl = media.destinationUrl;
+    try { item.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, ''); } catch { /* Keep existing label. */ }
+  }
+  if (media.ctaText) item.ctaText = media.ctaText;
+}
+
 const server = http.createServer(async (req, res) => {
   const startTime = Date.now();
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
@@ -97,6 +110,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    const storedMediaMatch = /^\/api\/media\/(\d{1,40})\/([a-f0-9]{64}\.(?:jpg|png|webp|gif|mp4|webm|mov))$/.exec(pathname);
+    if (req.method === 'GET' && storedMediaMatch) {
+      const streamed = await streamStoredMedia(req, res, storedMediaMatch[1], storedMediaMatch[2]);
+      if (!streamed) return sendJson(res, 404, { error: 'Media not found' });
+      return;
+    }
+
     // 1. Static Web UI Routes
     if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
       return serveStatic(res, path.join(WEB_DIR, 'index.html'), 'text/html');
@@ -161,6 +181,7 @@ const server = http.createServer(async (req, res) => {
       let rankedAds = null;
       let queryProfile = null;
       let searchRes = null;
+      const pipeline = { startedAt: new Date(searchStartTime).toISOString(), stages: {} };
 
       try {
         // Check in-memory query cache
@@ -170,7 +191,9 @@ const server = http.createServer(async (req, res) => {
           queryProfile = cached.queryProfile;
         } else {
           // ─── Stage 1: AI Query Expansion ───────────────────────────
+          const expansionStarted = Date.now();
           queryProfile = await expandQueryWithAI(trimmedInput);
+          pipeline.stages.queryExpansionMs = Date.now() - expansionStarted;
 
           const searchVectors = queryProfile.searchVectors;
           const targetBrand = queryProfile.brandName;
@@ -184,6 +207,7 @@ const server = http.createServer(async (req, res) => {
           });
 
           // ─── Stage 2: Agentic Facebook Ads Library Search ─────────
+          const discoveryStarted = Date.now();
           searchRes = await findComparables({
             vectors: searchVectors,
             countries,
@@ -192,6 +216,7 @@ const server = http.createServer(async (req, res) => {
             limitPerVector: 50,
             enableAgenticLoop: false,
           });
+          pipeline.stages.discoveryMs = Date.now() - discoveryStarted;
 
           logger.info('Stage 2 — Agentic Ads Library search complete', {
             totalRawAds: searchRes.totalRawAds,
@@ -199,6 +224,7 @@ const server = http.createServer(async (req, res) => {
           });
 
           // ─── Stage 3: AI Ranking & Filtering ──────────────────────
+          const rankingStarted = Date.now();
           rankedAds = deduplicateAndRankAds(searchRes.ads, {
             countries,
             targetBrand,
@@ -215,6 +241,7 @@ const server = http.createServer(async (req, res) => {
           };
 
           rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {
             input: trimmedInput,
@@ -226,57 +253,60 @@ const server = http.createServer(async (req, res) => {
           searchCache.set(cacheKey, { rankedAds, queryProfile, timestamp: Date.now() });
         }
 
-        // ─── Stage 4: Deterministic Rendering (Hydrate + Paginate) ──
+        // ─── Stage 4: Resolve + persist render-ready media ──────────
+        const mediaStarted = Date.now();
         const allAdIds = (rankedAds || []).map(a => String(a.id));
         const mediaCache = await getCachedMediaBatch(allAdIds);
         const uniqueVisualAds = [];
 
         for (const item of rankedAds) {
-          if (mediaCache[item.id]) {
-            item.media = mediaCache[item.id];
-            if (item.media.destinationUrl) {
-              item.destinationUrl = item.media.destinationUrl;
-              try {
-                item.displayDomain = new URL(item.media.destinationUrl).hostname.replace(/^www\./, '');
-              } catch (e) {}
-            }
-            if (item.media.ctaText) {
-              item.ctaText = item.media.ctaText;
-            }
-          }
+          if (mediaCache[item.id]) attachMedia(item, mediaCache[item.id]);
           uniqueVisualAds.push(item);
         }
 
-        // Resolve media for top uncached Page 1 ads so search response arrives pre-hydrated with creatives
-        const topAdsToPrewarm = uniqueVisualAds
-          .slice(0, 4)
+        // Wait for the visible first page, then archive only relevant/ranked creatives.
+        const readyLimit = Math.max(1, Math.min(20, Number(process.env.MEDIA_READY_AD_LIMIT) || 10));
+        const readyAds = uniqueVisualAds.slice(0, readyLimit);
+        const topAdsToPrewarm = readyAds
           .filter(a => !a.media?.videoUrl && !a.media?.thumbnailUrl);
 
         if (topAdsToPrewarm.length > 0) {
           try {
             const resolvedMedia = await Promise.race([
               sniffPageMedia(topAdsToPrewarm),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Prewarm timeout')), 3500)),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Media extraction timeout')), 70000)),
             ]);
             if (resolvedMedia) {
               for (const [adId, media] of Object.entries(resolvedMedia)) {
                 const matchedAd = uniqueVisualAds.find(a => String(a.id) === String(adId));
-                if (matchedAd && media && media.mediaType !== 'unknown') {
-                  matchedAd.media = media;
-                  if (media.destinationUrl) {
-                    matchedAd.destinationUrl = media.destinationUrl;
-                    try {
-                      matchedAd.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, '');
-                    } catch (e) {}
-                  }
-                  if (media.ctaText) matchedAd.ctaText = media.ctaText;
-                }
+                if (matchedAd) attachMedia(matchedAd, media);
               }
             }
           } catch (e) {
-            // Soft timeout, client sniffer completes it smoothly
+            logger.warn('Media extraction yielded to response', { error: e.message });
           }
         }
+
+        const persistable = Object.fromEntries(readyAds
+          .filter(ad => ad.media?.status === 'ready')
+          .map(ad => [String(ad.id), ad.media]));
+        const durableMedia = await Promise.race([
+          persistMediaBatch(persistable),
+          new Promise(resolve => setTimeout(() => resolve(persistable), 90000)),
+        ]);
+        await saveMediaBatch(durableMedia);
+        for (const [adId, media] of Object.entries(durableMedia)) {
+          attachMedia(uniqueVisualAds.find(ad => String(ad.id) === adId), media);
+        }
+        for (const ad of uniqueVisualAds.slice(readyLimit)) {
+          if (ad.media?.status === 'ready' && !ad.media.storageStatus) ad.media.storageStatus = 'pending';
+        }
+        pipeline.stages.mediaMs = Date.now() - mediaStarted;
+        pipeline.media = {
+          requested: readyAds.length,
+          ready: readyAds.filter(ad => ad.media?.status === 'ready').length,
+          durable: readyAds.filter(ad => ['ready', 'partial'].includes(ad.media?.storageStatus)).length,
+        };
 
         // Paginate
         const paginated = paginateAds(uniqueVisualAds, page, pageSize);
@@ -308,6 +338,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, {
           queryProfile,
           paginated,
+          pipeline: { ...pipeline, totalMs: Date.now() - searchStartTime },
           stats: {
             totalUniqueCreatives: rankedAds.length,
             activeCount,
@@ -441,7 +472,9 @@ const server = http.createServer(async (req, res) => {
       });
 
       // Sniff media for up to 10 ads on the active page
-      const mediaMap = await sniffPageMedia(ads, { forceRefresh: body.forceRefresh === true });
+      const extractedMedia = await sniffPageMedia(ads, { forceRefresh: body.forceRefresh === true });
+      const mediaMap = await persistMediaBatch(extractedMedia);
+      await saveMediaBatch(mediaMap);
 
       logger.info('Media sniffing batch completed', {
         resolvedCount: Object.keys(mediaMap).length,
@@ -461,6 +494,7 @@ const server = http.createServer(async (req, res) => {
         uptimeSec: Math.round(process.uptime()),
         cachedMediaCount: Object.keys(mediaCache).length,
         cachedQueriesCount: searchCache.size,
+        mediaStorage: storageStatus(),
       });
     }
 

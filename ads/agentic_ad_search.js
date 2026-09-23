@@ -14,6 +14,8 @@
  *   node ads/agentic_ad_search.js "memory foam pillow" --status ACTIVE
  */
 
+require('./lib/local_env').loadLocalEnv();
+
 const fs = require('fs');
 const path = require('path');
 const { profilePDP } = require('./lib/pdp_profiler');

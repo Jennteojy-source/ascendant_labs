@@ -80,6 +80,25 @@ function callGemini(apiKey, prompt) {
   });
 }
 
+function sanitizeSearchVectors(brandName, vectors = []) {
+  const brand = String(brandName || '').trim();
+  const brandTokens = brand.toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length >= 2);
+  const seen = new Set();
+  const safe = [];
+  const candidates = [{ type: 'EXACT_BRAND', query: brand }, ...vectors];
+  for (const vector of candidates) {
+    const query = String(vector?.query || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    const normalized = query.toLowerCase();
+    if (!query || seen.has(normalized)) continue;
+    // Every expansion must retain the target identity; this prevents AI drift into rival brands.
+    if (brandTokens.length && !brandTokens.some(token => normalized.includes(token))) continue;
+    seen.add(normalized);
+    safe.push({ type: String(vector?.type || 'KEYWORD').slice(0, 40), query });
+    if (safe.length >= 4) break;
+  }
+  return safe.length ? safe : [{ type: 'EXACT_BRAND', query: brand }];
+}
+
 /**
  * Expand a user query into structured search intelligence using AI.
  * 
@@ -148,7 +167,7 @@ Rules:
         category: parsed.category || 'Direct Response',
         coreProduct: parsed.coreProduct || parsed.brandName,
         productKeywords: Array.isArray(parsed.productKeywords) ? parsed.productKeywords : [parsed.coreProduct || parsed.brandName],
-        searchVectors: parsed.searchVectors.filter(v => v && v.query && v.type),
+        searchVectors: sanitizeSearchVectors(parsed.brandName, parsed.searchVectors),
         painPoints: Array.isArray(parsed.painPoints) ? parsed.painPoints : [],
         source: 'ai',
       };
@@ -209,7 +228,7 @@ function buildFallbackExpansion(input) {
     category: 'Direct Response',
     coreProduct: effectiveName,
     productKeywords: [effectiveName],
-    searchVectors,
+    searchVectors: sanitizeSearchVectors(effectiveName, searchVectors),
     painPoints: [],
     source: 'fallback',
   };
@@ -218,4 +237,5 @@ function buildFallbackExpansion(input) {
 module.exports = {
   expandQueryWithAI,
   buildFallbackExpansion,
+  sanitizeSearchVectors,
 };

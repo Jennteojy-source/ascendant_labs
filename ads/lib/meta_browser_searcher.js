@@ -12,13 +12,14 @@ const MAX_SCROLLS = 12;
 let browserPromise;
 
 function browserlessEndpoint(env = process.env) {
-  if (!env.BROWSERLESS_TOKEN) return null;
+  const token = env.BROWSERLESS_TOKEN || env.BROWSERLESS_API;
+  if (!token) return null;
   const region = /^(sfo|lon|ams)$/.test(env.BROWSERLESS_REGION || '')
     ? env.BROWSERLESS_REGION : 'sfo';
   const country = /^[a-z]{2}$/i.test(env.BROWSERLESS_PROXY_COUNTRY || '')
     ? env.BROWSERLESS_PROXY_COUNTRY.toLowerCase() : 'us';
   const endpoint = new URL(`wss://production-${region}.browserless.io/chromium/playwright`);
-  endpoint.searchParams.set('token', env.BROWSERLESS_TOKEN);
+  endpoint.searchParams.set('token', token);
   endpoint.searchParams.set('proxy', 'residential');
   endpoint.searchParams.set('proxyCountry', country);
   endpoint.searchParams.set('timeout', '110000');
@@ -36,7 +37,7 @@ function managedPlaywrightEndpoint(env = process.env) {
 }
 
 function browserConnectionMode(env = process.env) {
-  if (env.BROWSERLESS_TOKEN) return 'managed-browserless';
+  if (env.BROWSERLESS_TOKEN || env.BROWSERLESS_API) return 'managed-browserless';
   if (env.BROWSER_WS_ENDPOINT) return 'managed-playwright';
   return 'local-chromium';
 }
@@ -64,6 +65,8 @@ async function createCollectorContext(browser) {
   }
   const context = await browser.newContext({
     locale: 'en-US', viewport: { width: 1440, height: 1100 },
+    // Browserless residential proxying can terminate TLS with its managed CA.
+    ignoreHTTPSErrors: browserConnectionMode() === 'managed-browserless',
     userAgent: process.env.META_BROWSER_USER_AGENT || undefined,
     storageState: process.env.META_BROWSER_STORAGE_STATE || undefined,
   });
@@ -78,7 +81,9 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
   const url = new URL('https://www.facebook.com/ads/library/');
   url.searchParams.set('active_status', status);
   url.searchParams.set('ad_type', 'all');
-  const country = countries.includes('ALL') ? 'ALL' : (countries[0] || 'US');
+  const country = (!countries.length || countries.includes('ALL'))
+    ? 'ALL'
+    : (countries[0] || 'ALL');
   url.searchParams.set('country', country);
   url.searchParams.set('q', String(searchTerm || '').trim());
   url.searchParams.set('search_type', 'keyword_unordered');
@@ -221,7 +226,7 @@ function extractAdsFromDocument() {
           && (a.innerText || '').trim().length > 1;
       } catch { return false; }
     });
-    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website)$/i;
+    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp)$/i;
     const pageName = (pageLink?.innerText || lines.find(line => !ignored.test(line)
       && !/(?:Library ID|Started running on|platforms?)/i.test(line)))?.trim() || 'Advertiser';
     const textCandidates = lines.filter(line => line !== pageName && !ignored.test(line)
@@ -312,6 +317,10 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     }
 
     await dismissConsent(page);
+    await Promise.race([
+      page.locator('text=/Library ID/i').first().waitFor({ timeout: 8000 }).catch(() => {}),
+      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: 8000 }).catch(() => {}),
+    ]);
     let unchanged = 0;
     let previousCount = -1;
     for (let round = 0; round < MAX_SCROLLS && ads.size < limit && !blocked; round++) {
