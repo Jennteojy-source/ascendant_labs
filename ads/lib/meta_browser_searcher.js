@@ -8,7 +8,10 @@ const { chromium } = require('playwright');
 const { extractStructuredMedia, mediaResult } = require('./media_resolver');
 
 const SEARCH_TIMEOUT_MS = 30000;
-const MAX_SCROLLS = 12;
+// Ads Library initially renders a complete screenful of cards. Eight bounded
+// passes capture lazy-loaded results without paying for a long browser session.
+const MAX_SCROLLS = 8;
+const SCROLL_SETTLE_MS = 550;
 let browserPromise;
 
 function browserlessEndpoint(env = process.env) {
@@ -49,7 +52,10 @@ async function getSearchBrowser() {
       ? chromium.connect(endpoint, { timeout: 15000 })
       : chromium.launch({
         headless: process.env.BROWSER_HEADLESS !== '0',
-        args: ['--no-sandbox', '--disable-dev-shm-usage'],
+        // Keep Chromium dependable in a serverless Linux sandbox.
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+          '--disable-gpu', '--disable-software-rasterizer', '--disable-background-networking'],
+        timeout: 30000,
       });
     browserPromise = connect.then(browser => {
       browser.on('disconnected', () => { browserPromise = null; });
@@ -351,7 +357,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
       previousCount = ads.size;
       if (unchanged >= 3) break;
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
-      await page.waitForTimeout(900);
+      await page.waitForTimeout(SCROLL_SETTLE_MS);
     }
     await Promise.allSettled([...pendingReads]);
     (await page.evaluate(extractAdsFromDocument).catch(() => [])).map(domAdToRecord).forEach(collect);

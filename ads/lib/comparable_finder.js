@@ -55,8 +55,7 @@ async function findComparables(searchPlan = {}, options = {}) {
   }
 
   for (const vector of uniqueVectors) {
-    const isCore = ['BRAND', 'PRODUCT', 'EXACT_BRAND', 'PRODUCT_NAME'].includes(vector.type);
-    await runVector(vector, isCore ? Math.max(limitPerVector, 50) : limitPerVector);
+    await runVector(vector, limitPerVector);
     // An exact brand search is usually the highest-recall page result and avoids
     // paid remote-browser sessions for speculative alternate queries.
     if (rawAdsMap.size && ['BRAND', 'PRODUCT', 'EXACT_BRAND'].includes(vector.type)) break;

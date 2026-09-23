@@ -19,7 +19,7 @@ const { expandQueryWithAI } = require('./lib/ai_query_expander');
 const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
-const { sniffPageMedia, loadCache, getBrowser } = require('./lib/paginated_sniffer');
+const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const { browserConnectionMode } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
 const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/media_storage');
@@ -208,6 +208,7 @@ const server = http.createServer(async (req, res) => {
             limitPerVector: 25,
             enableAgenticLoop: false,
           });
+
           pipeline.stages.discoveryMs = Date.now() - discoveryStarted;
 
           logger.info('Stage 2 — Agentic Ads Library search complete', {
@@ -490,10 +491,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(` Web UI:  ${path.join(WEB_DIR, 'index.html')}`);
   console.log(`========================================================================\n`);
 
-  // Avoid opening billable managed-browser sessions until a search needs one.
-  if (browserConnectionMode() === 'local-chromium') {
-    getBrowser()
-      .then(() => logger.info('Headless Chromium pre-warmed and ready for media sniffing'))
-      .catch((err) => logger.warn('Chromium pre-warm notice:', { error: err.message }));
-  }
+  // Launch only for an actual query. Eager browser starts can contend with the
+  // first request on a fresh Cloud Run instance.
 });
