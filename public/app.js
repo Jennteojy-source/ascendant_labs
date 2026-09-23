@@ -231,6 +231,7 @@ const state = {
   pageSize: 10,
   totalPages: 1,
   rawRankedAds: [],       // All ads returned by server
+  sourceAdsFound: 0,      // Raw Ads Library records before creative deduplication
   currentProfile: null,
   currentFilter: 'ALL',   // 'ALL' | 'BRAND_AFFILIATE' | 'COMPETITOR'
   filters: { platform: '', language: '', country: '', status: '', creative: '' },
@@ -439,6 +440,7 @@ async function executeSearch(targetInput, page = 1) {
 
     state.currentProfile = data.queryProfile;
     state.rawRankedAds = data.paginated.items;
+    state.sourceAdsFound = Number(data.stats?.sourceAdsFound) || state.rawRankedAds.length;
     resetResultFilters();
     populateResultFilters(state.rawRankedAds);
 
@@ -533,7 +535,11 @@ function applyFiltersAndRender(targetPage = 1) {
       && (!selected.status || (selected.status === 'active') === Boolean(stats.isActive))
       && (!selected.creative || mediaType === selected.creative);
   });
-  if (filterResultCount) filterResultCount.textContent = `${items.length} of ${(state.rawRankedAds || []).length} creatives`;
+  if (filterResultCount) {
+    const totalUnique = (state.rawRankedAds || []).length;
+    const source = state.sourceAdsFound || totalUnique;
+    filterResultCount.textContent = `${items.length} of ${totalUnique} unique creatives · ${source} source ads`;
+  }
 
   state.totalPages = Math.ceil(items.length / state.pageSize) || 1;
   const startIdx = (state.currentPage - 1) * state.pageSize;

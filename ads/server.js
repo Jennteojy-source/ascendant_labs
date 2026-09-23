@@ -321,6 +321,7 @@ const server = http.createServer(async (req, res) => {
           paginated,
           pipeline: { ...pipeline, totalMs: Date.now() - searchStartTime },
           stats: {
+            sourceAdsFound: searchRes?.totalRawAds || 0,
             totalUniqueCreatives: rankedAds.length,
             activeCount,
             inactiveCount: rankedAds.length - activeCount,
