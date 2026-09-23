@@ -5,9 +5,8 @@
     "test:media": "node --test ads/tests/media.test.js ads/tests/browser-search.test.js ads/tests/search-logger.test.js ads/tests/media-browser.test.js ads/tests/parser-dedup.test.js",
     "ad:search": "node ads/agentic_ad_search.js",
     "ad:server": "node ads/server.js",
-    "deploy": "firebase deploy",
-    "deploy:hosting": "firebase deploy --only hosting",
-    "deploy:functions": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only hosting",
+    "deploy:hosting": "firebase deploy --only hosting"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.2.0",
