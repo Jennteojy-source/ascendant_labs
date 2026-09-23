@@ -23,10 +23,25 @@ const state = {
   rawRankedAds: [],       // All ads returned by server
   sourceAdsFound: 0,      // Raw Ads Library records before creative deduplication
   currentProfile: null,
-  currentFilter: 'ALL',   // 'ALL' | 'BRAND_AFFILIATE' | 'COMPETITOR'
-  filters: { platform: '', language: '', country: '', status: '', creative: '' },
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
 };
+
+function cleanCopy(text) {
+  if (!text || typeof text !== 'string') return '';
+  const s = text.trim();
+  if (s.length === 0) return '';
+  if (/^\{\{[^}]+\}\}$/.test(s) || /\{\{product\./i.test(s)) return '';
+  if (/^(?:null|undefined|none|n\/a|\{\}|\[\])$/i.test(s)) return '';
+  if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return '';
+  if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return '';
+  if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return '';
+  if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return '';
+  if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return '';
+  if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return '';
+  if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}$/i.test(s)) return '';
+  if (/^\d{4}-\d{2}-\d{2}\s*[-–—~to\s]+\s*\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  return s;
+}
 
 // DOM References
 const searchForm = document.getElementById('searchForm');
@@ -44,13 +59,6 @@ const paginationNav = document.getElementById('paginationNav');
 const prevPageBtn = document.getElementById('prevPageBtn');
 const nextPageBtn = document.getElementById('nextPageBtn');
 const pageNumbersList = document.getElementById('pageNumbersList');
-const resultsFilters = document.getElementById('resultsFilters');
-const filterResultCount = document.getElementById('filterResultCount');
-const filterInputs = {
-  platform: document.getElementById('platformFilter'), language: document.getElementById('languageFilter'),
-  country: document.getElementById('countryFilter'), status: document.getElementById('statusFilter'),
-  creative: document.getElementById('creativeFilter'),
-};
 let searchInFlight = false;
 
 // Quick Search from Suggestion Chips
@@ -91,11 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  Object.entries(filterInputs).forEach(([key, input]) => input?.addEventListener('change', () => {
-    state.filters[key] = input.value;
-    applyFiltersAndRender(1);
-  }));
-
   // Pagination navigation
   prevPageBtn.addEventListener('click', () => {
     if (state.currentPage > 1) changePage(state.currentPage - 1);
@@ -127,7 +130,6 @@ async function executeSearch(targetInput, page = 1) {
   emptyState.style.display = 'none';
   adGrid.style.display = 'none';
   paginationNav.style.display = 'none';
-  resultsFilters.style.display = 'none';
   loadingState.style.display = 'block';
   searchSubmitBtn.disabled = true;
   searchSubmitBtn.setAttribute('aria-busy', 'true');
@@ -231,8 +233,6 @@ async function executeSearch(targetInput, page = 1) {
     state.currentProfile = data.queryProfile;
     state.rawRankedAds = data.paginated.items;
     state.sourceAdsFound = Number(data.stats?.sourceAdsFound) || state.rawRankedAds.length;
-    resetResultFilters();
-    populateResultFilters(state.rawRankedAds);
 
     setActiveStep(4);
 
@@ -246,7 +246,6 @@ async function executeSearch(targetInput, page = 1) {
     // Reveal results immediately; visible-card media is resolved lazily.
     loadingState.style.display = 'none';
     adGrid.style.display = 'grid';
-    resultsFilters.style.display = 'block';
 
     const fill = document.getElementById('pipelineMeterFill');
     if (fill) fill.style.width = '100%';
@@ -267,28 +266,6 @@ async function executeSearch(targetInput, page = 1) {
     searchInFlight = false;
     if (searchGeneration === mediaGeneration) searchSubmitBtn.disabled = false;
     searchSubmitBtn.removeAttribute('aria-busy');
-  }
-}
-
-function resetResultFilters() {
-  state.filters = { platform: '', language: '', country: '', status: '', creative: '' };
-  Object.values(filterInputs).forEach(input => { if (input) input.value = ''; });
-}
-
-function populateResultFilters(ads) {
-  const values = {
-    platform: new Set(), language: new Set(), country: new Set(),
-  };
-  for (const ad of ads || []) {
-    (ad.stats?.platforms || []).forEach(value => values.platform.add(String(value)));
-    (ad.stats?.languages || []).forEach(value => values.language.add(String(value)));
-    (ad.stats?.countries || []).forEach(value => values.country.add(String(value)));
-  }
-  for (const [key, set] of Object.entries(values)) {
-    const input = filterInputs[key];
-    if (!input) continue;
-    input.replaceChildren(new Option(`All ${key === 'country' ? 'countries' : `${key}s`}`, ''));
-    [...set].sort().forEach(value => input.add(new Option(value, value)));
   }
 }
 
@@ -313,23 +290,7 @@ async function preparePageMedia(ads, timeoutMs = 90000) {
  */
 function applyFiltersAndRender(targetPage = 1) {
   state.currentPage = targetPage;
-  const normal = value => String(value || '').trim().toLowerCase();
-  const selected = state.filters;
-  const items = (state.rawRankedAds || []).filter(ad => {
-    const stats = ad.stats || {};
-    const has = (values, selectedValue) => !selectedValue || (values || []).some(value => normal(value) === normal(selectedValue));
-    const mediaType = normal(ad.media?.mediaType || ad.media?.creatives?.[0]?.mediaType);
-    return has(stats.platforms, selected.platform)
-      && has(stats.languages, selected.language)
-      && has(stats.countries, selected.country)
-      && (!selected.status || (selected.status === 'active') === Boolean(stats.isActive))
-      && (!selected.creative || mediaType === selected.creative);
-  });
-  if (filterResultCount) {
-    const totalUnique = (state.rawRankedAds || []).length;
-    const source = state.sourceAdsFound || totalUnique;
-    filterResultCount.textContent = `${items.length} of ${totalUnique} unique creatives · ${source} source ads`;
-  }
+  const items = state.rawRankedAds || [];
 
   state.totalPages = Math.ceil(items.length / state.pageSize) || 1;
   const startIdx = (state.currentPage - 1) * state.pageSize;
@@ -428,7 +389,10 @@ function renderAdGrid(ads) {
       : null;
 
     const variantCount = (ad.variants && ad.variants.length > 0) ? ad.variants.length : (ad.variantCount || 1);
-    const linkDesc = ad.copy?.description || '';
+    const cleanBody = cleanCopy(ad.copy?.body);
+    const cleanHeadline = cleanCopy(ad.copy?.headline);
+    const cleanDesc = cleanCopy(ad.copy?.description);
+    const hasAnyCopy = Boolean(cleanBody || cleanHeadline || cleanDesc);
 
     // Initialize active variant index
     ad.activeVariantIndex = 0;
@@ -497,24 +461,29 @@ function renderAdGrid(ads) {
         </div>
       ` : ''}
 
-      <div class="card-copy-content">
+      <div class="card-copy-content" id="copy-content-${ad.id}">
         <!-- 1. Primary Text (Post Copy) -->
-        <div class="copy-section copy-section-body" id="body-wrap-${ad.id}" style="${ad.copy.body ? '' : 'display:none;'}">
+        <div class="copy-section copy-section-body" id="body-wrap-${ad.id}" style="${cleanBody ? '' : 'display:none;'}">
           <span class="copy-label-tag tag-primary">Primary Text</span>
-          <p class="ad-body-text" id="body-text-${ad.id}">${ad.copy.body || ''}</p>
-          ${ad.copy.body && ad.copy.body.length > 110 ? `<button type="button" class="show-more-btn" id="show-more-btn-${ad.id}" onclick="event.stopPropagation(); toggleCopy('${ad.id}')">Read more</button>` : ''}
+          <p class="ad-body-text" id="body-text-${ad.id}">${cleanBody}</p>
+          ${cleanBody && cleanBody.length > 110 ? `<button type="button" class="show-more-btn" id="show-more-btn-${ad.id}" onclick="event.stopPropagation(); toggleCopy('${ad.id}')">Read more</button>` : ''}
         </div>
 
         <!-- 2. Headline / Title -->
-        <div class="copy-section copy-section-headline" id="headline-wrap-${ad.id}" style="${ad.copy.headline ? '' : 'display:none;'}">
+        <div class="copy-section copy-section-headline" id="headline-wrap-${ad.id}" style="${cleanHeadline ? '' : 'display:none;'}">
           <span class="copy-label-tag tag-headline">Headline</span>
-          <h4 class="ad-headline" id="headline-${ad.id}">${ad.copy.headline || ''}</h4>
+          <h4 class="ad-headline" id="headline-${ad.id}">${cleanHeadline}</h4>
         </div>
 
         <!-- 3. Link Description -->
-        <div class="copy-section copy-section-desc" id="desc-wrap-${ad.id}" style="${linkDesc ? '' : 'display:none;'}">
+        <div class="copy-section copy-section-desc" id="desc-wrap-${ad.id}" style="${cleanDesc ? '' : 'display:none;'}">
           <span class="copy-label-tag tag-desc">Description</span>
-          <p class="ad-desc-snippet" id="desc-snippet-${ad.id}">${linkDesc || ''}</p>
+          <p class="ad-desc-snippet" id="desc-snippet-${ad.id}">${cleanDesc}</p>
+        </div>
+
+        <!-- Clean fallback when no text copy accompanies this creative -->
+        <div class="copy-empty-state" id="copy-empty-${ad.id}" style="${hasAnyCopy ? 'display:none;' : ''}">
+          <span>📝</span> No copy text provided with this creative
         </div>
       </div>
     `;
@@ -679,31 +648,40 @@ window.flipCardVariant = function (adId, direction) {
   ad.activeVariantIndex = (ad.activeVariantIndex + direction + total) % total;
   const v = ad.variants[ad.activeVariantIndex];
 
+  const cleanBody = cleanCopy(v.body);
+  const cleanHeadline = cleanCopy(v.headline);
+  const cleanDesc = cleanCopy(v.description);
+  const hasAny = Boolean(cleanBody || cleanHeadline || cleanDesc);
+
   // Update primary body text
   const bodyEl = document.getElementById(`body-text-${adId}`);
   const bodyWrap = document.getElementById(`body-wrap-${adId}`);
   const moreBtn = document.getElementById(`show-more-btn-${adId}`);
   if (bodyEl) {
-    bodyEl.textContent = v.body || '';
+    bodyEl.textContent = cleanBody;
     bodyEl.classList.remove('expanded');
   }
-  if (bodyWrap) bodyWrap.style.display = v.body ? 'flex' : 'none';
+  if (bodyWrap) bodyWrap.style.display = cleanBody ? 'flex' : 'none';
   if (moreBtn) {
     moreBtn.textContent = 'Read more';
-    moreBtn.style.display = (v.body && v.body.length > 110) ? 'inline-block' : 'none';
+    moreBtn.style.display = (cleanBody && cleanBody.length > 110) ? 'inline-block' : 'none';
   }
 
   // Update headline
   const headlineEl = document.getElementById(`headline-${adId}`);
   const headlineWrap = document.getElementById(`headline-wrap-${adId}`);
-  if (headlineEl) headlineEl.textContent = v.headline || '';
-  if (headlineWrap) headlineWrap.style.display = v.headline ? 'flex' : 'none';
+  if (headlineEl) headlineEl.textContent = cleanHeadline;
+  if (headlineWrap) headlineWrap.style.display = cleanHeadline ? 'flex' : 'none';
 
   // Update description snippet
   const descEl = document.getElementById(`desc-snippet-${adId}`);
   const descWrap = document.getElementById(`desc-wrap-${adId}`);
-  if (descEl) descEl.textContent = v.description || '';
-  if (descWrap) descWrap.style.display = v.description ? 'flex' : 'none';
+  if (descEl) descEl.textContent = cleanDesc;
+  if (descWrap) descWrap.style.display = cleanDesc ? 'flex' : 'none';
+
+  // Update empty state fallback
+  const emptyEl = document.getElementById(`copy-empty-${adId}`);
+  if (emptyEl) emptyEl.style.display = hasAny ? 'none' : 'flex';
 
   // Update counter badge
   const counterEl = document.getElementById(`var-counter-${adId}`);
@@ -721,7 +699,13 @@ window.copyActiveVariantCopy = function (adId, btn) {
 
   const idx = ad.activeVariantIndex || 0;
   const v = (ad.variants && ad.variants[idx]) || { headline: ad.copy?.headline, body: ad.copy?.body };
-  const text = [v.headline, v.body].filter(Boolean).join('\n\n');
+  const h = cleanCopy(v.headline);
+  const b = cleanCopy(v.body);
+  const text = [h, b].filter(Boolean).join('\n\n');
+  if (!text) {
+    copyToClipboard('No copy text', btn, '⚠️ No Copy');
+    return;
+  }
   copyToClipboard(text, btn, '✅ Copied Copy!');
 };
 
@@ -880,6 +864,11 @@ function renderModalContent(ad, activeIdx = 0) {
   }];
 
   const currentVariant = variants[activeIdx] || variants[0];
+  const cleanHeadline = cleanCopy(currentVariant.headline);
+  const cleanBody = cleanCopy(currentVariant.body);
+  const cleanDesc = cleanCopy(currentVariant.description);
+  const hasAnyCopy = Boolean(cleanHeadline || cleanBody || cleanDesc);
+
   const oldMediaBox = document.getElementById('modalMediaBox');
   if (oldMediaBox) AdMedia.dispose(oldMediaBox);
   const mediaHtml = '<div class="modal-media-wrap" id="modalMediaBox"></div>';
@@ -964,36 +953,46 @@ function renderModalContent(ad, activeIdx = 0) {
       <div class="modal-right-col">
         ${variantTabsHtml}
 
-        <!-- Headline Box -->
-        ${currentVariant.headline ? `
+        ${!hasAnyCopy ? `
+          <div class="modal-no-copy-banner">
+            <span>ℹ️</span> This creative ran without accompanying text copy (common for visual-first Stories, Reels, and image catalog placements).
+          </div>
+        ` : `
+          <!-- Headline Box -->
+          ${cleanHeadline ? `
+            <div class="modal-copy-section">
+              <div class="copy-box-header">
+                <span class="modal-section-label">Ad Headline</span>
+                <button type="button" class="copy-action-btn" onclick="copyToClipboard('${cleanHeadline.replace(/'/g, "\\'")}', this)">📋 Copy</button>
+              </div>
+              <h4 class="modal-headline">${cleanHeadline}</h4>
+            </div>
+          ` : ''}
+
+          <!-- Primary Body Copy Box -->
           <div class="modal-copy-section">
             <div class="copy-box-header">
-              <span class="modal-section-label">Ad Headline</span>
-              <button type="button" class="copy-action-btn" onclick="copyToClipboard('${currentVariant.headline.replace(/'/g, "\\'")}', this)">📋 Copy</button>
+              <span class="modal-section-label">Primary Ad Copy</span>
+              ${cleanBody ? `
+                <button type="button" class="copy-action-btn" onclick="copyToClipboard('${cleanBody.replace(/'/g, "\\'").replace(/\n/g, '\\n')}', this)">📋 Copy Body</button>
+              ` : ''}
             </div>
-            <h4 class="modal-headline">${currentVariant.headline}</h4>
-          </div>
-        ` : ''}
-
-        <!-- Primary Body Copy Box -->
-        <div class="modal-copy-section">
-          <div class="copy-box-header">
-            <span class="modal-section-label">Primary Ad Copy</span>
-            <button type="button" class="copy-action-btn" onclick="copyToClipboard('${(currentVariant.body || '').replace(/'/g, "\\'").replace(/\n/g, '\\n')}', this)">📋 Copy Body</button>
-          </div>
-          <div class="modal-body-text">${currentVariant.body || 'No text copy'}</div>
-        </div>
-
-        <!-- Secondary Link Description Box -->
-        ${currentVariant.description ? `
-          <div class="modal-copy-section">
-            <div class="copy-box-header">
-              <span class="modal-section-label">Link Subtitle / Description</span>
-              <button type="button" class="copy-action-btn" onclick="copyToClipboard('${currentVariant.description.replace(/'/g, "\\'")}', this)">📋 Copy</button>
+            <div class="${cleanBody ? 'modal-body-text' : 'modal-copy-empty'}">
+              ${cleanBody || 'No primary copy text provided with this creative'}
             </div>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">${currentVariant.description}</p>
           </div>
-        ` : ''}
+
+          <!-- Secondary Link Description Box -->
+          ${cleanDesc ? `
+            <div class="modal-copy-section">
+              <div class="copy-box-header">
+                <span class="modal-section-label">Link Subtitle / Description</span>
+                <button type="button" class="copy-action-btn" onclick="copyToClipboard('${cleanDesc.replace(/'/g, "\\'")}', this)">📋 Copy</button>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">${cleanDesc}</p>
+            </div>
+          ` : ''}
+        `}
 
         <!-- Outbound Product Landing Page Button -->
         <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border-subtle);">

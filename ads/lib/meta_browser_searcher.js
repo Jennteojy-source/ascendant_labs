@@ -116,11 +116,41 @@ function asText(value) {
   return '';
 }
 
+function isInvalidAdText(text) {
+  if (!text || typeof text !== 'string') return true;
+  const s = text.trim();
+  if (s.length === 0) return true;
+  if (/^\{\{[^}]+\}\}$/.test(s) || /\{\{product\./i.test(s)) return true;
+  if (/^(?:null|undefined|none|n\/a|\{\}|\[\])$/i.test(s)) return true;
+  if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return true;
+  if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return true;
+  if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return true;
+  if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return true;
+  if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return true;
+  if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return true;
+  if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}$/i.test(s)) return true;
+  if (/^\d{4}-\d{2}-\d{2}\s*[-–—~to\s]+\s*\d{4}-\d{2}-\d{2}$/.test(s)) return true;
+  return false;
+}
+
 function asTextArray(value) {
   if (value == null) return [];
-  if (Array.isArray(value)) return [...new Set(value.flatMap(asTextArray).filter(Boolean))];
+  if (Array.isArray(value)) return [...new Set(value.flatMap(asTextArray).filter(v => v && !isInvalidAdText(v)))];
   const text = asText(value);
-  return text ? [text] : [];
+  return text && !isInvalidAdText(text) ? [text] : [];
+}
+
+function findValidAdCopy(sources, keys) {
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    for (const key of keys) {
+      const val = source[key];
+      if (val == null) continue;
+      const arr = asTextArray(val);
+      if (arr.length > 0) return arr;
+    }
+  }
+  return [];
 }
 
 function asDate(value) {
@@ -149,17 +179,13 @@ function normalizePayloadAd(object) {
   const id = numericId(first(object, ['ad_archive_id', 'adArchiveId', 'ad_library_id', 'adLibraryId']))
     || (object.snapshot ? numericId(object.id) : null);
   if (!id) return null;
-  // Preserve the field identity. In particular, don't use a generic text value
-  // as a fallback for headline or description: that was causing primary text to
-  // appear in every copy slot for several Meta response shapes.
-  const body = first(snapshot, ['body', 'ad_creative_body', 'adCreativeBody', 'message'])
-    ?? first(object, ['ad_creative_bodies', 'adCreativeBodies', 'body', 'message']);
-  const title = first(snapshot, ['title', 'headline', 'link_title', 'linkTitle', 'link_headline'])
-    ?? first(object, ['ad_creative_link_titles', 'adCreativeLinkTitles', 'title', 'headline', 'link_headline']);
-  const caption = first(snapshot, ['caption', 'link_caption', 'linkCaption', 'link_url_caption'])
-    ?? first(object, ['ad_creative_link_captions', 'adCreativeLinkCaptions', 'caption', 'link_url_caption']);
-  const description = first(snapshot, ['link_description', 'linkDescription', 'description', 'link_desc'])
-    ?? first(object, ['ad_creative_link_descriptions', 'adCreativeLinkDescriptions', 'description', 'link_desc']);
+  // Search prioritized candidate sources (card first, snapshot second, root third)
+  // for the first non-junk copy text for each distinct slot.
+  const firstCard = Array.isArray(snapshot.cards) ? snapshot.cards[0] : null;
+  const bodies = findValidAdCopy([firstCard, snapshot, object], ['body', 'ad_creative_body', 'adCreativeBody', 'message', 'ad_creative_bodies', 'adCreativeBodies']);
+  const titles = findValidAdCopy([firstCard, snapshot, object], ['link_title', 'linkTitle', 'link_headline', 'headline', 'title', 'ad_creative_link_titles', 'adCreativeLinkTitles']);
+  const captions = findValidAdCopy([firstCard, snapshot, object], ['caption', 'link_caption', 'linkCaption', 'link_url_caption', 'ad_creative_link_captions', 'adCreativeLinkCaptions']);
+  const descriptions = findValidAdCopy([firstCard, snapshot, object], ['link_description', 'linkDescription', 'description', 'link_desc', 'ad_creative_link_descriptions', 'adCreativeLinkDescriptions']);
   const start = first(object, ['start_date', 'startDate', 'ad_delivery_start_time', 'adDeliveryStartTime', 'creation_time']);
   const stop = first(object, ['end_date', 'endDate', 'ad_delivery_stop_time', 'adDeliveryStopTime']);
   const platforms = first(object, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms'])
@@ -174,10 +200,10 @@ function normalizePayloadAd(object) {
     ad_delivery_start_time: asDate(start),
     ad_delivery_stop_time: asDate(stop),
     ad_snapshot_url: `https://www.facebook.com/ads/library/?id=${id}`,
-    ad_creative_bodies: asTextArray(body),
-    ad_creative_link_titles: asTextArray(title),
-    ad_creative_link_captions: asTextArray(caption),
-    ad_creative_link_descriptions: asTextArray(description),
+    ad_creative_bodies: bodies,
+    ad_creative_link_titles: titles,
+    ad_creative_link_captions: captions,
+    ad_creative_link_descriptions: descriptions,
     publisher_platforms: asTextArray(platforms).map(value => value.toLowerCase()),
     languages: asTextArray(first(object, ['languages', 'language'])),
     eu_total_reach: first(object, ['eu_total_reach', 'euTotalReach']),
@@ -244,11 +270,26 @@ function extractAdsFromDocument() {
           && (a.innerText || '').trim().length > 1;
       } catch { return false; }
     });
-    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp)$/i;
+    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp|eu transparency|report ad)$/i;
+    const isBadCopy = text => {
+      const s = (text || '').trim();
+      if (!s || s.length < 3) return true;
+      if (/^\{\{[^}]+\}\}$/.test(s) || /\{\{product\./i.test(s)) return true;
+      if (/^(?:null|undefined|none|n\/a|\{\}|\[\])$/i.test(s)) return true;
+      if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return true;
+      if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return true;
+      if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return true;
+      if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return true;
+      if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return true;
+      if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return true;
+      if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}$/i.test(s)) return true;
+      if (/^\d{4}-\d{2}-\d{2}\s*[-–—~to\s]+\s*\d{4}-\d{2}-\d{2}$/.test(s)) return true;
+      return false;
+    };
     const pageName = (pageLink?.innerText || lines.find(line => !ignored.test(line)
-      && !/(?:Library ID|Started running on|platforms?)/i.test(line)))?.trim() || 'Advertiser';
+      && !/(?:Library ID|Started running on|platforms?)/i.test(line) && !isBadCopy(line)))?.trim() || 'Advertiser';
     const textCandidates = lines.filter(line => line !== pageName && !ignored.test(line)
-      && !/(?:Library ID|Started running on|platforms?)/i.test(line) && line.length > 12);
+      && !/(?:Library ID|Started running on|platforms?)/i.test(line) && !isBadCopy(line));
     const videos = [...root.querySelectorAll('video')].map(video => ({
       mediaType: 'video', videoUrl: video.currentSrc || video.src,
       videoSources: [...video.querySelectorAll('source')].map(source => source.src),

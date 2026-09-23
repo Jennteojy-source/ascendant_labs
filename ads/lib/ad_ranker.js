@@ -38,6 +38,23 @@ function classifyHook(text = '', title = '') {
   return { primaryHook, triggers };
 }
 
+function cleanAdText(text) {
+  if (!text || typeof text !== 'string') return '';
+  const s = text.trim();
+  if (s.length === 0) return '';
+  if (/^\{\{[^}]+\}\}$/.test(s) || /\{\{product\./i.test(s)) return '';
+  if (/^(?:null|undefined|none|n\/a|\{\}|\[\])$/i.test(s)) return '';
+  if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return '';
+  if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return '';
+  if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return '';
+  if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return '';
+  if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*[-–—~to\s]+(?:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|present)$/i.test(s)) return '';
+  if (/^\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—~to\s]+(?:\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|present)$/i.test(s)) return '';
+  if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}$/i.test(s)) return '';
+  if (/^\d{4}-\d{2}-\d{2}\s*[-–—~to\s]+\s*\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  return s;
+}
+
 /**
  * Deduplicate and Rank Raw Ad Records
  */
@@ -48,10 +65,14 @@ function deduplicateAndRankAds(rawAds, options = {}) {
   const creativeGroups = new Map();
 
   for (const ad of rawAds) {
-    const body = (ad.ad_creative_bodies && ad.ad_creative_bodies[0]) || '';
-    const title = (ad.ad_creative_link_titles && ad.ad_creative_link_titles[0]) || '';
-    const description = (ad.ad_creative_link_descriptions && ad.ad_creative_link_descriptions[0]) || '';
-    const caption = (ad.ad_creative_link_captions && ad.ad_creative_link_captions[0]) || '';
+    const bodies = (ad.ad_creative_bodies || []).map(cleanAdText).filter(Boolean);
+    const titles = (ad.ad_creative_link_titles || []).map(cleanAdText).filter(Boolean);
+    const descriptions = (ad.ad_creative_link_descriptions || []).map(cleanAdText).filter(Boolean);
+    const captions = (ad.ad_creative_link_captions || []).map(cleanAdText).filter(Boolean);
+    const body = bodies[0] || '';
+    const title = titles[0] || '';
+    const description = descriptions[0] || '';
+    const caption = captions[0] || '';
     const media = ad.browserMedia || {};
     const asset = [media.videoUrl, media.thumbnailUrl, ...(media.creatives || []).flatMap(item => [item.videoUrl, item.thumbnailUrl])]
       .filter(Boolean).map(value => String(value).split('?')[0]).sort().join('|');
@@ -95,19 +116,25 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const variants = [];
     const seenCopy = new Set();
     for (const a of group.allAds) {
-      const bodies = a.ad_creative_bodies && a.ad_creative_bodies.length > 0 ? a.ad_creative_bodies : [''];
-      const titles = a.ad_creative_link_titles && a.ad_creative_link_titles.length > 0 ? a.ad_creative_link_titles : [''];
-      const descriptions = a.ad_creative_link_descriptions && a.ad_creative_link_descriptions.length > 0 ? a.ad_creative_link_descriptions : [''];
-      const captions = a.ad_creative_link_captions && a.ad_creative_link_captions.length > 0 ? a.ad_creative_link_captions : [''];
+      const bodies = (a.ad_creative_bodies || []).map(cleanAdText).filter(Boolean);
+      const titles = (a.ad_creative_link_titles || []).map(cleanAdText).filter(Boolean);
+      const descriptions = (a.ad_creative_link_descriptions || []).map(cleanAdText).filter(Boolean);
+      const captions = (a.ad_creative_link_captions || []).map(cleanAdText).filter(Boolean);
+      const safeBodies = bodies.length > 0 ? bodies : [''];
+      const safeTitles = titles.length > 0 ? titles : [''];
+      const safeDescriptions = descriptions.length > 0 ? descriptions : [''];
+      const safeCaptions = captions.length > 0 ? captions : [''];
 
-      const maxCombos = Math.max(bodies.length, titles.length, descriptions.length, captions.length);
+      const maxCombos = Math.max(safeBodies.length, safeTitles.length, safeDescriptions.length, safeCaptions.length);
       for (let i = 0; i < maxCombos; i++) {
-        const vBody = bodies[i] || bodies[0] || '';
-        const vTitle = titles[i] || titles[0] || '';
-        const vDesc = descriptions[i] || descriptions[0] || '';
-        const vCap = captions[i] || captions[0] || '';
+        const vBody = safeBodies[i] || safeBodies[0] || '';
+        const vTitle = safeTitles[i] || safeTitles[0] || '';
+        const vDesc = safeDescriptions[i] || safeDescriptions[0] || '';
+        const vCap = safeCaptions[i] || safeCaptions[0] || '';
 
-        const vKey = `${vTitle}:::${vBody.slice(0, 100)}`;
+        const hasAnyContent = Boolean(vTitle || vBody || vDesc || vCap);
+        if (!hasAnyContent && variants.length > 0) continue;
+        const vKey = `${vTitle}:::${vBody.slice(0, 100)}:::${vDesc.slice(0, 100)}`;
         if (!seenCopy.has(vKey)) {
           seenCopy.add(vKey);
           variants.push({
@@ -158,9 +185,14 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     }
 
     // Copy and Hook Classification
-    const body = (ad.ad_creative_bodies && ad.ad_creative_bodies[0]) || '';
-    const headline = (ad.ad_creative_link_titles && ad.ad_creative_link_titles[0]) || '';
-    const caption = (ad.ad_creative_link_captions && ad.ad_creative_link_captions[0]) || '';
+    const bodies = (ad.ad_creative_bodies || []).map(cleanAdText).filter(Boolean);
+    const titles = (ad.ad_creative_link_titles || []).map(cleanAdText).filter(Boolean);
+    const captions = (ad.ad_creative_link_captions || []).map(cleanAdText).filter(Boolean);
+    const descriptions = (ad.ad_creative_link_descriptions || []).map(cleanAdText).filter(Boolean);
+    const body = bodies[0] || '';
+    const headline = titles[0] || '';
+    const caption = captions[0] || '';
+    const description = descriptions[0] || '';
     const { primaryHook, triggers } = classifyHook(body, headline);
     const copyScore = Math.min(20, triggers.length * 5);
 
@@ -306,7 +338,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         headline,
         body,
         caption,
-        description: (ad.ad_creative_link_descriptions && ad.ad_creative_link_descriptions[0]) || '',
+        description,
         primaryHook,
         triggers,
       },

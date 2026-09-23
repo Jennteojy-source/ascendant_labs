@@ -106,3 +106,51 @@ test('an in-flight exact browser result is reused after AI planning', async () =
   assert.equal(results.totalRawAds, 1);
   assert.deepEqual(calls, []);
 });
+
+test('Meta group headers, EU transparency, flight date ranges, and unbound placeholders are filtered from copy', () => {
+  const payload = { data: { ads: [{
+    ad_archive_id: '999000111', page_name: 'FemiCore Brand',
+    snapshot: {
+      body: 'Jul 1, 2026 - Jul 29, 2026',
+      title: '3 ads use this creative and text',
+      link_description: '{{product.description}}',
+      cards: [{
+        body: 'Real primary copy text about bladder health.',
+        link_title: 'Real Headline For Product',
+        link_description: 'Valid guide overview',
+      }],
+    },
+  }] } };
+  const [ad] = extractAdsFromPayload(payload);
+  assert.deepEqual(ad.ad_creative_bodies, ['Real primary copy text about bladder health.']);
+  assert.deepEqual(ad.ad_creative_link_titles, ['Real Headline For Product']);
+  assert.deepEqual(ad.ad_creative_link_descriptions, ['Valid guide overview']);
+
+  const ranked = deduplicateAndRankAds([ad], { targetBrand: 'femicore' });
+  assert.equal(ranked.length, 1);
+  assert.equal(ranked[0].copy.body, 'Real primary copy text about bladder health.');
+  assert.equal(ranked[0].copy.headline, 'Real Headline For Product');
+  assert.equal(ranked[0].copy.description, 'Valid guide overview');
+});
+
+test('EU transparency and flight dates are never assigned when no secondary copy exists', () => {
+  const payload = { data: { ads: [{
+    ad_archive_id: '999000222', page_name: 'FemiCore Brand',
+    snapshot: {
+      body: 'EU transparency',
+      title: '12 ads use this creative and text',
+      link_description: '{{product.description}}',
+      cards: [],
+    },
+  }] } };
+  const [ad] = extractAdsFromPayload(payload);
+  assert.deepEqual(ad.ad_creative_bodies, []);
+  assert.deepEqual(ad.ad_creative_link_titles, []);
+  assert.deepEqual(ad.ad_creative_link_descriptions, []);
+
+  const ranked = deduplicateAndRankAds([ad], { targetBrand: 'femicore' });
+  assert.equal(ranked.length, 1);
+  assert.equal(ranked[0].copy.body, '');
+  assert.equal(ranked[0].copy.headline, '');
+  assert.equal(ranked[0].copy.description, '');
+});
