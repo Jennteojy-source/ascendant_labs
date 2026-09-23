@@ -8,6 +8,7 @@ const { chromium } = require('playwright');
 const { extractStructuredMedia, mediaResult } = require('./media_resolver');
 
 const SEARCH_TIMEOUT_MS = 30000;
+const BROWSER_LAUNCH_TIMEOUT_MS = Math.max(30000, Number(process.env.BROWSER_LAUNCH_TIMEOUT_MS) || 45000);
 // Ads Library initially renders a complete screenful of cards. Eight bounded
 // passes capture lazy-loaded results without paying for a long browser session.
 const MAX_SCROLLS = 8;
@@ -55,7 +56,7 @@ async function getSearchBrowser() {
         // Keep Chromium dependable in a serverless Linux sandbox.
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
           '--disable-gpu', '--disable-software-rasterizer', '--disable-background-networking'],
-        timeout: 30000,
+        timeout: BROWSER_LAUNCH_TIMEOUT_MS,
       });
     browserPromise = connect.then(browser => {
       browser.on('disconnected', () => { browserPromise = null; });
@@ -294,6 +295,8 @@ async function dismissConsent(page) {
 
 async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   const limit = Math.max(1, Math.min(100, Number(options.limit) || 25));
+  const timeoutMs = Math.max(5000, Math.min(SEARCH_TIMEOUT_MS, Number(options.timeoutMs) || SEARCH_TIMEOUT_MS));
+  const startedAt = Date.now();
   const browser = deps.browser || await (deps.getBrowser || getSearchBrowser)();
   const { context, owned } = await createCollectorContext(browser);
   const page = await context.newPage();
@@ -322,7 +325,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
       pendingReads.add(read); read.finally(() => pendingReads.delete(read));
     });
     const response = await page.goto(buildAdsLibrarySearchUrl(searchTerm, options), {
-      waitUntil: 'domcontentloaded', timeout: SEARCH_TIMEOUT_MS,
+      waitUntil: 'domcontentloaded', timeout: timeoutMs,
     });
 
     // Check if Meta served an initial rate-denial challenge (__rd_verify) with HTTP 403
@@ -340,12 +343,12 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
 
     await dismissConsent(page);
     await Promise.race([
-      page.locator('text=/Library ID/i').first().waitFor({ timeout: 8000 }).catch(() => {}),
-      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: 8000 }).catch(() => {}),
+      page.locator('text=/Library ID/i').first().waitFor({ timeout: Math.min(8000, timeoutMs) }).catch(() => {}),
+      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: Math.min(8000, timeoutMs) }).catch(() => {}),
     ]);
     let unchanged = 0;
     let previousCount = -1;
-    for (let round = 0; round < MAX_SCROLLS && ads.size < limit && !blocked; round++) {
+    for (let round = 0; round < MAX_SCROLLS && ads.size < limit && !blocked && Date.now() - startedAt < timeoutMs; round++) {
       (await page.evaluate(extractAdsFromDocument).catch(() => [])).map(domAdToRecord).forEach(collect);
       const inlinePayloads = await page.locator('script[type="application/json"]').evaluateAll(scripts => scripts
         .map(script => script.textContent || '').filter(text => text.length > 1 && text.length < 5000000).slice(0, 40)).catch(() => []);

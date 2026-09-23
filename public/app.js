@@ -51,7 +51,7 @@ window.AdMedia = window.AdMedia || (() => {
     message.setAttribute('role', 'status');
     viewer.append(message);
 
-    function status(text, retry = false) {
+    function status(text, retry = false, retryLabel = 'Retry preview') {
       message.replaceChildren();
       const label = document.createElement('span');
       label.textContent = text;
@@ -59,7 +59,7 @@ window.AdMedia = window.AdMedia || (() => {
       message.hidden = !text;
       if (retry && onRefresh) {
         const button = document.createElement('button');
-        button.type = 'button'; button.textContent = 'Retry preview';
+        button.type = 'button'; button.textContent = retryLabel;
         button.onclick = event => { event.stopPropagation(); refresh(true); };
         message.append(button);
       }
@@ -137,10 +137,12 @@ window.AdMedia = window.AdMedia || (() => {
         stage.classList.remove('is-loading');
         image.classList.add('media-ready');
         dimensions(image.naturalWidth, image.naturalHeight);
-        if (!asFallback) {
-          status(creative.mediaType === 'video' ? 'Video stream paused; showing poster.' : '', creative.mediaType === 'video');
-          if (creative.mediaType === 'video') refresh(false);
-        }
+        if (!asFallback && creative.mediaType === 'video' && !videos.length) {
+          // Meta often exposes a video poster in search results before a stream
+          // URL. Preserve the useful poster; do not auto-open a detail page
+          // that may be blocked and incorrectly replace it with an error state.
+          status('Video poster available.', false);
+        } else if (!asFallback) status('');
       };
       image.onerror = () => {
         if (disposed) return;
@@ -422,7 +424,16 @@ async function executeSearch(targetInput, page = 1) {
       }),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    let data;
+    try { data = JSON.parse(responseText); }
+    catch {
+      const detail = response.ok
+        ? 'The search service returned an invalid response. Please retry.'
+        : `The search service is temporarily unavailable (${response.status}). Please retry.`;
+      throw new Error(detail);
+    }
+    if (!response.ok) throw new Error(data.error || `Search failed (${response.status})`);
     if (data.error) throw new Error(data.error);
     if (searchGeneration !== mediaGeneration) return;
 

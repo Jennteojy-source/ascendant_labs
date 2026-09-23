@@ -46,7 +46,8 @@ async function findComparables(searchPlan = {}, options = {}) {
   const merged = { ...(typeof searchPlan === 'object' ? searchPlan : {}), ...(typeof options === 'object' ? options : {}) };
   const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
     limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true,
-    minRecall = 5, maxQueries = 5, queryArchive = queryMetaArchive, nextQueries } = merged;
+    minRecall = 5, maxQueries = 5, deadlineMs = 45000, queryArchive = queryMetaArchive, nextQueries } = merged;
+  const startedAt = Date.now();
   const rawAdsMap = new Map();
   const vectorHits = {};
   const competitorPagesMap = new Map();
@@ -58,7 +59,8 @@ async function findComparables(searchPlan = {}, options = {}) {
     const term = String(vector.query || '').trim();
     if (!term) return;
     vectorHits[term] = vectorHits[term] || 0;
-    const result = await queryArchive(term, { countries, status, limit, mediaType });
+    const remainingMs = Math.max(5000, deadlineMs - (Date.now() - startedAt));
+    const result = await queryArchive(term, { countries, status, limit, mediaType, timeoutMs: remainingMs });
     if (result.error && !result.data.length) {
       discoveryErrors.push({
         term,
@@ -93,7 +95,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     return true;
   };
   await runPlanned(retrievalPlan[0]);
-  while (rawAdsMap.size < minRecall && attempted.length < maxQueries) {
+  while (rawAdsMap.size < minRecall && attempted.length < maxQueries && Date.now() - startedAt < deadlineMs) {
     const remaining = maxQueries - attempted.length;
     let followups = [];
     if (typeof nextQueries === 'function') {
@@ -140,6 +142,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     discoveryErrors,
     isBlocked: false,
     hasPartialBlocks: discoveryErrors.some(e => e.blocked),
+    deadlineReached: Date.now() - startedAt >= deadlineMs,
     ads: [...rawAdsMap.values()],
   };
 }

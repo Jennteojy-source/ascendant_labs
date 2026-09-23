@@ -21,7 +21,7 @@ const { findComparables } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
-const { browserConnectionMode } = require('./lib/meta_browser_searcher');
+const { browserConnectionMode, getSearchBrowser } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
 const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/media_storage');
 const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession, upsertCanonicalAds } = require('./lib/search_logger');
@@ -211,6 +211,7 @@ const server = http.createServer(async (req, res) => {
             // is sparse; deploy-time tuning avoids product-specific rules.
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
+            deadlineMs: Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 45000,
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
             enableAgenticLoop: false,
           });
@@ -497,6 +498,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(` Web UI:  ${path.join(WEB_DIR, 'index.html')}`);
   console.log(`========================================================================\n`);
 
-  // Launch only for an actual query. Eager browser starts can contend with the
-  // first request on a fresh Cloud Run instance.
+  // Warm asynchronously after readiness. This keeps startup probes fast while
+  // preventing the first user search from paying Chromium's cold launch cost.
+  if (browserConnectionMode() === 'local-chromium') {
+    getSearchBrowser()
+      .then(() => logger.info('Headless Chromium warm and ready'))
+      .catch(error => logger.warn('Chromium background warm-up failed; search will retry launch', { error: error.message }));
+  }
 });
