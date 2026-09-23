@@ -44,14 +44,15 @@ Evaluate each candidate ad to determine its relationship to "${targetProfile.bra
   - "OFFICIAL_BRAND": Published by the brand's official page (e.g. page name contains "${targetProfile.brandName}").
   - "AFFILIATE_PARTNER": Published by a third-party media buyer, affiliate, deals page, or partner actively selling/promoting "${targetProfile.brandName}".
   - "REVIEW_EDITORIAL": Published by a review site, magazine, comparison blog, or advertorial explicitly featuring/recommending "${targetProfile.brandName}".
-  - "RELATED_OFFER": An ad in the same niche, competing product, related direct-response offer, or relevant advertiser creative.
-  - "UNRELATED": Spam, completely unrelated fiction, webnovel junk, or noise.
+  - "RELATED_OFFER": An ad in the same niche, competing product, related direct-response offer, or category creative. (Note: if the query is a product category rather than a specific brand, relevant category products are "RELATED_OFFER" or "OFFICIAL_BRAND").
+  - "UNRELATED": Completely unrelated noise or off-topic ad.
 - "relevanceScore": Integer from 0 to 100:
   - 95-100: Official brand ad
   - 85-94: Affiliate or partner promoting this exact product
   - 75-84: Review, advertorial, or unboxing featuring this exact product
   - 50-74: Related offer, competitor, or relevant category creative
-  - 0-30: Pure spam or unrelated junk
+  - 10-49: Broad or tangential match
+  - 0-9: Pure off-topic noise
 
 Return ONLY a valid raw JSON array (no markdown, no backticks):
 [
@@ -77,8 +78,12 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 
 /**
  * Main Reranker & Reasoner
- * Takes deduplicated candidate ads, batches them through Gemini listwise judge,
+ * Takes candidate ads, batches them through Gemini listwise judge,
  * and fuses AI relevance with creative longevity and scale metrics.
+ * 
+ * Never hard-drops candidate ads with binary filters; instead, computes
+ * continuous rank scores so relevant ads rise to the top while low-relevance
+ * ads sort to the bottom.
  */
 async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
   if (!candidateAds || candidateAds.length === 0) return [];
@@ -106,14 +111,6 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
     }
   }
 
-  // Check if any high-confidence product/brand ads exist in the batch
-  const hasHighConfidenceAds = candidateAds.some(ad => {
-    const evalData = aiEvaluationsMap.get(String(ad.id));
-    const score = evalData ? Number(evalData.relevanceScore) : (ad.ranking?.relevanceScore || 0);
-    const rel = evalData ? evalData.relationship : (ad.ranking?.relevanceType || '');
-    return ['OFFICIAL_BRAND', 'AFFILIATE_PARTNER', 'REVIEW_EDITORIAL'].includes(rel) || score >= 75;
-  });
-
   const rerankedList = [];
 
   for (const ad of candidateAds) {
@@ -129,16 +126,13 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
       relevanceScore = ad.ranking?.relevanceScore || 45;
     }
 
-    // Filter out truly unrelated noise only if higher-confidence product ads are present
-    if (hasHighConfidenceAds && (relationship === 'UNRELATED' || (relevanceScore !== null && relevanceScore < 40))) {
-      continue;
-    }
-
-    // When no official brand ads exist, retain discovered candidate ads cleanly
-    const effectiveRelevanceType = (!relationship || relationship === 'UNRELATED')
+    // Retain all candidate ads with continuous relevance scoring
+    const effectiveRelevanceType = (!relationship)
       ? (ad.ranking?.relevanceType || 'DISCOVERED')
       : relationship;
-    const effectiveRelevanceScore = Math.max(relevanceScore || 0, ad.ranking?.relevanceScore || 45);
+    const effectiveRelevanceScore = relevanceScore !== null
+      ? relevanceScore
+      : (ad.ranking?.relevanceScore || 45);
 
     const flightDays = ad.stats?.flightDays || 1;
     const isActive = ad.stats?.isActive !== false;
@@ -165,7 +159,7 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
 
     const flightScore = Math.min(150, flightDays * 3.5);
     const variantBonus = Math.min(40, (variantCount - 1) * 8);
-    const totalScore = Math.round(activeBonus + impressionScore + flightScore + variantBonus + (effectiveRelevanceScore * 2));
+    const totalScore = Math.round(activeBonus + impressionScore + flightScore + variantBonus + (effectiveRelevanceScore * 3));
 
     // Update stats with refined impressionTier
     if (ad.stats) {

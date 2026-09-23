@@ -196,13 +196,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const { primaryHook, triggers } = classifyHook(body, headline);
     const copyScore = Math.min(20, triggers.length * 5);
 
-    // Spam / Unrelated Content Filter (Hard Disqualify)
     const combinedContent = `${ad.page_name || ''} ${headline} ${body} ${caption}`.toLowerCase();
-    const isRomanceSpam = /\b(novel|novels|chapter|chapters|billionaire|ceo|divorce|alpha male|werewolf|pregnant|forced to marry|manga|comic|webtoon|slots|casino|horoscope|zodiac|tarot|credit card|payday loan|dramas? cortos?|dramas? curtos?|short drama|reelshort|dramabox)\b/i.test(combinedContent);
-    if (isRomanceSpam) {
-      // Disqualify fiction, romance webnovels, short dramas, casino, and junk apps completely
-      continue;
-    }
 
     // Strict Relevance Matching against Target Context
     const targetBrand = (options.targetBrand || '').toLowerCase().trim();
@@ -376,8 +370,12 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       },
       ranking: {
         score: rankScore,
+        rankScore,
+        finalScore: rankScore,
         grade,
         relevanceType,
+        relevanceScore,
+        relationship: relevanceType,
       },
       discoveryVectors: ad.discoveryVectors || ['KEYWORD'],
       matchedQueries: ad.matchedQueries || [],

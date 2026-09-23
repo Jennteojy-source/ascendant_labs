@@ -186,14 +186,19 @@ test('affiliate and niche offer queries retain candidate ads instead of dropping
     searchQuery: 'water freedom system',
   });
 
-  // Romance spam should be filtered out
-  assert.equal(results.length, 2);
+  // Continuous ranking retains discovered ads and ranks by relevance
+  assert.equal(results.length, 3);
   // Official brand ad ranks first
   assert.equal(results[0].id, '800000002');
   assert.equal(results[0].ranking.relevanceType, 'OFFICIAL_BRAND');
-  // Affiliate / related offer ad is retained and ranked
+  // Affiliate / related offer ad ranks second
   assert.equal(results[1].id, '800000001');
   assert.equal(results[1].ranking.relevanceType, 'RELATED_OFFER');
+  // Off-topic or tangentially discovered ad ranks at the bottom with lowest relevance
+  assert.equal(results[2].id, '800000003');
+  assert.equal(results[2].ranking.relevanceType, 'DISCOVERED');
+  assert.ok(results[0].ranking.rankScore > results[1].ranking.rankScore);
+  assert.ok(results[1].ranking.rankScore > results[2].ranking.rankScore);
 });
 
 test('queries with multi-word terms like yu sleep retain discovered ads rather than returning empty', () => {
@@ -216,4 +221,34 @@ test('queries with multi-word terms like yu sleep retain discovered ads rather t
   assert.equal(results.length, 1);
   assert.equal(results[0].id, '700000001');
   assert.ok(['RELATED_OFFER', 'DISCOVERED'].includes(results[0].ranking.relevanceType));
+});
+
+test('niche queries in reading, entertainment, and finance are not dropped by hardcoded keyword filters', () => {
+  const rawAds = [
+    {
+      id: '900000001',
+      page_name: 'Alpha Webnovel Reader',
+      ad_creative_bodies: ['Read 10,000+ chapter novels on your phone.'],
+      ad_creative_link_titles: ['Best Novel App'],
+      ad_delivery_start_time: '2026-05-01T00:00:00.000Z',
+    },
+    {
+      id: '900000002',
+      page_name: 'CEO Executive Coaching',
+      ad_creative_bodies: ['Scale your enterprise with 1-on-1 billionaire mentorship.'],
+      ad_creative_link_titles: ['Masterclass for CEOs'],
+      ad_delivery_start_time: '2026-05-01T00:00:00.000Z',
+    },
+  ];
+
+  const novelResults = deduplicateAndRankAds(rawAds, {
+    targetBrand: 'Webnovel Reader',
+    coreKeywords: ['novel', 'chapter', 'reader'],
+    searchQuery: 'webnovel reader',
+  });
+
+  assert.equal(novelResults.length, 2);
+  // The relevant ad ranks first
+  assert.equal(novelResults[0].id, '900000001');
+  assert.equal(novelResults[0].ranking.relevanceType, 'OFFICIAL_BRAND');
 });

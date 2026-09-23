@@ -55,7 +55,6 @@ async function findComparables(searchPlan = {}, options = {}) {
   const competitorPagesMap = new Map();
   const discoveryErrors = [];
   const retrievalPlan = buildRetrievalPlan(vectors, maxQueries);
-  const spam = /novels? lover|novel drama|casino|slots|horoscope|zodiac|psychic|tarot|payday loan|webtoon|manga/i;
 
   function collectResult(vector, result = {}) {
     const term = String(vector.query || '').trim();
@@ -71,7 +70,7 @@ async function findComparables(searchPlan = {}, options = {}) {
       console.warn(`[BrowserSearch] "${term}": ${result.error}`);
     }
     for (const ad of data) {
-      if (!ad.id || spam.test(ad.page_name || '')) continue;
+      if (!ad.id) continue;
       const existing = rawAdsMap.get(ad.id);
       if (!existing) rawAdsMap.set(ad.id, { ...ad, discoveryVectors: [vector.type || 'KEYWORD'], matchedQueries: [term] });
       else {
@@ -133,8 +132,8 @@ async function findComparables(searchPlan = {}, options = {}) {
 
   const discoveredCompetitors = [];
   if (enableAgenticLoop && competitorPagesMap.size) {
-    const recursiveSpam = /novel|fiction|manga|comic|casino|slots|horoscope|tarot|loan|mailchimp|shopify|wordpress/i;
-    const pages = [...competitorPagesMap.entries()].filter(([name]) => name && !recursiveSpam.test(name))
+    const genericPlatformExclude = /mailchimp|shopify|wordpress|facebook|instagram|meta|google|cloudflare/i;
+    const pages = [...competitorPagesMap.entries()].filter(([name]) => name && !genericPlatformExclude.test(name))
       .sort((a, b) => b[1] - a[1]).slice(0, 2);
     for (const [pageName] of pages) {
       if (retrievalPlan.some(vector => normalizedTerm(vector.query) === normalizedTerm(pageName))) continue;
