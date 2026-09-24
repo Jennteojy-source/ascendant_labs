@@ -7,13 +7,14 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const status = options.status || 'ACTIVE';
   const limit = options.limit || 25;
   const mediaType = options.mediaType || 'ALL';
-  const searchType = options.searchType || 'keyword_unordered';
+  const searchType = options.searchType || (options.pageId ? 'page' : 'keyword_unordered');
+  const pageId = options.pageId;
   // Queries intentionally remain live. Persisted media, not search results, is reused.
   try {
     const startedAt = Date.now();
     const budgetMs = Math.max(5000, Math.min(30000, Number(options.timeoutMs) || 30000));
     const request = timeoutMs => searchMetaAds(searchTerm,
-      { countries, status, limit, mediaType, searchType, timeoutMs });
+      { countries, status, limit, mediaType, searchType, pageId, timeoutMs });
     let result = await request(budgetMs);
     const remainingMs = budgetMs - (Date.now() - startedAt);
     if (result.inconclusive && remainingMs >= 6000) {
@@ -41,19 +42,21 @@ function normalizedTerm(value) {
 // to the submitted identity.
 function buildRetrievalPlan(vectors = [], maxQueries = 4) {
   const seen = new Set();
-  const add = (result, type, query) => {
+  const add = (result, type, query, extra = {}) => {
     const cleaned = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 80);
-    const key = normalizedTerm(cleaned);
-    if (!key || seen.has(key)) return;
+    const key = `${normalizedTerm(cleaned)}:${(extra.countries || []).join(',')}:${extra.pageId || ''}`;
+    if ((!cleaned && !extra.pageId) || seen.has(key)) return;
     seen.add(key);
-    result.push({ type, query: cleaned });
+    result.push({ type, query: cleaned, ...extra });
   };
 
   const supplied = Array.isArray(vectors) ? vectors : [];
   const exact = supplied.find(vector => String(vector?.type).toUpperCase() === 'EXACT_BRAND') || supplied[0];
   const plan = [];
-  add(plan, 'EXACT_BRAND', exact?.query);
-  for (const vector of supplied) add(plan, String(vector?.type || 'EXPANDED').toUpperCase(), vector?.query);
+  if (exact) add(plan, 'EXACT_BRAND', exact?.query, { countries: exact?.countries, pageId: exact?.pageId });
+  for (const vector of supplied) {
+    add(plan, String(vector?.type || 'EXPANDED').toUpperCase(), vector?.query, { countries: vector?.countries, pageId: vector?.pageId });
+  }
 
   const exactTerm = String(exact?.query || '').trim();
   const compact = exactTerm.replace(/[^\p{L}\p{N}]+/gu, '');
@@ -109,14 +112,24 @@ async function findComparables(searchPlan = {}, options = {}) {
 
   async function runVector(vector, limit = limitPerVector) {
     const term = String(vector.query || '').trim();
-    if (!term) return;
+    if (!term && !vector.pageId) return;
     const remainingMs = Math.max(5000, Math.min(16000, deadlineMs - (Date.now() - startedAt)));
-    const searchType = vector.searchType || options.searchType || 'keyword_unordered';
+    const searchType = vector.pageId ? 'page' : (vector.searchType || options.searchType || 'keyword_unordered');
+    const targetCountries = vector.countries || countries;
     const vectorStartedAt = Date.now();
-    const result = await queryArchive(term, { countries, status, limit, mediaType, searchType, timeoutMs: remainingMs });
+    const result = await queryArchive(term, {
+      countries: targetCountries,
+      status,
+      limit,
+      mediaType,
+      searchType,
+      pageId: vector.pageId,
+      timeoutMs: remainingMs,
+    });
     collectResult(vector, result);
     logger.info('Search vector completed', {
       query: term, vectorType: vector.type || 'KEYWORD',
+      countries: targetCountries, pageId: vector.pageId || null,
       resultCount: Array.isArray(result.data) ? result.data.length : 0,
       blocked: Boolean(result.blocked), durationMs: Date.now() - vectorStartedAt,
     });
@@ -124,11 +137,21 @@ async function findComparables(searchPlan = {}, options = {}) {
 
   // Run the canonical query once, then let the AI controller react to the
   // browser's evidence. The deterministic plan is reserved for AI outages.
+  function getAttemptKey(v) {
+    if (!v) return '';
+    if (typeof v === 'string') return normalizedTerm(v);
+    if (v.pageId) return `page:${v.pageId}`;
+    const term = normalizedTerm(v.query);
+    const countryKey = (Array.isArray(v.countries) && v.countries.length && !v.countries.includes('ALL'))
+      ? `:${v.countries.join(',')}` : '';
+    return term ? `${term}${countryKey}` : '';
+  }
+
   const attempted = [];
   const runPlanned = async vector => {
-    const term = String(vector?.query || '').trim();
-    if (!term || attempted.some(value => normalizedTerm(value) === normalizedTerm(term))) return false;
-    attempted.push(term);
+    const key = getAttemptKey(vector);
+    if (!key || attempted.includes(key)) return false;
+    attempted.push(key);
     await runVector(vector, limitPerVector);
     return true;
   };
@@ -136,9 +159,9 @@ async function findComparables(searchPlan = {}, options = {}) {
   // Reuse its live browser result instead of issuing the same search twice.
   for (const seeded of initialSearches) {
     const vector = seeded?.vector;
-    const term = String(vector?.query || '').trim();
-    if (!term || attempted.some(value => normalizedTerm(value) === normalizedTerm(term))) continue;
-    attempted.push(term);
+    const key = getAttemptKey(vector) || normalizedTerm(vector?.query);
+    if (!key || attempted.includes(key)) continue;
+    attempted.push(key);
     collectResult(vector, seeded.result);
   }
   await runPlanned(retrievalPlan[0]);
@@ -156,8 +179,10 @@ async function findComparables(searchPlan = {}, options = {}) {
         remainingQueries: remaining,
       });
     }
-    const aiCandidates = (Array.isArray(followups) ? followups : []).filter(vector =>
-      vector?.query && !attempted.some(value => normalizedTerm(value) === normalizedTerm(vector.query)));
+    const aiCandidates = (Array.isArray(followups) ? followups : []).filter(vector => {
+      const key = getAttemptKey(vector);
+      return key && !attempted.includes(key);
+    });
     const candidates = aiCandidates.length ? aiCandidates : retrievalPlan;
     const batch = [];
     // When the exact query is empty, two independent identity-preserving
@@ -165,9 +190,8 @@ async function findComparables(searchPlan = {}, options = {}) {
     // are already plausible hits.
     const batchWidth = rawAdsMap.size === 0 ? 2 : 1;
     for (const vector of candidates) {
-      const term = normalizedTerm(vector?.query);
-      if (!term || attempted.some(value => normalizedTerm(value) === term)
-          || batch.some(value => normalizedTerm(value.query) === term)) continue;
+      const key = getAttemptKey(vector);
+      if (!key || attempted.includes(key) || batch.some(v => getAttemptKey(v) === key)) continue;
       batch.push(vector);
       if (batch.length >= Math.min(batchWidth, maxQueries - attempted.length)) break;
     }

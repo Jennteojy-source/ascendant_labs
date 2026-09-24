@@ -424,8 +424,10 @@ function isPresentableAd(ad) {
   const score = Number(ad?.ranking?.relevanceScore);
   // DISCOVERED is the fail-open score when the AI judge did not evaluate a
   // card. Keep those candidates in retrieval diagnostics, not user results.
+  // Evaluated related offers and category solutions (score >= 30) are retained
+  // so we don't miss potential ads to rank.
   return type !== 'UNRELATED' && type !== 'DISCOVERED'
-    && (!Number.isFinite(score) || score >= 50);
+    && (!Number.isFinite(score) || score >= 30);
 }
 
 module.exports = {

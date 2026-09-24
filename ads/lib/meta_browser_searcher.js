@@ -92,6 +92,7 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
   const media = ['video', 'image', 'all'].includes(requestedMedia) ? requestedMedia : 'all';
   const searchType = String(options.searchType || 'keyword_unordered').toLowerCase() === 'keyword_exact_phrase'
     ? 'keyword_exact_phrase' : 'keyword_unordered';
+  const pageId = numericId(options.pageId);
   const url = new URL('https://www.facebook.com/ads/library/');
   url.searchParams.set('active_status', status);
   url.searchParams.set('ad_type', 'all');
@@ -99,8 +100,13 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
     ? 'ALL'
     : (countries[0] || 'ALL');
   url.searchParams.set('country', country);
-  url.searchParams.set('q', String(searchTerm || '').trim());
-  url.searchParams.set('search_type', searchType);
+  if (pageId) {
+    url.searchParams.set('search_type', 'page');
+    url.searchParams.set('view_all_page_id', pageId);
+  } else {
+    url.searchParams.set('q', String(searchTerm || '').trim());
+    url.searchParams.set('search_type', searchType);
+  }
   url.searchParams.set('media_type', media);
   return url.href;
 }
@@ -348,6 +354,55 @@ async function dismissConsent(page) {
   }
 }
 
+async function discoverMetaPages(searchTerm, options = {}, deps = {}) {
+  const timeoutMs = Math.max(5000, Math.min(12000, Number(options.timeoutMs) || 10000));
+  const startedAt = Date.now();
+  const browser = deps.browser || await (deps.getBrowser || getSearchBrowser)();
+  const { context, owned } = await createCollectorContext(browser);
+  const page = await context.newPage();
+  try {
+    await page.route('**/*', route => ['font', 'image', 'media'].includes(route.request().resourceType())
+      ? route.abort() : route.continue());
+    await page.goto(buildAdsLibrarySearchUrl(searchTerm, { countries: ['ALL'], status: 'ALL' }),
+      { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+    await dismissConsent(page);
+    const input = page.locator('input[placeholder="Search by keyword or advertiser"]').first();
+    await input.waitFor({ timeout: Math.min(5000, timeoutMs) });
+    await input.click({ force: true, timeout: 3000 });
+    await input.selectText().catch(() => {});
+    await page.keyboard.press('Backspace').catch(() => {});
+    await page.keyboard.type(searchTerm, { delay: 75 });
+    const optionsList = page.locator('li[role="option"][id^="pageID:"]');
+    await optionsList.first().waitFor({ timeout: Math.max(1000, timeoutMs - (Date.now() - startedAt)) })
+      .catch(() => {});
+    const candidates = await optionsList.evaluateAll(nodes => nodes.slice(0, 10).map(node => {
+      const pageId = (node.id.match(/^pageID:(\d+)$/) || [])[1] || null;
+      const textLines = (node.innerText || '').split('\n').map(l => l.trim()).filter(Boolean);
+      const name = textLines[0] || node.querySelector('[role="heading"]')?.textContent?.trim() || '';
+      const details = textLines.slice(1).join(' · ').slice(0, 180);
+      return { pageId, name, details };
+    }).filter(item => item.pageId && item.name));
+    const bodySample = candidates.length ? null
+      : (await page.locator('body').innerText({ timeout: 1000 }).catch(() => '')).slice(0, 180);
+    logger.info('Meta advertiser suggestions collected', {
+      query: searchTerm, count: candidates.length, bodySample,
+      inputValue: candidates.length ? null : await input.inputValue().catch(() => null),
+      pageUrl: candidates.length ? null : page.url(),
+      durationMs: Date.now() - startedAt,
+    });
+    return candidates;
+  } catch (error) {
+    logger.warn('Meta advertiser discovery failed', {
+      query: searchTerm, errorType: error.name || 'Error',
+      reason: String(error.message || '').slice(0, 160), durationMs: Date.now() - startedAt,
+    });
+    return [];
+  } finally {
+    if (owned) await context.close().catch(() => {});
+    else await page.close().catch(() => {});
+  }
+}
+
 async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   const limit = Math.max(1, Math.min(100, Number(options.limit) || 25));
   const timeoutMs = Math.max(5000, Math.min(SEARCH_TIMEOUT_MS, Number(options.timeoutMs) || SEARCH_TIMEOUT_MS));
@@ -466,4 +521,4 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
 
 module.exports = { buildAdsLibrarySearchUrl, extractAdsFromPayload, extractAdsFromDocument,
   browserConnectionMode, browserlessEndpoint, managedPlaywrightEndpoint,
-  createCollectorContext, getSearchBrowser, searchMetaAds };
+  createCollectorContext, getSearchBrowser, searchMetaAds, discoverMetaPages };

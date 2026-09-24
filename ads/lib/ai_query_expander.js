@@ -15,23 +15,37 @@
 
 const { generateText } = require('./vertex_ai');
 
-function sanitizeSearchVectors(brandName, vectors = []) {
+function sanitizeSearchVectors(brandName, vectors = [], options = {}) {
   const brand = String(brandName || '').trim();
   const brandTokens = brand.toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length >= 2);
   const seen = new Set();
   const safe = [];
-  const candidates = [{ type: 'EXACT_BRAND', query: brand }, ...vectors];
+  const targetCountry = options.targetCountry || 'ALL';
+  const defaultCountries = targetCountry && targetCountry !== 'ALL' ? [targetCountry] : ['ALL'];
+
+  const candidates = [
+    { type: 'EXACT_BRAND', query: brand, countries: defaultCountries },
+    ...(targetCountry !== 'ALL' ? [{ type: 'GLOBAL_BRAND', query: brand, countries: ['ALL'] }] : []),
+    ...vectors,
+  ];
+
   for (const vector of candidates) {
     const query = String(vector?.query || '').trim().replace(/\s+/g, ' ').slice(0, 80);
     const normalized = query.toLowerCase();
-    if (!query || seen.has(normalized)) continue;
+    const vecCountries = Array.isArray(vector?.countries) && vector.countries.length ? vector.countries : defaultCountries;
+    const key = `${normalized}:${vecCountries.join(',')}`;
+    if (!query || seen.has(key)) continue;
     // Every expansion must retain the target identity; this prevents AI drift into rival brands.
     if (brandTokens.length && !brandTokens.some(token => normalized.includes(token))) continue;
-    seen.add(normalized);
-    safe.push({ type: String(vector?.type || 'KEYWORD').slice(0, 40), query });
-    if (safe.length >= 4) break;
+    seen.add(key);
+    safe.push({
+      type: String(vector?.type || 'KEYWORD').slice(0, 40),
+      query,
+      countries: vecCountries,
+    });
+    if (safe.length >= 5) break;
   }
-  return safe.length ? safe : [{ type: 'EXACT_BRAND', query: brand }];
+  return safe.length ? safe : [{ type: 'EXACT_BRAND', query: brand, countries: ['ALL'] }];
 }
 
 /**
@@ -46,7 +60,7 @@ async function expandQueryWithAI(userQuery) {
     return buildFallbackExpansion(trimmed);
   }
 
-  const prompt = `You are an elite Meta Ads Library creative intelligence strategist. Your job is to take a user's search input for a SPECIFIC PRODUCT OR BRAND and expand it into the optimal set of search term permutations to locate ALL active ads running for this product in the Meta Ad Library (including official brand pages, affiliate media buyers, advertorials, and review campaigns).
+  const prompt = `You are an elite Meta Ads Library creative intelligence strategist. Your job is to take a user's search input for a SPECIFIC PRODUCT, BRAND, OR LOCAL ADVERTISER and expand it into the optimal set of search term permutations to locate ALL active ads running for this entity in the Meta Ad Library (including official brand pages, affiliate media buyers, advertorials, and review campaigns).
 
 User Input: "${trimmed}"
 
@@ -55,21 +69,23 @@ The user wants to find ALL CREATIVES FOR THIS EXACT PRODUCT/BRAND.
 Do NOT search for rival competitor brands (e.g. if the user searches "Derila", DO NOT include Emma Sleep or Tempur-Pedic; if they search "NordVPN", DO NOT include Surfshark or ExpressVPN).
 
 Your task:
-1. Identify the canonical brand or product name being searched.
-2. Generate 4-6 high-impact search term permutations to capture every ad for this product:
+1. Identify the canonical brand, entity, or product name being searched (strip generic city/region names from the core brand name, e.g. "Coding Labs Singapore" -> brandName: "Coding Lab").
+2. Detect if the user specified a geographic country/region (e.g. "Singapore" -> "SG", "UK" -> "GB", "US" -> "US", "Australia" -> "AU", otherwise "ALL").
+3. Generate 4-6 high-impact search term permutations to capture every ad for this product:
    - "EXACT_BRAND": The exact brand or product name
    - "PRODUCT_NAME": Brand + specific core product type/model (e.g. "Derila Pillow", "Ridge Carbon Wallet")
-   - "PAGE_VARIATION": Likely Meta Page name variations (e.g. "Derila Official", "GetDerila", "NordVPN Deals")
+   - "PAGE_VARIATION": Likely Meta Page name variations (e.g. "Derila Official", "Coding Lab Asia", "NordVPN Deals")
    - "SPELLING_PERMUTATION": Alternate spacing, common spelling variations, or product nicknames
    - "AFFILIATE_ANGLE": Search terms used by affiliates, media buyers, or advertorials promoting this product (e.g. "Derila review", "Derila discount")
-   - "DOMAIN_HANDLE": Likely primary domain or handle (e.g. "derila.com", "getderila.com")
-3. Extract the product's primary hooks and angles.
+   - "DOMAIN_HANDLE": Likely primary domain or handle (e.g. "derila.com", "codinglab.com.sg")
+4. Extract the product's primary hooks and angles.
 
 Return ONLY a valid raw JSON object (no markdown, no backticks):
 {
   "brandName": "Canonical Brand or Product Name",
-  "category": "Market niche (e.g. Sleep & Ergonomics, Cybersecurity, Smart Wallets)",
+  "category": "Market niche (e.g. Sleep & Ergonomics, Kids STEM Education, Oral Health)",
   "coreProduct": "Specific product name or mechanism",
+  "targetCountry": "2-letter ISO country code or ALL",
   "productKeywords": ["keyword1", "keyword2", "keyword3"],
   "searchVectors": [
     { "type": "EXACT_BRAND", "query": "exact brand name" },
@@ -86,9 +102,22 @@ Rules:
 - Keep queries concise (1-4 words max) for reliable matching in the public Meta Ads Library search UI.`;
 
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1200 }, { operation: 'query_expansion' });
+    const raw = await generateText(
+      prompt,
+      { temperature: 0.1, maxOutputTokens: 1200, thinkingConfig: { thinkingBudget: 0 } },
+      { operation: 'query_expansion' }
+    );
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
+
+    // Heuristic geographic detection fallback if AI didn't catch it
+    let targetCountry = parsed.targetCountry || 'ALL';
+    if (targetCountry === 'ALL') {
+      if (/\b(singapore|sg)\b/i.test(trimmed)) targetCountry = 'SG';
+      else if (/\b(australia|aus?)\b/i.test(trimmed)) targetCountry = 'AU';
+      else if (/\b(uk|united kingdom|britain|london)\b/i.test(trimmed)) targetCountry = 'GB';
+      else if (/\b(canada|ca)\b/i.test(trimmed)) targetCountry = 'CA';
+    }
 
     // Validate minimum structure
     if (parsed.brandName && Array.isArray(parsed.searchVectors) && parsed.searchVectors.length > 0) {
@@ -96,8 +125,9 @@ Rules:
         brandName: parsed.brandName,
         category: parsed.category || 'Direct Response',
         coreProduct: parsed.coreProduct || parsed.brandName,
+        targetCountry,
         productKeywords: Array.isArray(parsed.productKeywords) ? parsed.productKeywords : [parsed.coreProduct || parsed.brandName],
-        searchVectors: sanitizeSearchVectors(parsed.brandName, parsed.searchVectors),
+        searchVectors: sanitizeSearchVectors(parsed.brandName, parsed.searchVectors, { targetCountry }),
         painPoints: Array.isArray(parsed.painPoints) ? parsed.painPoints : [],
         source: 'ai',
       };
