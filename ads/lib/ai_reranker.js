@@ -65,7 +65,8 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 ]`;
 
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 2500 }, { operation: 'ad_relevance' });
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1800 },
+      { operation: 'ad_relevance', timeoutMs: 15000 });
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed)) {
@@ -93,7 +94,7 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
   if (!candidateAds || candidateAds.length === 0) return [];
 
-  const batchSize = 20;
+  const batchSize = 12;
   const aiEvaluationsMap = new Map();
 
   // Evaluate candidate ads in parallel batches (up to 40 ads total for speed and token limits)
