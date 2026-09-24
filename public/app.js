@@ -24,6 +24,7 @@ const state = {
   sourceAdsFound: 0,      // Raw Ads Library records before creative deduplication
   currentProfile: null,
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
+  blockedAdIds: new Set(), // inaccessible Meta previews are not shown as creatives
 };
 
 function cleanCopy(text) {
@@ -142,8 +143,8 @@ async function executeSearch(targetInput, page = 1) {
     { label: 'Understanding your product...', detail: 'Building strict brand and product search vectors.', delay: 0 },
     { label: 'Searching live Meta ads...', detail: 'Collecting current campaigns from the public Ads Library.', delay: 2200 },
     { label: 'Verifying relevance with AI...', detail: 'Removing unrelated brands, noise, and duplicate creatives.', delay: 9000 },
-    { label: 'Extracting images and videos...', detail: 'Resolving every creative needed for this results page.', delay: 18000 },
-    { label: 'Preparing seamless previews...', detail: 'Caching selected media for stable, fast playback.', delay: 30000 },
+    { label: 'Finishing live research...', detail: 'Meta may take longer when few ads match the exact name.', delay: 18000 },
+    { label: 'Preparing results...', detail: 'Available previews load as cards come into view.', delay: 30000 },
   ];
 
   loadingState.innerHTML = `
@@ -272,28 +273,12 @@ async function executeSearch(targetInput, page = 1) {
   }
 }
 
-async function preparePageMedia(ads, timeoutMs = 90000) {
-  const candidates = (ads || []).filter(ad => {
-    const media = state.resolvedMediaMap[String(ad.id)] || ad.media;
-    return !media || media.status !== 'ready' || ['pending', 'fallback'].includes(media.storageStatus);
-  }).slice(0, 10);
-  if (!candidates.length) return;
-  try {
-    await Promise.race([
-      Promise.all(candidates.map(ad => requestAdMedia(ad))),
-      new Promise(resolve => setTimeout(resolve, timeoutMs)),
-    ]);
-  } catch (error) {
-    console.warn('[Media] Page preparation completed with fallbacks:', error.message);
-  }
-}
-
 /**
  * Direct Render & Pagination Function (Clean Pinterest Board)
  */
 function applyFiltersAndRender(targetPage = 1) {
   state.currentPage = targetPage;
-  const items = state.rawRankedAds || [];
+  const items = (state.rawRankedAds || []).filter(ad => !state.blockedAdIds.has(String(ad.id)));
 
   state.totalPages = Math.ceil(items.length / state.pageSize) || 1;
   const startIdx = (state.currentPage - 1) * state.pageSize;
@@ -514,6 +499,7 @@ function resetMediaSession() {
   cardObserver?.disconnect();
   adGrid.querySelectorAll('.card-media-box').forEach(box => AdMedia.dispose(box));
   state.resolvedMediaMap = {};
+  state.blockedAdIds.clear();
   automaticRefreshes.clear();
   creativeIndices.clear();
 }
@@ -575,6 +561,19 @@ async function requestAdMedia(ad, forceRefresh = false) {
       media = { schemaVersion: 2, status: 'retryable_failure', creatives: [], mediaType: 'unknown' };
     }
     if (generation === mediaGeneration) {
+      if (media.status === 'blocked' && !currentMedia(ad)?.creatives?.length) {
+        state.blockedAdIds.add(id);
+        const card = document.getElementById(`ad-card-${id}`);
+        if (card) {
+          const box = card.querySelector('.card-media-box');
+          if (box) AdMedia.dispose(box);
+          card.remove();
+        }
+        state.currentAds = (state.currentAds || []).filter(item => String(item.id) !== id);
+        if (!adGrid.querySelector('.ad-card')) {
+          adGrid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>No accessible previews on this page</h3><p>Meta blocked these ad previews. Try another search or view the ads directly in Meta.</p></div>';
+        }
+      }
       // Keep a surviving poster on refresh failure; the viewer displays the failure separately.
       if (media.status === 'ready' || !currentMedia(ad)) state.resolvedMediaMap[id] = media;
       if (media.destinationUrl) {
@@ -763,18 +762,10 @@ function renderPagination() {
   }
 }
 
-async function changePage(newPage) {
+function changePage(newPage) {
   if (newPage < 1 || newPage > state.totalPages || newPage === state.currentPage) return;
-  const start = (newPage - 1) * state.pageSize;
-  const pageAds = state.rawRankedAds.slice(start, start + state.pageSize);
-  adGrid.style.display = 'none';
-  paginationNav.style.display = 'none';
-  loadingState.style.display = 'block';
-  loadingState.innerHTML = `<div class="spinner"></div><h3>Preparing page ${newPage}...</h3>
-    <p>Stabilizing image and video previews before they appear.</p>`;
-  await preparePageMedia(pageAds, 90000);
-  loadingState.style.display = 'none';
-  adGrid.style.display = 'grid';
+  // Cards are available immediately; only visible previews are resolved in
+  // the background. Pagination must not wait on ten Meta detail pages.
   applyFiltersAndRender(newPage);
   const targetEl = document.getElementById('resultsSection') || document.getElementById('adGrid');
   if (targetEl) {

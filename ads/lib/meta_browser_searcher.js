@@ -47,14 +47,6 @@ function browserConnectionMode(env = process.env) {
   return 'local-chromium';
 }
 
-async function getFallbackBrowser() {
-  const endpoint = browserlessEndpoint();
-  if (!endpoint) return null;
-  // A fresh Browserless session draws a fresh residential exit. Never retain
-  // this connection as the application's primary shared browser.
-  return chromium.connect(endpoint, { timeout: 15000 });
-}
-
 async function getSearchBrowser() {
   if (!browserPromise) {
     const endpoint = managedPlaywrightEndpoint();
@@ -75,7 +67,7 @@ async function getSearchBrowser() {
   return browserPromise;
 }
 
-async function createCollectorContext(browser, { residential = false } = {}) {
+async function createCollectorContext(browser) {
   if (process.env.BROWSER_REUSE_DEFAULT_CONTEXT === '1' && browser.contexts()[0]) {
     return { context: browser.contexts()[0], owned: false };
   }
@@ -84,8 +76,8 @@ async function createCollectorContext(browser, { residential = false } = {}) {
     // The collector reads DOM and XHR payloads itself. Blocking service workers
     // makes those requests visible to Playwright's routing/response handlers.
     serviceWorkers: 'block',
-    // Browserless residential proxying can terminate TLS with its managed CA.
-    ignoreHTTPSErrors: residential || browserConnectionMode() === 'managed-browserless',
+    // Optional managed-browser mode may use its own TLS interception CA.
+    ignoreHTTPSErrors: browserConnectionMode() === 'managed-browserless',
     userAgent: process.env.META_BROWSER_USER_AGENT || undefined,
     storageState: process.env.META_BROWSER_STORAGE_STATE || undefined,
   });
@@ -359,6 +351,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   const limit = Math.max(1, Math.min(100, Number(options.limit) || 25));
   const timeoutMs = Math.max(5000, Math.min(SEARCH_TIMEOUT_MS, Number(options.timeoutMs) || SEARCH_TIMEOUT_MS));
   const startedAt = Date.now();
+  const timeLeft = () => Math.max(1, timeoutMs - (Date.now() - startedAt));
   const browser = deps.browser || await (deps.getBrowser || getSearchBrowser)();
   const { context, owned } = await createCollectorContext(browser);
   const page = await context.newPage();
@@ -391,10 +384,13 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     });
 
     // Check if Meta served an initial rate-denial challenge (__rd_verify) with HTTP 403
-    const initialContent = await page.content().catch(() => '');
-    if (initialContent.includes('__rd_verify') || (response && response.status() === 403 && initialContent.includes('challenge'))) {
+    const challengeMarker = await page.evaluate(() => {
+      const html = document.documentElement?.innerHTML || '';
+      return { verify: html.includes('__rd_verify'), challenge: html.includes('challenge') };
+    }).catch(() => ({ verify: false, challenge: false }));
+    if (challengeMarker.verify || (response?.status() === 403 && challengeMarker.challenge)) {
       // Allow Meta's in-page challenge script to execute and trigger automatic page reload
-      await page.waitForNavigation({ timeout: 10000 }).catch(() => {});
+      await page.waitForNavigation({ timeout: Math.min(3000, timeLeft()) }).catch(() => {});
     }
 
     const currentUrl = page.url();
@@ -404,9 +400,9 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     }
 
     await dismissConsent(page);
-    await Promise.race([
-      page.locator('text=/Library ID/i').first().waitFor({ timeout: Math.min(8000, timeoutMs) }).catch(() => {}),
-      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: Math.min(8000, timeoutMs) }).catch(() => {}),
+    if (timeLeft() > 1000) await Promise.race([
+      page.locator('text=/Library ID/i').first().waitFor({ timeout: Math.min(5000, timeLeft()) }).catch(() => {}),
+      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: Math.min(5000, timeLeft()) }).catch(() => {}),
     ]);
     let unchanged = 0;
     let previousCount = -1;
@@ -432,7 +428,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
       await page.waitForTimeout(SCROLL_SETTLE_MS);
     }
-    await Promise.allSettled([...pendingReads]);
+    await Promise.race([Promise.allSettled([...pendingReads]), page.waitForTimeout(Math.min(1000, timeLeft()))]);
     (await page.evaluate(extractAdsFromDocument).catch(() => [])).map(domAdToRecord).forEach(collect);
     return {
       data: [...ads.values()].slice(0, limit),
@@ -455,4 +451,4 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
 
 module.exports = { buildAdsLibrarySearchUrl, extractAdsFromPayload, extractAdsFromDocument,
   browserConnectionMode, browserlessEndpoint, managedPlaywrightEndpoint,
-  createCollectorContext, getSearchBrowser, getFallbackBrowser, searchMetaAds };
+  createCollectorContext, getSearchBrowser, searchMetaAds };

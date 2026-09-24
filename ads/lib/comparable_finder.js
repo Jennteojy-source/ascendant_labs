@@ -9,8 +9,15 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const mediaType = options.mediaType || 'ALL';
   const searchType = options.searchType || 'keyword_unordered';
   // Queries intentionally remain live. Persisted media, not search results, is reused.
-  return searchMetaAds(searchTerm, { countries, status, limit, mediaType, searchType,
-    timeoutMs: options.timeoutMs });
+  try {
+    return await searchMetaAds(searchTerm, { countries, status, limit, mediaType, searchType,
+      timeoutMs: options.timeoutMs });
+  } catch (error) {
+    logger.warn('Search browser unavailable', {
+      query: searchTerm, errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200),
+    });
+    return { data: [], error: String(error.message || 'Browser unavailable').slice(0, 200), blocked: false };
+  }
 }
 
 function normalizedTerm(value) {
@@ -91,10 +98,16 @@ async function findComparables(searchPlan = {}, options = {}) {
   async function runVector(vector, limit = limitPerVector) {
     const term = String(vector.query || '').trim();
     if (!term) return;
-    const remainingMs = Math.max(5000, deadlineMs - (Date.now() - startedAt));
+    const remainingMs = Math.max(5000, Math.min(16000, deadlineMs - (Date.now() - startedAt)));
     const searchType = vector.searchType || options.searchType || 'keyword_unordered';
+    const vectorStartedAt = Date.now();
     const result = await queryArchive(term, { countries, status, limit, mediaType, searchType, timeoutMs: remainingMs });
     collectResult(vector, result);
+    logger.info('Search vector completed', {
+      query: term, vectorType: vector.type || 'KEYWORD',
+      resultCount: Array.isArray(result.data) ? result.data.length : 0,
+      blocked: Boolean(result.blocked), durationMs: Date.now() - vectorStartedAt,
+    });
   }
 
   // Run the canonical query once, then let the AI controller react to the
@@ -131,11 +144,23 @@ async function findComparables(searchPlan = {}, options = {}) {
         remainingQueries: remaining,
       });
     }
-    const next = (Array.isArray(followups) ? followups : []).find(vector =>
-      vector?.query && !attempted.some(term => normalizedTerm(term) === normalizedTerm(vector.query)))
-      // AI unavailability must not make a sparse global search a dead end.
-      || retrievalPlan.find(vector => !attempted.some(term => normalizedTerm(term) === normalizedTerm(vector.query)));
-    if (!next || !(await runPlanned(next))) break;
+    const aiCandidates = (Array.isArray(followups) ? followups : []).filter(vector =>
+      vector?.query && !attempted.some(value => normalizedTerm(value) === normalizedTerm(vector.query)));
+    const candidates = aiCandidates.length ? aiCandidates : retrievalPlan;
+    const batch = [];
+    // When the exact query is empty, two independent identity-preserving
+    // searches can share the same browser wait. Avoid extra traffic once there
+    // are already plausible hits.
+    const batchWidth = rawAdsMap.size === 0 ? 2 : 1;
+    for (const vector of candidates) {
+      const term = normalizedTerm(vector?.query);
+      if (!term || attempted.some(value => normalizedTerm(value) === term)
+          || batch.some(value => normalizedTerm(value.query) === term)) continue;
+      batch.push(vector);
+      if (batch.length >= Math.min(batchWidth, maxQueries - attempted.length)) break;
+    }
+    if (!batch.length) break;
+    await Promise.all(batch.map(vector => runPlanned(vector)));
   }
 
   const discoveredCompetitors = [];

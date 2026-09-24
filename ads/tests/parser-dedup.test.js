@@ -111,6 +111,30 @@ test('fallback terms run only when exact global retrieval is sparse', async () =
   assert.equal(results.totalRawAds, 3);
 });
 
+test('two sparse-query fallbacks share one browser wait without exceeding query budget', async () => {
+  let active = 0;
+  let peak = 0;
+  const calls = [];
+  await findComparables({
+    vectors: [
+      { type: 'EXACT_BRAND', query: 'Example Brand' },
+      { type: 'PAGE_VARIATION', query: 'Example Brand Official' },
+      { type: 'PRODUCT_NAME', query: 'Example Brand Product' },
+    ],
+    minRecall: 2, maxQueries: 3, nextQueries: async () => [],
+    queryArchive: async term => {
+      calls.push(term);
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise(resolve => setTimeout(resolve, 5));
+      active--;
+      return { data: [], error: null, blocked: false };
+    },
+  });
+  assert.equal(peak, 2);
+  assert.deepEqual(calls, ['Example Brand', 'Example Brand Official', 'Example Brand Product']);
+});
+
 test('AI follow-up queries retain brand identity and replace static fallback when available', async () => {
   assert.deepEqual(sanitizeAgentQueries([
     { type: 'PAGE_VARIATION', query: 'Lyza Coding' },

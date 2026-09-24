@@ -1,7 +1,7 @@
 /** Ad-specific creative extraction with bounded concurrency and refreshes. */
 const cache = require('./firestore_cache');
 const { mediaResult, extractStructuredMedia, inspectAdDocument, destinationUrl } = require('./media_resolver');
-const { getSearchBrowser: getBrowser, getFallbackBrowser, createCollectorContext } = require('./meta_browser_searcher');
+const { getSearchBrowser: getBrowser, createCollectorContext } = require('./meta_browser_searcher');
 const logger = require('./gcp_logger');
 
 function snapshotTarget(adId, supplied) {
@@ -21,10 +21,10 @@ function snapshotTarget(adId, supplied) {
   return url.href;
 }
 
-async function sniffSingleAd(browser, adId, supplied, { residential = false } = {}) {
+async function sniffSingleAd(browser, adId, supplied) {
   const target = snapshotTarget(adId, supplied);
   if (!target) return mediaResult([], null, 'invalid_request');
-  const { context, owned } = await createCollectorContext(browser, { residential });
+  const { context, owned } = await createCollectorContext(browser);
   const page = await context.newPage();
   let structured = mediaResult([], 'structured');
   let best = mediaResult([], 'dom');
@@ -111,7 +111,7 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
     })), selected.source);
   } catch (error) {
     logger.warn('Ad detail extraction failed', {
-      adId: String(adId), residential,
+      adId: String(adId),
       errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200),
     });
     return mediaResult([], null, 'retryable_failure');
@@ -128,11 +128,6 @@ function createMediaSniffer(deps) {
   const inFlight = new Map();
   const recent = new Map();
   const waiters = [];
-  const fallbackAttempts = [];
-  const fallbackByAd = new Map();
-  const configuredFallbackLimit = Number(process.env.BROWSERLESS_FALLBACKS_PER_MINUTE);
-  const fallbackLimit = Number.isFinite(configuredFallbackLimit)
-    ? Math.max(0, Math.min(4, configuredFallbackLimit)) : 2;
   const limit = Math.max(1, Math.min(4, deps.concurrency || 2));
   let active = 0;
   async function acquire() {
@@ -142,16 +137,6 @@ function createMediaSniffer(deps) {
   function release() {
     if (waiters.length) waiters.shift()();
     else active--;
-  }
-  function reserveFallback(id) {
-    if (!deps.getFallbackBrowser || !fallbackLimit) return false;
-    const now = Date.now();
-    while (fallbackAttempts.length && now - fallbackAttempts[0] > 60000) fallbackAttempts.shift();
-    for (const [key, at] of fallbackByAd) if (now - at > 10 * 60 * 1000) fallbackByAd.delete(key);
-    if (fallbackAttempts.length >= fallbackLimit || fallbackByAd.has(id)) return false;
-    fallbackAttempts.push(now);
-    fallbackByAd.set(id, now);
-    return true;
   }
   return async function sniffPageMedia(adsBatch = [], { forceRefresh = false } = {}) {
     const ads = [...new Map(adsBatch.filter(a => a && /^\d{1,40}$/.test(String(a.id)))
@@ -172,34 +157,12 @@ function createMediaSniffer(deps) {
             const startedAt = Date.now();
             const browser = await deps.getBrowser();
             let value = await deps.sniffSingleAd(browser, id, ad.adSnapshotUrl);
-            let fallbackAttempted = false;
-            if (value.status === 'blocked' && reserveFallback(id)) {
-              fallbackAttempted = true;
-              let fallbackBrowser;
-              try {
-                fallbackBrowser = await deps.getFallbackBrowser();
-                if (fallbackBrowser) {
-                  const fallback = await deps.sniffSingleAd(fallbackBrowser, id, ad.adSnapshotUrl,
-                    { residential: true });
-                  if (fallback.status === 'ready') value = fallback;
-                  logger.info('Residential media retry completed', {
-                    adId: id, status: fallback.status,
-                    creativeCount: fallback.creatives?.length || 0,
-                  });
-                }
-              } catch (error) {
-                logger.warn('Residential media retry failed', { adId: id,
-                  errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200) });
-              } finally {
-                try { await fallbackBrowser?.close?.(); } catch { /* Session already closed. */ }
-              }
-            }
             if (value.status === 'ready') await deps.saveMediaBatch({ [id]: value });
             recent.set(id, { at: Date.now(), value, forced: forceRefresh });
             logger.info('Ad media extraction completed', {
               adId: id, status: value.status, source: value.source || null,
               creativeCount: value.creatives?.length || 0,
-              fallbackAttempted, durationMs: Date.now() - startedAt,
+              durationMs: Date.now() - startedAt,
             });
             return value;
           } catch (error) {
@@ -220,7 +183,7 @@ function createMediaSniffer(deps) {
   };
 }
 
-const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, getFallbackBrowser, sniffSingleAd,
+const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, sniffSingleAd,
   concurrency: Number(process.env.MEDIA_SNIFF_CONCURRENCY) || 2 });
 module.exports = { sniffPageMedia, getBrowser, snapshotTarget, sniffSingleAd, createMediaSniffer,
   loadCache: () => Object.fromEntries(cache.memoryCache) };

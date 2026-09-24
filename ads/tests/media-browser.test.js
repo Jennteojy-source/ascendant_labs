@@ -109,14 +109,15 @@ test('video failure retains poster, bounds automatic refresh, and allows explici
   assert.equal(refreshes, 2);
 });
 
-test('failed extraction can be retried without a permanent loading placeholder', async t => {
+test('blocked preview card is skipped without repeated extraction', async t => {
   let attempts = 0;
-  const page = await appPage(t, [ad('123', null)], async () => ({
-    '123': ++attempts === 1 ? mediaResult([], null, 'blocked') : mediaResult([{ thumbnailUrl: image }], 'structured'),
-  }));
-  await page.getByRole('button', { name: 'Retry preview' }).click();
-  await page.waitForFunction(() => document.querySelector('#media-box-123 img')?.naturalWidth === 400);
-  assert.equal(attempts, 2);
+  const page = await appPage(t, [ad('123', null)], async () => {
+    attempts++;
+    return { '123': mediaResult([], null, 'blocked') };
+  });
+  await page.waitForFunction(() => document.querySelector('#ad-card-123') === null);
+  assert.equal(attempts, 1);
+  assert.match(await page.locator('#adGrid').innerText(), /No accessible previews/);
 });
 
 test('modal creative controls remain visible on a phone-sized viewport', async t => {

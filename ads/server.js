@@ -175,7 +175,7 @@ const server = http.createServer(async (req, res) => {
       const userAgent = req.headers['user-agent'];
       const searchParams = { countries, status, mediaType, page, pageSize };
       const searchDeadlineMs = searchStartTime + Math.max(30000,
-        Math.min(55000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 50000));
+        Math.min(50000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 45000));
       let rankedAds = null;
       let queryProfile = null;
       let searchRes = null;
@@ -219,7 +219,7 @@ const server = http.createServer(async (req, res) => {
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
             deadlineMs: Math.max(5000, Math.min(
-              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 45000,
+              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 38000,
               searchDeadlineMs - Date.now() - 3000)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
             initialSearches: [{
@@ -234,6 +234,9 @@ const server = http.createServer(async (req, res) => {
           logger.info('Stage 2 — Agentic Ads Library search complete', {
             totalRawAds: searchRes.totalRawAds,
             discoveredCompetitors: searchRes.discoveredCompetitors,
+            discoveryMs: pipeline.stages.discoveryMs,
+            vectorHits: searchRes.vectorHits,
+            deadlineReached: searchRes.deadlineReached,
           });
 
           // ─── Stage 3: AI Ranking & Filtering ──────────────────────
@@ -504,7 +507,21 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+async function startServer() {
+  // Cloud Run grants startup CPU before readiness. Launch Chromium in that
+  // window so the warm min-instance can serve its first search immediately.
+  if (process.env.K_SERVICE && browserConnectionMode() === 'local-chromium') {
+    const warmStartedAt = Date.now();
+    try {
+      await getSearchBrowser();
+      logger.info('Headless Chromium warm before readiness', { durationMs: Date.now() - warmStartedAt });
+    } catch (error) {
+      logger.warn('Chromium startup warm-up failed; search will retry launch', {
+        durationMs: Date.now() - warmStartedAt, error: String(error.message || '').slice(0, 300),
+      });
+    }
+  }
+  server.listen(PORT, '0.0.0.0', () => {
   logger.info(`Ascendant Labs Meta Ad Intelligence Server is listening on 0.0.0.0:${PORT}`, {
     port: PORT,
     environment: process.env.NODE_ENV || 'development',
@@ -516,11 +533,13 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(` Web UI:  ${path.join(WEB_DIR, 'index.html')}`);
   console.log(`========================================================================\n`);
 
-  // Warm asynchronously after readiness. This keeps startup probes fast while
-  // preventing the first user search from paying Chromium's cold launch cost.
-  if (browserConnectionMode() === 'local-chromium') {
+  // Outside Cloud Run, preserve fast local startup and warm in the background.
+  if (!process.env.K_SERVICE && browserConnectionMode() === 'local-chromium') {
     getSearchBrowser()
       .then(() => logger.info('Headless Chromium warm and ready'))
       .catch(error => logger.warn('Chromium background warm-up failed; search will retry launch', { error: error.message }));
   }
-});
+  });
+}
+
+startServer();

@@ -78,25 +78,21 @@ test('simultaneous requests share an ad extraction and the process-wide concurre
   assert.equal(calls.filter(id => id === '1').length, 2, 'one immediate forced refresh, then cooldown');
 });
 
-test('blocked previews get one residential retry while the fallback budget stays bounded', async () => {
+test('blocked previews do not launch a paid fallback session', async () => {
   const calls = [];
   const sniff = createMediaSniffer({ concurrency: 1, getCachedMediaBatch: async () => ({}),
     saveMediaBatch: async () => {},
     getBrowser: async () => ({ kind: 'local' }),
-    getFallbackBrowser: async () => ({ kind: 'residential' }),
-    sniffSingleAd: async (browser, id, _url, options) => {
-      calls.push({ id, kind: browser.kind, residential: Boolean(options?.residential) });
-      return browser.kind === 'local'
-        ? mediaResult([], null, 'blocked')
-        : mediaResult([{ thumbnailUrl: image }], 'structured');
+    getFallbackBrowser: async () => { throw new Error('paid fallback must not run'); },
+    sniffSingleAd: async (browser, id) => {
+      calls.push({ id, kind: browser.kind });
+      return mediaResult([], null, 'blocked');
     },
   });
-  assert.equal((await sniff([{ id: '1' }]))['1'].status, 'ready');
-  assert.equal((await sniff([{ id: '2' }]))['2'].status, 'ready');
+  assert.equal((await sniff([{ id: '1' }]))['1'].status, 'blocked');
+  assert.equal((await sniff([{ id: '2' }]))['2'].status, 'blocked');
   assert.equal((await sniff([{ id: '3' }]))['3'].status, 'blocked');
-  assert.deepEqual(calls.map(call => call.kind),
-    ['local', 'residential', 'local', 'residential', 'local']);
-  assert.equal(calls.filter(call => call.residential).length, 2);
+  assert.deepEqual(calls.map(call => call.kind), ['local', 'local', 'local']);
 });
 
 test('durable media paths are content-addressed and cannot escape the ad prefix', () => {
