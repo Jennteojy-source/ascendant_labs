@@ -109,15 +109,17 @@ test('video failure retains poster, bounds automatic refresh, and allows explici
   assert.equal(refreshes, 2);
 });
 
-test('blocked preview card is skipped without repeated extraction', async t => {
+test('blocked preview card displays graceful fallback without disappearing or repeated extraction', async t => {
   let attempts = 0;
   const page = await appPage(t, [ad('123', null)], async () => {
     attempts++;
     return { '123': mediaResult([], null, 'blocked') };
   });
-  await page.waitForFunction(() => document.querySelector('#ad-card-123') === null);
+  await page.waitForFunction(() => document.querySelector('#media-box-123')?.textContent.includes('Meta blocked this preview'));
   assert.equal(attempts, 1);
-  assert.match(await page.locator('#adGrid').innerText(), /No accessible previews/);
+  assert.equal(await page.locator('#ad-card-123').count(), 1);
+  assert.match(await page.locator('#media-box-123').innerText(), /Meta blocked this preview/);
+  assert.match(await page.locator('#media-box-123').innerText(), /View original ad/);
 });
 
 test('modal creative controls remain visible on a phone-sized viewport', async t => {

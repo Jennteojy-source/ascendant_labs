@@ -278,7 +278,7 @@ async function executeSearch(targetInput, page = 1) {
  */
 function applyFiltersAndRender(targetPage = 1) {
   state.currentPage = targetPage;
-  const items = (state.rawRankedAds || []).filter(ad => !state.blockedAdIds.has(String(ad.id)));
+  const items = state.rawRankedAds || [];
 
   state.totalPages = Math.ceil(items.length / state.pageSize) || 1;
   const startIdx = (state.currentPage - 1) * state.pageSize;
@@ -563,18 +563,8 @@ async function requestAdMedia(ad, forceRefresh = false) {
     if (generation === mediaGeneration) {
       if (media.status === 'blocked' && !currentMedia(ad)?.creatives?.length) {
         state.blockedAdIds.add(id);
-        const card = document.getElementById(`ad-card-${id}`);
-        if (card) {
-          const box = card.querySelector('.card-media-box');
-          if (box) AdMedia.dispose(box);
-          card.remove();
-        }
-        state.currentAds = (state.currentAds || []).filter(item => String(item.id) !== id);
-        if (!adGrid.querySelector('.ad-card')) {
-          adGrid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>No accessible previews on this page</h3><p>Meta blocked these ad previews. Try another search or view the ads directly in Meta.</p></div>';
-        }
       }
-      // Keep a surviving poster on refresh failure; the viewer displays the failure separately.
+      // Retain media resolution (ready, blocked fallback, or unavailable)
       if (media.status === 'ready' || !currentMedia(ad)) state.resolvedMediaMap[id] = media;
       if (media.destinationUrl) {
         ad.destinationUrl = media.destinationUrl;
@@ -588,6 +578,7 @@ async function requestAdMedia(ad, forceRefresh = false) {
         if (domain) { domain.textContent = `🌐 ${ad.displayDomain || 'Website'}`; domain.title = ad.destinationUrl || ''; }
         if (cta) cta.textContent = `${ad.ctaText || 'Learn More'} ↗`;
       }
+      renderAdMedia(ad);
     }
     return media;
   })();
