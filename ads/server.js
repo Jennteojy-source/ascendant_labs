@@ -174,6 +174,8 @@ const server = http.createServer(async (req, res) => {
       const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
       const userAgent = req.headers['user-agent'];
       const searchParams = { countries, status, mediaType, page, pageSize };
+      const searchDeadlineMs = searchStartTime + Math.max(30000,
+        Math.min(55000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 50000));
       let rankedAds = null;
       let queryProfile = null;
       let searchRes = null;
@@ -216,7 +218,9 @@ const server = http.createServer(async (req, res) => {
             // is sparse; deploy-time tuning avoids product-specific rules.
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
-            deadlineMs: Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 45000,
+            deadlineMs: Math.max(5000, Math.min(
+              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 45000,
+              searchDeadlineMs - Date.now() - 3000)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
             initialSearches: [{
               vector: { type: 'EXACT_BRAND', query: trimmedInput },
@@ -258,6 +262,9 @@ const server = http.createServer(async (req, res) => {
           if (!hasOnlyOfficialBrandResults) {
             rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
           }
+          // An explicit AI rejection is stronger evidence than an ad's age or
+          // activity score. Do not present that record as a search match.
+          rankedAds = rankedAds.filter(ad => ad.ranking?.relevanceType !== 'UNRELATED');
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {

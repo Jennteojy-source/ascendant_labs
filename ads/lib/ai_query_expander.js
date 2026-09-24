@@ -86,7 +86,7 @@ Rules:
 - Keep queries concise (1-4 words max) for reliable matching in the public Meta Ads Library search UI.`;
 
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1200 });
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1200 }, { operation: 'query_expansion' });
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
 

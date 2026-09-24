@@ -31,7 +31,8 @@ function browserlessEndpoint(env = process.env) {
 }
 
 function managedPlaywrightEndpoint(env = process.env) {
-  const endpoint = browserlessEndpoint(env) || env.BROWSER_WS_ENDPOINT;
+  const endpoint = env.BROWSER_WS_ENDPOINT
+    || (env.BROWSERLESS_PRIMARY === '1' ? browserlessEndpoint(env) : null);
   if (!endpoint) return null;
   const parsed = new URL(endpoint);
   if (parsed.protocol !== 'wss:') {
@@ -41,9 +42,17 @@ function managedPlaywrightEndpoint(env = process.env) {
 }
 
 function browserConnectionMode(env = process.env) {
-  if (env.BROWSERLESS_TOKEN || env.BROWSERLESS_API) return 'managed-browserless';
   if (env.BROWSER_WS_ENDPOINT) return 'managed-playwright';
+  if (env.BROWSERLESS_PRIMARY === '1' && (env.BROWSERLESS_TOKEN || env.BROWSERLESS_API)) return 'managed-browserless';
   return 'local-chromium';
+}
+
+async function getFallbackBrowser() {
+  const endpoint = browserlessEndpoint();
+  if (!endpoint) return null;
+  // A fresh Browserless session draws a fresh residential exit. Never retain
+  // this connection as the application's primary shared browser.
+  return chromium.connect(endpoint, { timeout: 15000 });
 }
 
 async function getSearchBrowser() {
@@ -66,7 +75,7 @@ async function getSearchBrowser() {
   return browserPromise;
 }
 
-async function createCollectorContext(browser) {
+async function createCollectorContext(browser, { residential = false } = {}) {
   if (process.env.BROWSER_REUSE_DEFAULT_CONTEXT === '1' && browser.contexts()[0]) {
     return { context: browser.contexts()[0], owned: false };
   }
@@ -76,7 +85,7 @@ async function createCollectorContext(browser) {
     // makes those requests visible to Playwright's routing/response handlers.
     serviceWorkers: 'block',
     // Browserless residential proxying can terminate TLS with its managed CA.
-    ignoreHTTPSErrors: browserConnectionMode() === 'managed-browserless',
+    ignoreHTTPSErrors: residential || browserConnectionMode() === 'managed-browserless',
     userAgent: process.env.META_BROWSER_USER_AGENT || undefined,
     storageState: process.env.META_BROWSER_STORAGE_STATE || undefined,
   });
@@ -127,7 +136,7 @@ function isInvalidAdText(text) {
   if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return true;
   if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return true;
   if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return true;
-  if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^categories$|^impressions:?$|^see\s+more$|^log\s*in$|^log\s*out$|^sign\s*up$|^search\s+ads$|^filter\s+results$/i.test(s)) return true;
+  if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^amount\s+spent(?:\s*\([^)]*\))?:?$|^categories$|^impressions:?$|^see\s+more$|^log\s*in$|^log\s*out$|^sign\s*up$|^search\s+ads$|^filter\s+results$/i.test(s)) return true;
   if (/^this ad was run by an account or page we later disabled/i.test(s)) return true;
   if (/^sorry, we're having trouble playing this video\.?$/i.test(s)) return true;
   if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return true;
@@ -279,7 +288,7 @@ function extractAdsFromDocument() {
           && (a.innerText || '').trim().length > 1;
       } catch { return false; }
     });
-    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp|eu transparency|report ad|(?:meta\s+)?ad library|see summary details|estimated audience size:?|categories|impressions:?|log\s*in|log\s*out)$/i;
+    const ignored = /^(active|inactive|sponsored|see ad details|shop now|learn more|sign up|download|apply now|visit website|open drop-?down|this ad has multiple versions|whatsapp|eu transparency|report ad|(?:meta\s+)?ad library|see summary details|estimated audience size:?|amount spent(?:\s*\([^)]*\))?:?|categories|impressions:?|log\s*in|log\s*out)$/i;
     const isBadCopy = text => {
       const s = (text || '').trim();
       if (!s || s.length < 3) return true;
@@ -288,7 +297,7 @@ function extractAdsFromDocument() {
       if (/\b\d+\s+ads?\s+use\s+this\s+creative/i.test(s)) return true;
       if (/\b(?:EU\s+)?transparency\b/i.test(s) && s.length < 40) return true;
       if (/^(?:active|inactive|sponsored|report\s+ad|see\s+ad\s+details|about\s+the\s+advertiser|this\s+ad\s+has\s+multiple\s+versions|multiple\s+versions)$/i.test(s)) return true;
-      if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^categories$|^impressions:?$|^log\s*in$|^log\s*out$/i.test(s)) return true;
+      if (/^(?:meta\s+)?ad\s+library$|^see\s+summary\s+details$|^estimated\s+audience\s+size:?$|^amount\s+spent(?:\s*\([^)]*\))?:?$|^categories$|^impressions:?$|^log\s*in$|^log\s*out$/i.test(s)) return true;
       if (/^this ad was run by an account or page we later disabled/i.test(s)) return true;
       if (/^sorry, we're having trouble playing this video\.?$/i.test(s)) return true;
       if (/^(?:Started\s+running\s+on\s+|Library\s+ID:\s*)\d+/i.test(s)) return true;
@@ -446,4 +455,4 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
 
 module.exports = { buildAdsLibrarySearchUrl, extractAdsFromPayload, extractAdsFromDocument,
   browserConnectionMode, browserlessEndpoint, managedPlaywrightEndpoint,
-  createCollectorContext, getSearchBrowser, searchMetaAds };
+  createCollectorContext, getSearchBrowser, getFallbackBrowser, searchMetaAds };

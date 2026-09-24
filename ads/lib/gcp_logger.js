@@ -15,8 +15,24 @@ const IS_GCP = Boolean(
   process.env.NODE_ENV === 'production'
 );
 
+function redact(value) {
+  if (typeof value === 'string') {
+    let safe = value;
+    for (const key of ['BROWSERLESS_API', 'BROWSERLESS_TOKEN', 'USER_TOKEN']) {
+      const secret = process.env[key];
+      if (secret && secret.length >= 6) safe = safe.split(secret).join('[REDACTED]');
+    }
+    return safe.replace(/([?&]token=)[^&\s]+/gi, '$1[REDACTED]');
+  }
+  if (Array.isArray(value)) return value.map(redact);
+  if (value && typeof value === 'object') return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, redact(item)]));
+  return value;
+}
+
 function log(severity, message, context = {}) {
   const timestamp = new Date().toISOString();
+  const safeContext = redact(context);
 
   if (IS_GCP || process.env.LOG_FORMAT === 'json') {
     const payload = {
@@ -27,7 +43,7 @@ function log(severity, message, context = {}) {
         service: process.env.K_SERVICE || 'ascendant-ad-intelligence',
         version: process.env.K_REVISION || 'v1',
       },
-      ...context,
+      ...safeContext,
     };
     if (severity === 'ERROR' || severity === 'CRITICAL') {
       console.error(JSON.stringify(payload));
@@ -45,7 +61,7 @@ function log(severity, message, context = {}) {
       DEBUG: '🔍 ',
     };
     const icon = icons[severity] || '• ';
-    const metaStr = Object.keys(context).length > 0 ? ` ${JSON.stringify(context)}` : '';
+    const metaStr = Object.keys(safeContext).length > 0 ? ` ${JSON.stringify(safeContext)}` : '';
     console.log(`[${timestamp.slice(11, 19)}] ${icon}[${severity}] ${message}${metaStr}`);
   }
 }

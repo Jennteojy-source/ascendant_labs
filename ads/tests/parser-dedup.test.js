@@ -32,6 +32,14 @@ test('Library interface labels do not become primary text or headlines', () => {
   assert.deepEqual(ad.ad_creative_link_titles, []);
 });
 
+test('Ads Library spend labels do not become ad copy', () => {
+  const [ad] = extractAdsFromPayload({ ads: [{ ad_archive_id: '888000112',
+    page_name: 'Example', snapshot: { body: 'Amount spent (USD):', title: 'Estimated audience size:' },
+  }] });
+  assert.deepEqual(ad.ad_creative_bodies, []);
+  assert.deepEqual(ad.ad_creative_link_titles, []);
+});
+
 test('the same image served at different sizes and with revised copy is one creative group', () => {
   const imageBase = 'https://scontent.xx.fbcdn.net/v/t39.35426-6/48591234_1234567890_n.jpg';
   const ads = ['111000111', '222000222'].map((id, index) => ({

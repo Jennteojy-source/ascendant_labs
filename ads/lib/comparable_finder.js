@@ -1,5 +1,6 @@
 /** Browser-first multi-vector comparable ad finder. */
 const { searchMetaAds } = require('./meta_browser_searcher');
+const logger = require('./gcp_logger');
 
 async function queryMetaArchive(searchTerm, options = {}) {
   const countries = options.countries || ['ALL'];
@@ -8,7 +9,8 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const mediaType = options.mediaType || 'ALL';
   const searchType = options.searchType || 'keyword_unordered';
   // Queries intentionally remain live. Persisted media, not search results, is reused.
-  return searchMetaAds(searchTerm, { countries, status, limit, mediaType, searchType });
+  return searchMetaAds(searchTerm, { countries, status, limit, mediaType, searchType,
+    timeoutMs: options.timeoutMs });
 }
 
 function normalizedTerm(value) {
@@ -67,7 +69,10 @@ async function findComparables(searchPlan = {}, options = {}) {
         blocked: Boolean(result.blocked),
         blockReason: result.blockReason || null,
       });
-      console.warn(`[BrowserSearch] "${term}": ${result.error}`);
+      logger.warn('Search vector failed', {
+        query: term, vectorType: vector.type || 'KEYWORD',
+        blocked: Boolean(result.blocked), error: result.error,
+      });
     }
     for (const ad of data) {
       if (!ad.id) continue;
@@ -113,6 +118,9 @@ async function findComparables(searchPlan = {}, options = {}) {
   }
   await runPlanned(retrievalPlan[0]);
   while (rawAdsMap.size < minRecall && attempted.length < maxQueries && Date.now() - startedAt < deadlineMs) {
+    // AI planning and a browser query both need time; stop before an HTTP proxy
+    // timeout would hide an otherwise valid partial result from the user.
+    if (deadlineMs - (Date.now() - startedAt) < 8000) break;
     const remaining = maxQueries - attempted.length;
     let followups = [];
     if (typeof nextQueries === 'function') {

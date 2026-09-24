@@ -64,7 +64,7 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 ]`;
 
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 2500 });
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 2500 }, { operation: 'ad_relevance' });
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed)) {

@@ -8,13 +8,14 @@ test('Browserless configuration uses an encrypted managed Playwright endpoint', 
   const env = { BROWSERLESS_API: 'test token', BROWSERLESS_REGION: 'lon',
     BROWSERLESS_PROXY_COUNTRY: 'gb' };
   const endpoint = new URL(browserlessEndpoint(env));
-  assert.equal(browserConnectionMode(env), 'managed-browserless');
   assert.equal(endpoint.protocol, 'wss:');
   assert.equal(endpoint.hostname, 'production-lon.browserless.io');
   assert.equal(endpoint.pathname, '/chromium/playwright');
   assert.equal(endpoint.searchParams.get('token'), 'test token');
   assert.equal(endpoint.searchParams.get('proxy'), 'residential');
   assert.equal(endpoint.searchParams.get('proxyCountry'), 'gb');
+  assert.equal(browserConnectionMode(env), 'local-chromium');
+  assert.equal(browserConnectionMode({ ...env, BROWSERLESS_PRIMARY: '1' }), 'managed-browserless');
   assert.throws(() => managedPlaywrightEndpoint({ BROWSER_WS_ENDPOINT: 'http://localhost:9222' }),
     /encrypted wss/);
 });

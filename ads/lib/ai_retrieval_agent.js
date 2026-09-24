@@ -26,7 +26,7 @@ async function decideNextSearch({ input, profile = {}, attempted = [], candidate
   }));
   const prompt = `You are directing a browser research agent using the public Meta Ads Library. Decide whether another GLOBAL search query is useful for the same product/brand. Do not choose countries. Do not invent rival brands.\n\nUser input: ${JSON.stringify(input)}\nCanonical identity: ${JSON.stringify(identity)}\nAlready searched: ${JSON.stringify(attempted)}\nLive browser evidence (${candidates.length} unique ads): ${JSON.stringify(evidence)}\nRemaining query budget: ${remainingQueries}\n\nReturn raw JSON only: {"queries":[{"type":"PAGE_VARIATION|SPELLING_PERMUTATION|AFFILIATE_ANGLE|PRODUCT_NAME","query":"short identity-preserving query"}]}. Return an empty array when evidence is sufficient or no safe next query exists. Choose at most ${remainingQueries} queries. Every query must retain a meaningful token from the canonical identity.`;
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 400 });
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 400 }, { operation: 'search_followup' });
     const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
     return sanitizeAgentQueries(parsed?.queries, identity, remainingQueries);
   } catch {

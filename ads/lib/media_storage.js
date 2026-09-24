@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const { Storage } = require('@google-cloud/storage');
 const { mediaUrl } = require('./media_resolver');
+const logger = require('./gcp_logger');
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ascendant-labs-45812';
 const BUCKET_NAME = process.env.MEDIA_STORAGE_BUCKET || `${PROJECT_ID}-ad-media`;
@@ -104,7 +105,7 @@ async function storeSource(adId, sourceUrl, kind, deps = {}) {
 
 async function persistCreative(adId, creative, deps = {}) {
   const next = { ...creative };
-  let stored = 0; let attempted = 0;
+  let stored = 0; let attempted = 0; let bytesDownloaded = 0;
   const imageSource = [creative.thumbnailUrl, ...(creative.imageSources || [])]
     .find(url => mediaUrl(url) || isStoredMediaUrl(url));
   const videoSource = [creative.videoUrl, ...(creative.videoSources || [])]
@@ -115,8 +116,11 @@ async function persistCreative(adId, creative, deps = {}) {
       const saved = await storeSource(adId, imageSource, 'image', deps);
       next.thumbnailUrl = saved.url;
       next.imageSources = [...new Set([saved.url, ...(creative.imageSources || []), creative.thumbnailUrl].filter(Boolean))];
-      stored++;
-    } catch { /* Preserve the verified source URL as a fallback. */ }
+      stored++; bytesDownloaded += saved.bytes;
+    } catch (error) {
+      logger.warn('Asset ingestion failed', { adId: String(adId), kind: 'image',
+        errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200) });
+    }
   }
   if (videoSource) {
     attempted++;
@@ -124,21 +128,29 @@ async function persistCreative(adId, creative, deps = {}) {
       const saved = await storeSource(adId, videoSource, 'video', deps);
       next.videoUrl = saved.url;
       next.videoSources = [...new Set([saved.url, ...(creative.videoSources || []), creative.videoUrl].filter(Boolean))];
-      stored++;
-    } catch { /* Preserve the verified source URL as a fallback. */ }
+      stored++; bytesDownloaded += saved.bytes;
+    } catch (error) {
+      logger.warn('Asset ingestion failed', { adId: String(adId), kind: 'video',
+        errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200) });
+    }
   }
-  return { creative: next, stored, attempted };
+  return { creative: next, stored, attempted, bytesDownloaded };
 }
 
 async function persistMedia(adId, media, deps = {}) {
   if (!media || media.status !== 'ready' || !/^\d{1,40}$/.test(String(adId))) return media;
   const creatives = [];
-  let stored = 0; let attempted = 0;
+  let stored = 0; let attempted = 0; let bytesDownloaded = 0;
   for (const creative of (media.creatives || [media]).slice(0, MAX_CREATIVES)) {
     const result = await persistCreative(String(adId), creative, deps);
     creatives.push(result.creative); stored += result.stored; attempted += result.attempted;
+    bytesDownloaded += result.bytesDownloaded;
   }
   if (!creatives.length) return media;
+  logger.info('Ad asset ingestion completed', {
+    adId: String(adId), stored, attempted, bytesDownloaded,
+    status: stored === attempted && stored > 0 ? 'ready' : stored > 0 ? 'partial' : 'fallback',
+  });
   return {
     ...media, ...creatives[0], creatives,
     storageStatus: stored === attempted && stored > 0 ? 'ready' : stored > 0 ? 'partial' : 'fallback',

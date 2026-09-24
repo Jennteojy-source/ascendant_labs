@@ -129,7 +129,7 @@ Return ONLY a valid raw JSON object (no markdown, no backticks):
 }`;
 
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1200 });
+    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1200 }, { operation: 'product_profile' });
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (parsed.brandName && Array.isArray(parsed.suggestedVectors)) {

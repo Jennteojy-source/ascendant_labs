@@ -39,10 +39,14 @@ npm run test:media                    # Run regression test suite
 Production connects outbound to a managed browser service. The project does not open a Chrome debugging port, run a tunnel, or accept inbound browser-control connections.
 
 ### Browserless
-Outbound WebSocket connection to a managed browser provider:
-- `BROWSERLESS_API` (or `BROWSERLESS_TOKEN`): Browserless dashboard token.
+The local Cloud Run browser handles searches and first-pass ad previews. If Meta blocks an ad detail page, the preview worker may retry that ad once through Browserless residential proxying. Retry volume is capped at two sessions per minute per instance, with a ten-minute cooldown per ad.
+
+Outbound WebSocket connection to the fallback provider:
+- `BROWSERLESS_API` (or `BROWSERLESS_TOKEN`): Browserless dashboard token, mounted from Secret Manager in production.
 - `BROWSERLESS_REGION`: optional `sfo`, `lon`, or `ams` (default: `sfo`).
 - `BROWSERLESS_PROXY_COUNTRY`: optional two-letter residential exit country (default: `us`).
+- `BROWSERLESS_FALLBACKS_PER_MINUTE`: optional per-instance retry cap (default: `2`; `0` disables retries).
+- `BROWSERLESS_PRIMARY=1`: opt in to using Browserless for all searches instead of the local browser.
 
 Creatives are copied into a private Cloud Storage bucket only when their card is viewed, then served through `/api/media/...` with immutable caching and video range requests:
 
@@ -59,3 +63,5 @@ Apply `storage-lifecycle.json` to the bucket to delete cached analysis media aft
 Fallback mode: launches local headless Chromium when no remote endpoints are configured.
 
 No Meta Ads Library API token is read or transmitted. Query expansion and reranking use Vertex AI with the Cloud Run service account; configure `VERTEX_GEMINI_MODEL` only to override the default `gemini-3.8-flash` model.
+
+Cloud Logging records search vector failures, each ad preview outcome, residential retries, asset download outcomes and bytes, and Vertex input/output/cached token counts. For the default global Gemini 3.8 Flash model, it estimates USD token cost using Google's introductory Standard rates through 2026. Override `VERTEX_INPUT_USD_PER_MILLION_TOKENS`, `VERTEX_OUTPUT_USD_PER_MILLION_TOKENS`, and `VERTEX_CACHED_INPUT_USD_PER_MILLION_TOKENS` when the model, region, or prices change.
