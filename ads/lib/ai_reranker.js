@@ -13,6 +13,7 @@
  */
 
 const { generateText } = require('./vertex_ai');
+const logger = require('./gcp_logger');
 
 /**
  * Listwise evaluation of a batch of ads against a target profile
@@ -70,8 +71,12 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
     if (Array.isArray(parsed)) {
       return parsed;
     }
+    logger.warn('AI relevance evaluation returned an invalid shape', { batchSize: adsBatch.length });
   } catch (err) {
-    // Return null to allow graceful local heuristic fallback
+    logger.warn('AI relevance evaluation failed', {
+      batchSize: adsBatch.length, errorType: err.name || 'Error',
+      reason: String(err.message || '').slice(0, 200),
+    });
   }
   return null;
 }

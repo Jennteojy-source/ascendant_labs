@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { extractAdsFromPayload } = require('../lib/meta_browser_searcher');
-const { deduplicateAndRankAds } = require('../lib/ad_ranker');
+const { deduplicateAndRankAds, isPresentableAd } = require('../lib/ad_ranker');
 const { storedAssetPaths } = require('../lib/search_logger');
 const { buildRetrievalPlan, findComparables } = require('../lib/comparable_finder');
 const { sanitizeAgentQueries } = require('../lib/ai_retrieval_agent');
@@ -167,6 +167,13 @@ test('an in-flight exact browser result is reused after AI planning', async () =
   });
   assert.equal(results.totalRawAds, 1);
   assert.deepEqual(calls, []);
+});
+
+test('unevaluated discovered noise is not presented as a search result', () => {
+  assert.equal(isPresentableAd({ ranking: { relevanceType: 'DISCOVERED', relevanceScore: 45 } }), false);
+  assert.equal(isPresentableAd({ ranking: { relevanceType: 'UNRELATED', relevanceScore: 5 } }), false);
+  assert.equal(isPresentableAd({ ranking: { relevanceType: 'RELATED_OFFER', relevanceScore: 70 } }), true);
+  assert.equal(isPresentableAd({ ranking: { relevanceType: 'OFFICIAL_BRAND', relevanceScore: 100 } }), true);
 });
 
 test('Meta group headers, EU transparency, flight date ranges, and unbound placeholders are filtered from copy', () => {

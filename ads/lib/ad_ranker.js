@@ -419,8 +419,18 @@ function paginateAds(rankedItems, page = 1, pageSize = 10) {
   };
 }
 
+function isPresentableAd(ad) {
+  const type = ad?.ranking?.relevanceType;
+  const score = Number(ad?.ranking?.relevanceScore);
+  // DISCOVERED is the fail-open score when the AI judge did not evaluate a
+  // card. Keep those candidates in retrieval diagnostics, not user results.
+  return type !== 'UNRELATED' && type !== 'DISCOVERED'
+    && (!Number.isFinite(score) || score >= 50);
+}
+
 module.exports = {
   deduplicateAndRankAds,
   paginateAds,
   classifyHook,
+  isPresentableAd,
 };

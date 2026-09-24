@@ -18,7 +18,7 @@ const { profilePDP } = require('./lib/pdp_profiler');
 const { expandQueryWithAI } = require('./lib/ai_query_expander');
 const { decideNextSearch } = require('./lib/ai_retrieval_agent');
 const { findComparables, queryMetaArchive } = require('./lib/comparable_finder');
-const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
+const { deduplicateAndRankAds, paginateAds, isPresentableAd } = require('./lib/ad_ranker');
 const { rerankAdsWithAI } = require('./lib/ai_reranker');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const { browserConnectionMode, getSearchBrowser } = require('./lib/meta_browser_searcher');
@@ -267,7 +267,7 @@ const server = http.createServer(async (req, res) => {
           }
           // An explicit AI rejection is stronger evidence than an ad's age or
           // activity score. Do not present that record as a search match.
-          rankedAds = rankedAds.filter(ad => ad.ranking?.relevanceType !== 'UNRELATED');
+          rankedAds = rankedAds.filter(isPresentableAd);
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {
