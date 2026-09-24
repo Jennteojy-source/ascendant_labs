@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { extractStructuredMedia, isAvatarUrl, destinationUrl, mediaResult } = require('../lib/media_resolver');

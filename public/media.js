@@ -146,37 +146,19 @@
     message.setAttribute('role', 'status');
     viewer.append(message);
 
-    function status(text, retry = false) {
+    function status(text) {
       message.replaceChildren();
       const label = document.createElement('span');
       label.textContent = text;
       message.append(label);
       message.hidden = !text;
-      if (retry && onRefresh) {
-        const button = document.createElement('button');
-        button.type = 'button'; button.textContent = 'Retry preview';
-        button.onclick = event => { event.stopPropagation(); refresh(true); };
-        message.append(button);
-      }
     }
     function dimensions(width, height) {
       if (width > 0 && height > 0) stage.style.aspectRatio = `${width} / ${height}`;
     }
-    async function refresh(manual = false) {
-      if (disposed || refreshing || !onRefresh) return;
-      refreshing = true;
-      status('Refreshing preview…');
-      let updated;
-      try { updated = await onRefresh(manual); } catch { /* Keep the surviving poster. */ }
-      if (disposed || !container.isConnected) return;
-      refreshing = false;
-      if (updated?.status === 'ready') render(container, { ...options, media: updated, index });
-      else status('Preview unavailable. You can retry.', true);
-    }
     function failed(text) {
       clearTimeout(timer);
-      status(text, true);
-      refresh(false);
+      status(text);
     }
     if (!creative) {
       stage.classList.add('media-empty');
@@ -194,7 +176,7 @@
           original.textContent = 'View original ad ↗';
           stage.append(original);
         }
-        status('No preview available.', true);
+        status('No preview available.');
       }
       return;
     }
@@ -241,8 +223,7 @@
         image.classList.add('media-ready');
         dimensions(image.naturalWidth, image.naturalHeight);
         if (!asFallback) {
-          status(creative.mediaType === 'video' ? 'Video stream paused; showing poster.' : '', creative.mediaType === 'video');
-          if (creative.mediaType === 'video') refresh(false);
+          status(creative.mediaType === 'video' ? 'Video stream paused; showing poster.' : '');
         }
       };
       image.onerror = () => {
@@ -271,7 +252,9 @@
       if (!videos.length) { showImage(); return; }
       stage.classList.add('is-loading');
       player = document.createElement('video');
-      player.controls = true; player.playsInline = true; player.muted = true;
+      player.controls = true; player.playsInline = true;
+      player.muted = false; player.defaultMuted = false;
+      player.volume = 1;
       player.loop = true; player.preload = 'metadata';
       player.setAttribute('aria-label', `Ad video ${index + 1}`);
       if (images[0]) player.poster = images[0];
@@ -286,6 +269,8 @@
       player.onloadedmetadata = onReady;
       player.oncanplay = onReady;
       player.onplay = () => {
+        player.muted = false;
+        if (player.volume === 0) player.volume = 1;
         document.querySelectorAll('.creative-viewer video').forEach(other => { if (other !== player) other.pause(); });
       };
       player.onerror = () => {

@@ -68,7 +68,13 @@ async function getSearchBrowser() {
   return browserPromise;
 }
 
-async function createCollectorContext(browser) {
+async function getFallbackBrowser() {
+  const endpoint = browserlessEndpoint();
+  if (!endpoint) return null;
+  return chromium.connect(endpoint, { timeout: 15000 });
+}
+
+async function createCollectorContext(browser, { residential = false } = {}) {
   if (process.env.BROWSER_REUSE_DEFAULT_CONTEXT === '1' && browser.contexts()[0]) {
     return { context: browser.contexts()[0], owned: false };
   }
@@ -78,7 +84,7 @@ async function createCollectorContext(browser) {
     // makes those requests visible to Playwright's routing/response handlers.
     serviceWorkers: 'block',
     // Optional managed-browser mode may use its own TLS interception CA.
-    ignoreHTTPSErrors: browserConnectionMode() === 'managed-browserless',
+    ignoreHTTPSErrors: residential || browserConnectionMode() === 'managed-browserless',
     userAgent: process.env.META_BROWSER_USER_AGENT || undefined,
     storageState: process.env.META_BROWSER_STORAGE_STATE || undefined,
   });
@@ -403,13 +409,12 @@ async function discoverMetaPages(searchTerm, options = {}, deps = {}) {
   }
 }
 
-async function searchMetaAds(searchTerm, options = {}, deps = {}) {
+async function executeBrowserSearch(browser, searchTerm, options = {}, { residential = false } = {}) {
   const limit = Math.max(1, Math.min(100, Number(options.limit) || 25));
   const timeoutMs = Math.max(5000, Math.min(SEARCH_TIMEOUT_MS, Number(options.timeoutMs) || SEARCH_TIMEOUT_MS));
   const startedAt = Date.now();
   const timeLeft = () => Math.max(1, timeoutMs - (Date.now() - startedAt));
-  const browser = deps.browser || await (deps.getBrowser || getSearchBrowser)();
-  const { context, owned } = await createCollectorContext(browser);
+  const { context, owned } = await createCollectorContext(browser, { residential });
   const page = await context.newPage();
   const ads = new Map();
   const pendingReads = new Set();
@@ -422,8 +427,6 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   try {
     await page.route('**/*', route => {
       const type = route.request().resourceType();
-      // Search cards' copy/metadata arrives in the document and JSON payloads.
-      // Do not pay to render creative bytes; full media is fetched on demand.
       return ['font', 'image', 'media'].includes(type) ? route.abort() : route.continue();
     });
     page.on('response', response => {
@@ -448,7 +451,6 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
       return { verify: html.includes('__rd_verify'), challenge: html.includes('challenge') };
     }).catch(() => ({ verify: false, challenge: false }));
     if (challengeMarker.verify || (response?.status() === 403 && challengeMarker.challenge)) {
-      // Allow Meta's in-page challenge script to execute and trigger automatic page reload
       await page.waitForNavigation({ timeout: Math.min(3000, timeLeft()) }).catch(() => {});
     }
 
@@ -519,6 +521,90 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   }
 }
 
+async function searchMetaAds(searchTerm, options = {}, deps = {}) {
+  // If a specific browser was explicitly supplied, use it directly
+  if (deps.browser) {
+    return executeBrowserSearch(deps.browser, searchTerm, options);
+  }
+
+  // 1. Try Primary Cloud Run / Local Chromium first (0 marginal cost)
+  const primaryBrowser = await (deps.getBrowser || getSearchBrowser)();
+  const primaryResult = await executeBrowserSearch(primaryBrowser, searchTerm, options);
+
+  const isBlocked = Boolean(primaryResult.blocked || /blocked|checkpoint|challenge|403/i.test(primaryResult.error || ''));
+  if (!isBlocked && (!primaryResult.error || primaryResult.data?.length > 0)) {
+    return primaryResult;
+  }
+
+  // 2. Check if Browserless fallback is configured
+  const fallbackEndpoint = browserlessEndpoint();
+  if (!fallbackEndpoint) {
+    if (isBlocked) {
+      logger.warn('Meta blocked primary browser, but no Browserless fallback credentials configured', {
+        query: searchTerm,
+        blockReason: primaryResult.blockReason || primaryResult.error,
+      });
+    }
+    return primaryResult;
+  }
+
+  // 3. Fallback to managed Browserless with residential proxy
+  const fallbackStartedAt = Date.now();
+  logger.warn('⚠️ Primary Cloud Run browser blocked by Meta or failed; falling back to managed Browserless residential proxy', {
+    query: searchTerm,
+    primaryBlocked: isBlocked,
+    blockReason: primaryResult.blockReason || primaryResult.error,
+    action: 'FALLBACK_INITIATED',
+  });
+
+  let fallbackBrowser;
+  try {
+    fallbackBrowser = await (deps.getFallbackBrowser || getFallbackBrowser)();
+    if (!fallbackBrowser) throw new Error('Could not establish Browserless fallback connection');
+
+    const fallbackResult = await executeBrowserSearch(fallbackBrowser, searchTerm, options, { residential: true });
+    const durationMs = Date.now() - fallbackStartedAt;
+
+    if (fallbackResult.blocked || (fallbackResult.error && !fallbackResult.data?.length)) {
+      logger.error('❌ Browserless residential fallback FAILED or blocked by Meta', {
+        query: searchTerm,
+        blocked: Boolean(fallbackResult.blocked),
+        error: fallbackResult.error,
+        blockReason: fallbackResult.blockReason,
+        durationMs,
+        action: 'FALLBACK_FAILED',
+      });
+      return fallbackResult;
+    }
+
+    logger.info('✅ Browserless residential fallback SUCCEEDED', {
+      query: searchTerm,
+      adsFound: fallbackResult.data.length,
+      durationMs,
+      status: 'FALLBACK_SUCCESS',
+      collector: 'managed-browserless',
+    });
+
+    return {
+      ...fallbackResult,
+      resolvedByFallback: true,
+      collector: 'managed-browserless',
+    };
+  } catch (err) {
+    logger.error('❌ Browserless residential fallback encountered exception', {
+      query: searchTerm,
+      error: err.message,
+      durationMs: Date.now() - fallbackStartedAt,
+      action: 'FALLBACK_ERROR',
+    });
+    return primaryResult;
+  } finally {
+    if (fallbackBrowser) {
+      await fallbackBrowser.close().catch(() => {});
+    }
+  }
+}
+
 module.exports = { buildAdsLibrarySearchUrl, extractAdsFromPayload, extractAdsFromDocument,
   browserConnectionMode, browserlessEndpoint, managedPlaywrightEndpoint,
-  createCollectorContext, getSearchBrowser, searchMetaAds, discoverMetaPages };
+  createCollectorContext, getSearchBrowser, getFallbackBrowser, searchMetaAds, discoverMetaPages };

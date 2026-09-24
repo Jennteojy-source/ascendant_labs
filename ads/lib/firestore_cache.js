@@ -1,12 +1,8 @@
 /** Short-lived cache of ad-bound media descriptors (not media bytes). */
-const fs = require('fs');
-const path = require('path');
 const { Firestore } = require('@google-cloud/firestore');
 const { MEDIA_SCHEMA_VERSION, MEDIA_CACHE_TTL_MS, DURABLE_MEDIA_CACHE_TTL_MS,
   mediaResult, isAvatarUrl, isUrlExpired } = require('./media_resolver');
 
-const CACHE_DIR = path.resolve(__dirname, '../.cache');
-const FALLBACK_CACHE_FILE = path.join(CACHE_DIR, 'media_cache.json');
 const COLLECTION_NAME = 'ad_media_cache';
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ascendant-labs-45812';
 const memoryCache = new Map();
@@ -33,7 +29,7 @@ function normalizeCacheEntry(entry, now = Date.now()) {
 }
 
 function getFirestore() {
-  if (process.env.MEDIA_FIRESTORE_DISABLED === '1' || Date.now() < retryFirestoreAt) return null;
+  if (process.env.MEDIA_FIRESTORE_DISABLED === '1' || process.env.NODE_ENV === 'test' || Date.now() < retryFirestoreAt) return null;
   if (!firestoreInstance) firestoreInstance = new Firestore({ projectId: PROJECT_ID });
   return firestoreInstance;
 }
@@ -42,13 +38,6 @@ function remember(id, entry) {
   memoryCache.set(id, entry);
   while (memoryCache.size > 500) memoryCache.delete(memoryCache.keys().next().value);
 }
-try {
-  const entries = JSON.parse(fs.readFileSync(FALLBACK_CACHE_FILE, 'utf8'));
-  for (const [id, raw] of Object.entries(entries)) {
-    const entry = normalizeCacheEntry(raw);
-    if (entry) remember(id, entry);
-  }
-} catch { /* First run or unreadable local cache. */ }
 
 async function getCachedMediaBatch(adIds = []) {
   const results = {};
@@ -83,10 +72,6 @@ async function saveMediaBatch(entries = {}) {
     if (entry) { remember(String(id), entry); valid.push([String(id), entry]); }
   }
   if (!valid.length) return;
-  try {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
-    fs.writeFileSync(FALLBACK_CACHE_FILE, JSON.stringify(Object.fromEntries(memoryCache)), 'utf8');
-  } catch { /* Disk cache is optional on ephemeral workers. */ }
   const db = getFirestore();
   if (db) {
     try {

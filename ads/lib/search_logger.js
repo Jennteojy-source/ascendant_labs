@@ -6,24 +6,20 @@
  * Allows historical review, analytics, and instant zero-latency replays.
  */
 
-const fs = require('fs');
-const path = require('path');
 const { Firestore, FieldValue } = require('@google-cloud/firestore');
 
-const CACHE_DIR = path.resolve(__dirname, '../.cache');
-const LOCAL_HISTORY_FILE = path.join(CACHE_DIR, 'search_history.json');
 const COLLECTION_NAME = 'search_history';
 const ADS_COLLECTION_NAME = 'ad_library_ads';
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ascendant-labs-45812';
-
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-}
+const memoryHistory = [];
 
 let firestoreInstance = null;
 let firestoreAvailable = null;
 
 function getFirestore() {
+  if (process.env.DISABLE_FIRESTORE === '1' || process.env.NODE_ENV === 'test') {
+    return null;
+  }
   if (!firestoreInstance) {
     try {
       firestoreInstance = new Firestore({
@@ -68,14 +64,24 @@ function sanitizeAdForStorage(ad) {
       platforms: Array.isArray(ad.stats?.platforms) ? ad.stats.platforms : [],
     },
     media: {
-      mediaType: ad.media?.mediaType || 'IMAGE',
+      schemaVersion: 2,
+      status: ad.media?.status || 'ready',
+      mediaType: ad.media?.mediaType || (ad.media?.videoUrl ? 'video' : 'image'),
       thumbnailUrl: ad.media?.thumbnailUrl || null,
       videoUrl: ad.media?.videoUrl || null,
-      creatives: Array.isArray(ad.media?.creatives) ? ad.media.creatives.map(creative => ({
-        mediaType: creative.mediaType || 'unknown',
-        thumbnailUrl: creative.thumbnailUrl || null,
-        videoUrl: creative.videoUrl || null,
-      })) : [],
+      creatives: Array.isArray(ad.media?.creatives) && ad.media.creatives.length > 0
+        ? ad.media.creatives.map(creative => ({
+            mediaType: creative.mediaType || (creative.videoUrl ? 'video' : 'image'),
+            thumbnailUrl: creative.thumbnailUrl || null,
+            videoUrl: creative.videoUrl || null,
+          }))
+        : (ad.media?.thumbnailUrl || ad.media?.videoUrl ? [{
+            mediaType: ad.media?.mediaType || (ad.media?.videoUrl ? 'video' : 'image'),
+            thumbnailUrl: ad.media?.thumbnailUrl || null,
+            videoUrl: ad.media?.videoUrl || null,
+          }] : []),
+      destinationUrl: ad.media?.destinationUrl || ad.destinationUrl || null,
+      ctaText: ad.media?.ctaText || ad.ctaText || null,
       // These values identify the immutable GCS object backing /api/media URLs.
       assetObjectPaths: storedAssetPaths(ad.media, String(ad.id || '')),
     },
@@ -214,42 +220,28 @@ async function logSearchSession(sessionData = {}) {
     },
   };
 
-  // 1. Save to local fallback cache
-  try {
-    let localHistory = [];
-    if (fs.existsSync(LOCAL_HISTORY_FILE)) {
-      try {
-        localHistory = JSON.parse(fs.readFileSync(LOCAL_HISTORY_FILE, 'utf8'));
-      } catch (e) {
-        localHistory = [];
-      }
-    }
-    // Prepend new search, keep last 100
-    localHistory.unshift({
-      id: docData.id,
-      query: docData.query,
-      status: docData.status,
-      isBlocked: docData.isBlocked,
-      blockReason: docData.blockReason,
-      errorMessage: docData.errorMessage,
-      timestamp: docData.metadata.loggedAt,
-      totalFound: docData.totalFound,
-      returnedCount: docData.returnedCount,
-      brandName: docData.profile?.brandName || docData.query,
-      category: docData.profile?.category || '',
-      vectorHits: docData.vectorHits,
-      discoveryErrors: docData.discoveryErrors,
-      collector: docData.metadata.collector,
-      latencyMs: docData.metadata.latencyMs,
-      topResultsSummary: docData.topResultsSummary,
-      results: docData.results,
-      profile: docData.profile,
-    });
-    if (localHistory.length > 100) localHistory = localHistory.slice(0, 100);
-    fs.writeFileSync(LOCAL_HISTORY_FILE, JSON.stringify(localHistory, null, 2), 'utf8');
-  } catch (err) {
-    console.warn('[SearchLogger] Local history file write notice:', err.message);
-  }
+  // 1. Save to in-memory history
+  memoryHistory.unshift({
+    id: docData.id,
+    query: docData.query,
+    status: docData.status,
+    isBlocked: docData.isBlocked,
+    blockReason: docData.blockReason,
+    errorMessage: docData.errorMessage,
+    timestamp: docData.metadata.loggedAt,
+    totalFound: docData.totalFound,
+    returnedCount: docData.returnedCount,
+    brandName: docData.profile?.brandName || docData.query,
+    category: docData.profile?.category || '',
+    vectorHits: docData.vectorHits,
+    discoveryErrors: docData.discoveryErrors,
+    collector: docData.metadata.collector,
+    latencyMs: docData.metadata.latencyMs,
+    topResultsSummary: docData.topResultsSummary,
+    results: docData.results,
+    profile: docData.profile,
+  });
+  if (memoryHistory.length > 100) memoryHistory.length = 100;
 
   // 2. Save to Google Cloud Firestore
   const db = getFirestore();
@@ -321,35 +313,29 @@ async function getRecentSearches(limit = 25, options = {}) {
     }
   }
 
-  // Fallback to local history
-  if (fs.existsSync(LOCAL_HISTORY_FILE)) {
-    try {
-      let list = JSON.parse(fs.readFileSync(LOCAL_HISTORY_FILE, 'utf8'));
-      if (options.status) list = list.filter(item => item.status === options.status);
-      if (typeof options.isBlocked === 'boolean') list = list.filter(item => item.isBlocked === options.isBlocked);
-      return list.slice(0, limit).map(item => ({
-        id: item.id,
-        query: item.query,
-        status: item.status || (item.isBlocked ? 'BLOCKED' : 'SUCCESS'),
-        isBlocked: Boolean(item.isBlocked),
-        blockReason: item.blockReason || null,
-        errorMessage: item.errorMessage || null,
-        totalFound: item.totalFound || 0,
-        returnedCount: item.returnedCount || 0,
-        brandName: item.brandName,
-        category: item.category,
-        domain: item.profile?.domain || '',
-        vectorHits: item.vectorHits || {},
-        discoveryErrors: item.discoveryErrors || [],
-        collector: item.collector || 'unknown',
-        latencyMs: item.latencyMs || 0,
-        topResultsSummary: item.topResultsSummary || [],
-        timestamp: item.timestamp,
-      }));
-    } catch (e) {}
-  }
-
-  return [];
+  // Fallback to in-memory history
+  let list = [...memoryHistory];
+  if (options.status) list = list.filter(item => item.status === options.status);
+  if (typeof options.isBlocked === 'boolean') list = list.filter(item => item.isBlocked === options.isBlocked);
+  return list.slice(0, limit).map(item => ({
+    id: item.id,
+    query: item.query,
+    status: item.status || (item.isBlocked ? 'BLOCKED' : 'SUCCESS'),
+    isBlocked: Boolean(item.isBlocked),
+    blockReason: item.blockReason || null,
+    errorMessage: item.errorMessage || null,
+    totalFound: item.totalFound || 0,
+    returnedCount: item.returnedCount || 0,
+    brandName: item.brandName,
+    category: item.category,
+    domain: item.profile?.domain || '',
+    vectorHits: item.vectorHits || {},
+    discoveryErrors: item.discoveryErrors || [],
+    collector: item.collector || 'unknown',
+    latencyMs: item.latencyMs || 0,
+    topResultsSummary: item.topResultsSummary || [],
+    timestamp: item.timestamp,
+  }));
 }
 
 /**
@@ -402,22 +388,17 @@ async function getSearchSession(id) {
     }
   }
 
-  // Fallback to local history
-  if (fs.existsSync(LOCAL_HISTORY_FILE)) {
-    try {
-      const list = JSON.parse(fs.readFileSync(LOCAL_HISTORY_FILE, 'utf8'));
-      const found = list.find(item => item.id === id);
-      if (found) {
-        return {
-          id: found.id,
-          query: found.query,
-          totalFound: found.totalFound,
-          profile: found.profile,
-          results: found.results,
-          metadata: { loggedAt: found.timestamp },
-        };
-      }
-    } catch (e) {}
+  // Fallback to in-memory history
+  const found = memoryHistory.find(item => item.id === id);
+  if (found) {
+    return {
+      id: found.id,
+      query: found.query,
+      totalFound: found.totalFound,
+      profile: found.profile,
+      results: found.results,
+      metadata: { loggedAt: found.timestamp },
+    };
   }
 
   return null;

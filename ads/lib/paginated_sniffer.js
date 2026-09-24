@@ -1,7 +1,7 @@
 /** Ad-specific creative extraction with bounded concurrency and refreshes. */
 const cache = require('./firestore_cache');
 const { mediaResult, extractStructuredMedia, inspectAdDocument, destinationUrl } = require('./media_resolver');
-const { getSearchBrowser: getBrowser, createCollectorContext } = require('./meta_browser_searcher');
+const { getSearchBrowser: getBrowser, getFallbackBrowser, createCollectorContext } = require('./meta_browser_searcher');
 const logger = require('./gcp_logger');
 
 function snapshotTarget(adId, supplied) {
@@ -21,10 +21,10 @@ function snapshotTarget(adId, supplied) {
   return url.href;
 }
 
-async function sniffSingleAd(browser, adId, supplied) {
+async function sniffSingleAd(browser, adId, supplied, { residential = false } = {}) {
   const target = snapshotTarget(adId, supplied);
   if (!target) return mediaResult([], null, 'invalid_request');
-  const { context, owned } = await createCollectorContext(browser);
+  const { context, owned } = await createCollectorContext(browser, { residential });
   const page = await context.newPage();
   let structured = mediaResult([], 'structured');
   let best = mediaResult([], 'dom');
@@ -157,6 +157,45 @@ function createMediaSniffer(deps) {
             const startedAt = Date.now();
             const browser = await deps.getBrowser();
             let value = await deps.sniffSingleAd(browser, id, ad.adSnapshotUrl);
+
+            // Fallback to Browserless residential proxy only if primary browser was blocked by Meta
+            if (value.status === 'blocked' && deps.getFallbackBrowser) {
+              const fallbackStartedAt = Date.now();
+              logger.warn('⚠️ Ad detail sniffing blocked on primary browser; falling back to Browserless residential proxy', {
+                adId: id,
+                status: 'SNIFF_FALLBACK_INITIATED',
+              });
+              let fallbackBrowser;
+              try {
+                fallbackBrowser = await deps.getFallbackBrowser();
+                if (fallbackBrowser) {
+                  const fallbackValue = await deps.sniffSingleAd(fallbackBrowser, id, ad.adSnapshotUrl, { residential: true });
+                  if (fallbackValue.status === 'ready') {
+                    value = fallbackValue;
+                    logger.info('✅ Ad detail sniffing SUCCEEDED via Browserless residential proxy', {
+                      adId: id,
+                      creativeCount: value.creatives?.length || 0,
+                      durationMs: Date.now() - fallbackStartedAt,
+                      status: 'SNIFF_FALLBACK_SUCCESS',
+                    });
+                  } else {
+                    logger.error('❌ Ad detail sniffing failed or blocked via Browserless residential proxy', {
+                      adId: id,
+                      status: fallbackValue.status,
+                      durationMs: Date.now() - fallbackStartedAt,
+                    });
+                  }
+                }
+              } catch (fallbackErr) {
+                logger.error('❌ Ad detail sniffing Browserless fallback error', {
+                  adId: id,
+                  error: fallbackErr.message,
+                });
+              } finally {
+                if (fallbackBrowser) await fallbackBrowser.close().catch(() => {});
+              }
+            }
+
             if (value.status === 'ready') await deps.saveMediaBatch({ [id]: value });
             recent.set(id, { at: Date.now(), value, forced: forceRefresh });
             logger.info('Ad media extraction completed', {
@@ -183,7 +222,7 @@ function createMediaSniffer(deps) {
   };
 }
 
-const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, sniffSingleAd,
+const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, getFallbackBrowser, sniffSingleAd,
   concurrency: Number(process.env.MEDIA_SNIFF_CONCURRENCY) || 2 });
-module.exports = { sniffPageMedia, getBrowser, snapshotTarget, sniffSingleAd, createMediaSniffer,
+module.exports = { sniffPageMedia, getBrowser, getFallbackBrowser, snapshotTarget, sniffSingleAd, createMediaSniffer,
   loadCache: () => Object.fromEntries(cache.memoryCache) };

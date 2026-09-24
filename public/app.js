@@ -489,7 +489,6 @@ let sniffDebounceTimer;
 let sniffRunning = false;
 const pendingSniffQueue = new Set();
 const mediaRequests = new Map();
-const automaticRefreshes = new Set();
 const creativeIndices = new Map();
 
 function resetMediaSession() {
@@ -500,13 +499,32 @@ function resetMediaSession() {
   adGrid.querySelectorAll('.card-media-box').forEach(box => AdMedia.dispose(box));
   state.resolvedMediaMap = {};
   state.blockedAdIds.clear();
-  automaticRefreshes.clear();
   creativeIndices.clear();
 }
 
 function currentMedia(ad) {
   const media = state.resolvedMediaMap[ad.id] || ad.media;
-  return media?.schemaVersion === 2 ? media : null;
+  if (!media) return null;
+  if (media.schemaVersion === 2) return media;
+  if (media.thumbnailUrl || media.videoUrl || (Array.isArray(media.creatives) && media.creatives.length > 0)) {
+    return {
+      schemaVersion: 2,
+      status: media.status || 'ready',
+      mediaType: media.mediaType || (media.videoUrl ? 'video' : 'image'),
+      thumbnailUrl: media.thumbnailUrl || null,
+      videoUrl: media.videoUrl || null,
+      creatives: Array.isArray(media.creatives) && media.creatives.length > 0
+        ? media.creatives
+        : [{
+            mediaType: media.mediaType || (media.videoUrl ? 'video' : 'image'),
+            thumbnailUrl: media.thumbnailUrl || null,
+            videoUrl: media.videoUrl || null,
+          }],
+      destinationUrl: media.destinationUrl || ad.destinationUrl || null,
+      ctaText: media.ctaText || ad.ctaText || null,
+    };
+  }
+  return media.status === 'blocked' ? media : null;
 }
 
 function initializeGridMedia() {
@@ -524,13 +542,6 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
     adId: String(ad.id), media: currentMedia(ad), index: creativeIndices.get(String(ad.id)) || 0,
     displayFormat: ad.display_format || currentMedia(ad)?.displayFormat || null,
     onIndexChange: index => creativeIndices.set(String(ad.id), index),
-    onRefresh: async manual => {
-      const id = String(ad.id);
-      if (generation !== mediaGeneration || (!manual && automaticRefreshes.has(id))) return null;
-      automaticRefreshes.add(id);
-      const media = await requestAdMedia(ad, true);
-      return generation === mediaGeneration ? media : null;
-    },
   });
   if (box.id === 'modalMediaBox' && !currentMedia(ad)) {
     requestAdMedia(ad).then(() => {
@@ -540,7 +551,7 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
   }
 }
 
-async function requestAdMedia(ad, forceRefresh = false) {
+async function requestAdMedia(ad) {
   const generation = mediaGeneration;
   const id = String(ad.id);
   const key = `${generation}:${id}`;
@@ -550,7 +561,7 @@ async function requestAdMedia(ad, forceRefresh = false) {
     try {
       const response = await fetch('/api/sniff-page', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null }], forceRefresh }),
+        body: JSON.stringify({ ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null }] }),
         signal: AbortSignal.timeout(90000),
       });
       if (!response.ok) throw new Error('Preview request failed');
@@ -812,6 +823,7 @@ window.openVariantsModal = function (adId) {
   window._currentModalAd = ad;
   window._currentVariantIdx = 0;
 
+  document.querySelectorAll('.creative-viewer video').forEach(v => v.pause());
   renderModalContent(ad, 0);
 
   modal.style.display = 'flex';
