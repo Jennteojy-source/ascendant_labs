@@ -360,8 +360,13 @@ async function getSearchDiagnostics(limit = 50) {
       lastSearchAt: lastSearch?.timestamp || null,
       lastBlockedAt: lastBlocked?.timestamp || null,
       lastBlockReason: lastBlocked?.blockReason || null,
-      activeCollector: (process.env.BROWSERLESS_TOKEN || process.env.BROWSERLESS_API) ? 'managed-browserless'
-        : process.env.BROWSER_WS_ENDPOINT ? 'managed-playwright' : 'headless-chromium',
+      activeCollector: process.env.BROWSERLESS_PRIMARY === '1' && (process.env.BROWSERLESS_TOKEN || process.env.BROWSERLESS_API)
+        ? 'managed-browserless'
+        : process.env.BROWSER_WS_ENDPOINT
+          ? 'managed-playwright'
+          : (process.env.BROWSERLESS_TOKEN || process.env.BROWSERLESS_API)
+            ? 'chromium (browserless fallback ready)'
+            : 'chromium',
       environment: process.env.K_SERVICE ? 'cloud-run' : 'local',
     },
     recentSearches: recent,
