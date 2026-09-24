@@ -187,21 +187,19 @@ const server = http.createServer(async (req, res) => {
         {
           // ─── Stage 1: AI Query Expansion ───────────────────────────
           const expansionStarted = Date.now();
-          // The exact global browser query is independent of AI planning. Run
-          // both concurrently; Gemini only controls follow-ups if it is sparse.
-          const exactBrowserSearch = queryMetaArchive(trimmedInput, {
-            countries, status, mediaType, limit: 25,
-          });
           queryProfile = await expandQueryWithAI(trimmedInput);
           pipeline.stages.queryExpansionMs = Date.now() - expansionStarted;
 
           const searchVectors = queryProfile.searchVectors;
           const targetBrand = queryProfile.brandName;
+          const targetCountry = queryProfile.targetCountry;
+          const effectiveCountries = targetCountry ? [targetCountry] : countries;
           const coreKeywords = [queryProfile.coreProduct, ...(queryProfile.competitors || [])];
 
           logger.info('Stage 1 — AI Query Expansion complete', {
             input: trimmedInput,
             brandName: targetBrand,
+            targetCountry: targetCountry || 'ALL',
             vectorCount: searchVectors.length,
             source: queryProfile.source,
           });
@@ -210,22 +208,17 @@ const server = http.createServer(async (req, res) => {
           const discoveryStarted = Date.now();
           searchRes = await findComparables({
             vectors: searchVectors,
-            countries,
+            countries: effectiveCountries,
             status,
             mediaType,
             limitPerVector: 25,
-            // Exact global search is cheapest. Broaden terms only when recall
-            // is sparse; deploy-time tuning avoids product-specific rules.
+            // Goal-driven retrieval: broaden or pivot only when recall is sparse
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
             deadlineMs: Math.max(5000, Math.min(
               Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 38000,
               searchDeadlineMs - Date.now() - 3000)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
-            initialSearches: [{
-              vector: { type: 'EXACT_BRAND', query: trimmedInput },
-              result: await exactBrowserSearch,
-            }],
             enableAgenticLoop: false,
           });
 
