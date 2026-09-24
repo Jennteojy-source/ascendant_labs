@@ -39,7 +39,7 @@ function requestJson(url, token, payload, timeoutMs) {
   });
 }
 
-async function generateText(prompt, generationConfig = {}, options = {}) {
+async function generateContent(prompt, generationConfig = {}, options = {}) {
   const startedAt = Date.now();
   const operation = options.operation || 'unspecified';
   try {
@@ -49,6 +49,7 @@ async function generateText(prompt, generationConfig = {}, options = {}) {
     const response = await requestJson(endpoint, token, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig,
+      ...(options.tools ? { tools: options.tools } : {}),
     }, options.timeoutMs || 10000);
     const usage = response.usageMetadata || {};
     const inputTokens = Number(usage.promptTokenCount) || 0;
@@ -77,7 +78,13 @@ async function generateText(prompt, generationConfig = {}, options = {}) {
       estimatedCostUsd, pricingBasis: introductoryRate ? 'gemini-3.8-flash-global-standard-2026' : 'configured-or-unavailable',
       durationMs: Date.now() - startedAt,
     });
-    return response.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('') || '';
+    const candidate = response.candidates?.[0] || {};
+    return {
+      text: candidate.content?.parts?.map(part => part.text || '').join('') || '',
+      groundingSources: (candidate.groundingMetadata?.groundingChunks || [])
+        .map(chunk => chunk.web).filter(web => web && /^https:\/\//.test(web.uri || ''))
+        .map(web => ({ title: web.title || '', url: web.uri })).slice(0, 8),
+    };
   } catch (error) {
     logger.warn('Vertex generation failed', {
       operation, model: MODEL, statusCode: error.statusCode || null,
@@ -87,4 +94,8 @@ async function generateText(prompt, generationConfig = {}, options = {}) {
   }
 }
 
-module.exports = { generateText, MODEL, LOCATION };
+async function generateText(prompt, generationConfig = {}, options = {}) {
+  return (await generateContent(prompt, generationConfig, options)).text;
+}
+
+module.exports = { generateText, generateContent, MODEL, LOCATION };

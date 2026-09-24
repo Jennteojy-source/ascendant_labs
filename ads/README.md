@@ -17,8 +17,10 @@ ads/
 │   ├── media_resolver.js                # Safe image/video normalization
 │   ├── comparable_finder.js             # Multi-vector browser search
 │   ├── ad_ranker.js                     # Deduplication and ranking
-│   ├── ai_query_expander.js             # Search-query expansion
-│   ├── ai_reranker.js                   # Relevance reranking
+│   ├── ai_query_expander.js             # Grounded product profile and query expansion
+│   ├── ai_retrieval_agent.js            # Gemini follow-up search planning
+│   ├── ai_reranker.js                   # Gemini relevance judgment for every candidate
+│   ├── product_identity.js             # Evidence used for recall and safe fallback
 │   ├── pdp_profiler.js                  # Product-page analysis
 │   ├── firestore_cache.js               # Short-lived media cache
 │   ├── search_logger.js                 # Search history
@@ -31,7 +33,7 @@ ads/
 ```bash
 npm run ad:server                     # Start web server and API
 npm run ad:search -- "product"        # Run multi-vector agentic search CLI
-npm run test:media                    # Run regression test suite
+npm test                              # Run search and media regression tests
 ```
 
 ## Managed browser deployment
@@ -59,7 +61,7 @@ Apply `storage-lifecycle.json` to the bucket to delete cached analysis media aft
 ### Local development fallback
 Fallback mode: launches local headless Chromium when no remote endpoints are configured.
 
-No Meta Ads Library API token is read or transmitted. Query expansion and reranking use Vertex AI with the Cloud Run service account; configure `VERTEX_GEMINI_MODEL` only to override the default `gemini-3.8-flash` model.
+No Meta Ads Library API token is read or transmitted. The web search pipeline first asks Gemini to research the product with Google Search grounding, then uses a structured Gemini response to plan Meta queries. Grounded aliases can be used in follow-up queries. Gemini judges every candidate before the API presents named-offer matches; an exact name match supports a conservative fallback if the model is unavailable. The grounded profile and sources are returned in `queryProfile` and recorded with search history. Configure `VERTEX_GEMINI_MODEL` only to override the default `gemini-3.8-flash` model. Google Search grounding adds a Vertex request and may increase search latency and cost.
 
 Cloud Logging records search vector durations/failures, each ad preview outcome,
 asset download outcomes and bytes, and Vertex input/output/cached token counts.

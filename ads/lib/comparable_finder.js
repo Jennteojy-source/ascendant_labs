@@ -61,8 +61,7 @@ function buildRetrievalPlan(vectors = [], maxQueries = 4) {
   const exactTerm = String(exact?.query || '').trim();
   const compact = exactTerm.replace(/[^\p{L}\p{N}]+/gu, '');
   if (compact && normalizedTerm(compact) !== normalizedTerm(exactTerm)) add(plan, 'RELAXED_COMPACT', compact);
-  const firstToken = exactTerm.split(/[^\p{L}\p{N}]+/u).find(token => token.length >= 3);
-  if (firstToken && normalizedTerm(firstToken) !== normalizedTerm(exactTerm)) add(plan, 'RELAXED_BRAND_TOKEN', firstToken);
+  // A single word from a named product is usually too broad to retrieve.
 
   return plan.slice(0, Math.max(1, Math.min(6, Number(maxQueries) || 4)));
 }
@@ -72,7 +71,7 @@ async function findComparables(searchPlan = {}, options = {}) {
   const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
     limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true,
     minRecall = 5, maxQueries = 5, deadlineMs = 45000, queryArchive = queryMetaArchive, nextQueries,
-    initialSearches = [] } = merged;
+    initialSearches = [], isRelevantCandidate = null } = merged;
   const startedAt = Date.now();
   const rawAdsMap = new Map();
   const vectorHits = {};
@@ -165,7 +164,9 @@ async function findComparables(searchPlan = {}, options = {}) {
     collectResult(vector, seeded.result);
   }
   await runPlanned(retrievalPlan[0]);
-  while (rawAdsMap.size < minRecall && attempted.length < maxQueries && Date.now() - startedAt < deadlineMs) {
+  const relevantCount = () => typeof isRelevantCandidate === 'function'
+    ? [...rawAdsMap.values()].filter(isRelevantCandidate).length : rawAdsMap.size;
+  while (relevantCount() < minRecall && attempted.length < maxQueries && Date.now() - startedAt < deadlineMs) {
     // AI planning and a browser query both need time; stop before an HTTP proxy
     // timeout would hide an otherwise valid partial result from the user.
     if (deadlineMs - (Date.now() - startedAt) < 8000) break;
@@ -176,6 +177,7 @@ async function findComparables(searchPlan = {}, options = {}) {
         attempted: [...attempted],
         candidates: [...rawAdsMap.values()],
         totalRawAds: rawAdsMap.size,
+        relevantAds: relevantCount(),
         remainingQueries: remaining,
       });
     }
@@ -188,7 +190,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     // When the exact query is empty, two independent identity-preserving
     // searches can share the same browser wait. Avoid extra traffic once there
     // are already plausible hits.
-    const batchWidth = rawAdsMap.size === 0 ? 2 : 1;
+    const batchWidth = relevantCount() === 0 ? 2 : 1;
     for (const vector of candidates) {
       const key = getAttemptKey(vector);
       if (!key || attempted.includes(key) || batch.some(v => getAttemptKey(v) === key)) continue;

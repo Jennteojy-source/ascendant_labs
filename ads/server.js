@@ -18,8 +18,9 @@ const { profilePDP } = require('./lib/pdp_profiler');
 const { expandQueryWithAI } = require('./lib/ai_query_expander');
 const { decideNextSearch } = require('./lib/ai_retrieval_agent');
 const { findComparables, queryMetaArchive } = require('./lib/comparable_finder');
-const { deduplicateAndRankAds, paginateAds, isPresentableAd } = require('./lib/ad_ranker');
-const { rerankAdsWithAI } = require('./lib/ai_reranker');
+const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
+const { rerankAdsWithAI, isSearchMatch } = require('./lib/ai_reranker');
+const { matchesProductIdentity } = require('./lib/product_identity');
 const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const { browserConnectionMode, getSearchBrowser } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
@@ -219,6 +220,7 @@ const server = http.createServer(async (req, res) => {
               Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 38000,
               searchDeadlineMs - Date.now() - 3000)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
+            isRelevantCandidate: ad => matchesProductIdentity(ad, queryProfile, trimmedInput),
             enableAgenticLoop: false,
           });
 
@@ -244,30 +246,17 @@ const server = http.createServer(async (req, res) => {
 
           const evalProfile = {
             brandName: targetBrand,
+            intentType: queryProfile.intentType || 'NAMED_OFFER',
+            aliases: queryProfile.aliases || [],
+            groundingSources: queryProfile.groundingSources || [],
             category: queryProfile.category || 'Direct Response Offer',
             coreProduct: queryProfile.coreProduct || targetBrand,
             primaryPainPoints: queryProfile.painPoints || [],
             productKeywords: queryProfile.productKeywords || [targetBrand],
           };
 
-          // Exact-brand page results have already passed deterministic relevance
-          // checks. Avoid a second Vertex request when every result is from the
-          // official brand; reserve listwise judging for mixed/ambiguous sets.
-          const hasOnlyOfficialBrandResults = rankedAds.length > 0 && rankedAds.every(ad =>
-            ad.ranking?.relevanceType === 'OFFICIAL_BRAND');
-          if (!hasOnlyOfficialBrandResults) {
-            rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
-          }
-          // An explicit AI rejection is stronger evidence than an ad's age or
-          // activity score. Do not present that record as a search match.
-          const presentable = rankedAds.filter(isPresentableAd);
-          if (presentable.length > 0) {
-            rankedAds = presentable;
-          } else if (rankedAds.some(ad => ad.ranking?.relevanceType !== 'UNRELATED')) {
-            // If AI relevance is unavailable or all candidates are fail-open DISCOVERED,
-            // retain non-unrelated ads rather than collapsing the entire search to 0 results.
-            rankedAds = rankedAds.filter(ad => ad.ranking?.relevanceType !== 'UNRELATED');
-          }
+          rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile));
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {
