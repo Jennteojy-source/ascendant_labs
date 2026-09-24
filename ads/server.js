@@ -267,7 +267,14 @@ const server = http.createServer(async (req, res) => {
           }
           // An explicit AI rejection is stronger evidence than an ad's age or
           // activity score. Do not present that record as a search match.
-          rankedAds = rankedAds.filter(isPresentableAd);
+          const presentable = rankedAds.filter(isPresentableAd);
+          if (presentable.length > 0) {
+            rankedAds = presentable;
+          } else if (rankedAds.some(ad => ad.ranking?.relevanceType !== 'UNRELATED')) {
+            // If AI relevance is unavailable or all candidates are fail-open DISCOVERED,
+            // retain non-unrelated ads rather than collapsing the entire search to 0 results.
+            rankedAds = rankedAds.filter(ad => ad.ranking?.relevanceType !== 'UNRELATED');
+          }
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {

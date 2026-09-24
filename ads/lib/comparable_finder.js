@@ -10,8 +10,20 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const searchType = options.searchType || 'keyword_unordered';
   // Queries intentionally remain live. Persisted media, not search results, is reused.
   try {
-    return await searchMetaAds(searchTerm, { countries, status, limit, mediaType, searchType,
-      timeoutMs: options.timeoutMs });
+    const startedAt = Date.now();
+    const budgetMs = Math.max(5000, Math.min(30000, Number(options.timeoutMs) || 30000));
+    const request = timeoutMs => searchMetaAds(searchTerm,
+      { countries, status, limit, mediaType, searchType, timeoutMs });
+    let result = await request(budgetMs);
+    const remainingMs = budgetMs - (Date.now() - startedAt);
+    if (result.inconclusive && remainingMs >= 6000) {
+      logger.info('Retrying inconclusive Meta search once', {
+        query: searchTerm, remainingMs,
+      });
+      const retry = await request(remainingMs);
+      if (retry.data?.length || !retry.inconclusive) result = retry;
+    }
+    return result;
   } catch (error) {
     logger.warn('Search browser unavailable', {
       query: searchTerm, errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200),

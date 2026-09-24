@@ -65,9 +65,13 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 ]`;
 
   try {
-    const raw = await generateText(prompt, { temperature: 0.1, maxOutputTokens: 1800 },
-      { operation: 'ad_relevance', timeoutMs: 15000 });
-    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const raw = await generateText(
+      prompt,
+      { temperature: 0.1, maxOutputTokens: 3000, thinkingConfig: { thinkingBudget: 0 } },
+      { operation: 'ad_relevance', timeoutMs: 15000 }
+    );
+    const match = String(raw || '').match(/\[[\s\S]*\]/);
+    const cleaned = match ? match[0] : String(raw || '').replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed)) {
       return parsed;

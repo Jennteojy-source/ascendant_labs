@@ -6,6 +6,7 @@
  */
 const { chromium } = require('playwright');
 const { extractStructuredMedia, mediaResult } = require('./media_resolver');
+const logger = require('./gcp_logger');
 
 const SEARCH_TIMEOUT_MS = 30000;
 const BROWSER_LAUNCH_TIMEOUT_MS = Math.max(30000, Number(process.env.BROWSER_LAUNCH_TIMEOUT_MS) || 45000);
@@ -360,6 +361,8 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   let jsonReads = 0;
   let blocked = false;
   let blockReason = null;
+  let lastBodyText = '';
+  let navigationStatus = null;
   const collect = ad => ads.set(ad.id, mergeAd(ads.get(ad.id), ad));
   try {
     await page.route('**/*', route => {
@@ -382,6 +385,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
     const response = await page.goto(buildAdsLibrarySearchUrl(searchTerm, options), {
       waitUntil: 'domcontentloaded', timeout: timeoutMs,
     });
+    navigationStatus = response?.status() || null;
 
     // Check if Meta served an initial rate-denial challenge (__rd_verify) with HTTP 403
     const challengeMarker = await page.evaluate(() => {
@@ -401,8 +405,8 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
 
     await dismissConsent(page);
     if (timeLeft() > 1000) await Promise.race([
-      page.locator('text=/Library ID/i').first().waitFor({ timeout: Math.min(5000, timeLeft()) }).catch(() => {}),
-      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: Math.min(5000, timeLeft()) }).catch(() => {}),
+      page.locator('text=/Library ID/i').first().waitFor({ timeout: Math.min(8500, timeLeft()) }).catch(() => {}),
+      page.locator('text=/(?:No results|0 results|didn\'t match any ads)/i').first().waitFor({ timeout: Math.min(8500, timeLeft()) }).catch(() => {}),
     ]);
     let unchanged = 0;
     let previousCount = -1;
@@ -415,6 +419,7 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
         if (payload) extractAdsFromPayload(payload).forEach(collect);
       }
       const bodyText = await page.locator('body').innerText({ timeout: 2000 }).catch(() => '');
+      lastBodyText = bodyText;
       if (/log in to continue|security check|temporarily blocked|automated behavior/i.test(bodyText)
           || /\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())) {
         blocked = true;
@@ -424,16 +429,26 @@ async function searchMetaAds(searchTerm, options = {}, deps = {}) {
       }
       if (ads.size === previousCount) unchanged++; else unchanged = 0;
       previousCount = ads.size;
-      if (unchanged >= 3) break;
+      const explicitEmpty = /(?:^|\n)\s*(?:no ads found|no results|0 results|your search didn't match any ads)/i.test(bodyText);
+      if (unchanged >= 3 && (ads.size > 0 || explicitEmpty || Date.now() - startedAt >= Math.min(13000, timeoutMs - 1000))) break;
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
       await page.waitForTimeout(SCROLL_SETTLE_MS);
     }
     await Promise.race([Promise.allSettled([...pendingReads]), page.waitForTimeout(Math.min(1000, timeLeft()))]);
     (await page.evaluate(extractAdsFromDocument).catch(() => [])).map(domAdToRecord).forEach(collect);
+    const explicitEmpty = /(?:^|\n)\s*(?:no ads found|no results|0 results|your search didn't match any ads)/i.test(lastBodyText);
+    const inconclusive = !ads.size && !blocked && !explicitEmpty;
+    if (inconclusive) logger.warn('Meta search page did not yield result cards', {
+      query: searchTerm, navigationStatus, jsonReads,
+      resultHeading: (lastBodyText.match(/~?\s*[\d,]+\s+results?/i) || [])[0] || null,
+      bodySample: lastBodyText.slice(0, 180), durationMs: Date.now() - startedAt,
+    });
     return {
       data: [...ads.values()].slice(0, limit),
-      error: blocked ? (blockReason || 'Meta blocked the browser session') : null,
+      error: blocked ? (blockReason || 'Meta blocked the browser session')
+        : (inconclusive ? 'Meta search page did not finish loading result cards' : null),
       blocked,
+      inconclusive,
       blockReason: blocked ? (blockReason || 'Meta blocked the browser session') : null,
     };
   } catch (error) {
