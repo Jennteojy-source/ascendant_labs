@@ -22,6 +22,14 @@ test('nested Meta fields retain their primary text, headline, and description ro
   assert.deepEqual(ad.ad_creative_link_descriptions, ['A distinct description']);
 });
 
+test('Meta string false status is not mistaken for an active ad', () => {
+  const [ad] = extractAdsFromPayload({ ads: [{
+    ad_archive_id: '123456790', page_name: 'Example Brand', is_active: 'false',
+    snapshot: { body: 'Example Brand product' },
+  }] });
+  assert.equal(ad.is_active, false);
+});
+
 test('Library interface labels do not become primary text or headlines', () => {
   const [ad] = extractAdsFromPayload({ ads: [{
     ad_archive_id: '888000111', page_name: 'Example', snapshot: {
@@ -52,6 +60,43 @@ test('the same image served at different sizes and with revised copy is one crea
   assert.equal(ranked.length, 1);
   assert.deepEqual(ranked[0].associatedAdIds, ['111000111', '222000222']);
   assert.equal(ranked[0].variants.length, 2);
+});
+
+test('an active duplicate represents a creative whose older ad ended', () => {
+  const base = {
+    page_name: 'ProDentim', ad_creative_bodies: ['ProDentim oral probiotic'],
+    ad_creative_link_titles: ['Support your smile'],
+  };
+  const results = deduplicateAndRankAds([
+    { ...base, id: '111111111', is_active: false,
+      ad_delivery_start_time: '2025-01-01', ad_delivery_stop_time: '2025-01-10' },
+    { ...base, id: '222222222', is_active: true,
+      ad_delivery_start_time: '2026-09-20' },
+  ], { targetBrand: 'ProDentim', searchQuery: 'ProDentim' });
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, '222222222');
+  assert.equal(results[0].stats.isActive, true);
+  assert.deepEqual(results[0].associatedAdIds, ['111111111', '222222222']);
+});
+
+test('inactive exact-name hits do not stop discovery of active product ads', async () => {
+  const calls = [];
+  const result = await findComparables({
+    vectors: [{ type: 'EXACT_BRAND', query: 'ProDentim', countries: ['ALL'] }],
+    minRecall: 1, maxQueries: 2, deadlineMs: 12000,
+    isRelevantCandidate: ad => ad.is_active === true && /prodentim/i.test(ad.ad_creative_bodies?.[0] || ''),
+    nextQueries: async () => [{ type: 'PRODUCT_NAME', query: 'ProDentim review' }],
+    queryArchive: async query => {
+      calls.push(query);
+      return { data: query === 'ProDentim'
+        ? [{ id: '111111111', is_active: false, ad_creative_bodies: ['ProDentim review'] }]
+        : [{ id: '1434842278501314', is_active: true,
+          ad_creative_bodies: ['ProDentim oral probiotic'] }] };
+    },
+    enableAgenticLoop: false,
+  });
+  assert.deepEqual(calls, ['ProDentim', 'ProDentim review']);
+  assert.equal(result.ads.some(ad => ad.id === '1434842278501314'), true);
 });
 
 test('an ad that stopped within the last day is inactive', () => {
@@ -461,4 +506,3 @@ test('deduplicateAndRankAds removes ads flagged with disabled account, removed a
   assert.equal(isPresentableAd(rawAds[2]), false);
   assert.equal(isPresentableAd(results[0]), true);
 });
-

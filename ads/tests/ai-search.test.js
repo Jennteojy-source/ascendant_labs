@@ -3,7 +3,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { sanitizeSearchVectors } = require('../lib/ai_query_expander');
 const { sanitizeAgentQueries } = require('../lib/ai_retrieval_agent');
-const { rerankAdsWithAI, isSearchMatch } = require('../lib/ai_reranker');
+const { rerankAdsWithAI, evaluateBatchWithAI, isSearchMatch } = require('../lib/ai_reranker');
+const { buildRetrievalPlan } = require('../lib/comparable_finder');
 
 function ad(id, pageName, body) {
   return {
@@ -51,4 +52,41 @@ test('failed Gemini evaluation withholds an unrelated candidate', async () => {
     brandName: 'Energy Revolution System', intentType: 'NAMED_OFFER',
   }, { evaluateBatch: async () => null });
   assert.equal(isSearchMatch(ranked[0], { intentType: 'NAMED_OFFER' }), false);
+});
+
+test('AI judge receives options and actually calls the model', async () => {
+  let calls = 0;
+  const result = await evaluateBatchWithAI({ brandName: 'ProDentim' },
+    [ad(1, 'ProDentim', 'ProDentim oral probiotic')], {
+      timeoutMs: 1234,
+      generateText: async (_prompt, _config, meta) => {
+        calls++;
+        assert.equal(meta.timeoutMs, 1234);
+        return JSON.stringify([{ id: '1', relationship: 'OFFICIAL_BRAND',
+          relevanceScore: 98, reason: 'Product named in page and copy' }]);
+      },
+    });
+  assert.equal(calls, 1);
+  assert.equal(result[0].relationship, 'OFFICIAL_BRAND');
+});
+
+test('multiword offers get a precise phrase search alongside broad search', () => {
+  const plan = buildRetrievalPlan([
+    { type: 'EXACT_BRAND', query: 'Energy Revolution System', countries: ['ALL'] },
+  ], 4, { precisePhrase: true });
+  assert.deepEqual(plan.slice(0, 2).map(item => item.searchType || 'keyword_unordered'),
+    ['keyword_unordered', 'keyword_exact_phrase']);
+});
+
+test('active exact-product creative outranks an inactive long-running creative', async () => {
+  const active = ad(1, 'ProDentim', 'ProDentim oral probiotic');
+  const inactive = ad(2, 'ProDentim', 'ProDentim oral probiotic');
+  active.stats.flightDays = 1;
+  inactive.stats = { isActive: false, flightDays: 365 };
+  const ranked = await rerankAdsWithAI([inactive, active], {
+    brandName: 'ProDentim', intentType: 'NAMED_OFFER',
+  }, { evaluateBatch: async (_profile, batch) => batch.map(item => ({
+    id: item.id, relationship: 'OFFICIAL_BRAND', relevanceScore: 98, reason: 'Exact product',
+  })) });
+  assert.equal(ranked[0].id, '1');
 });

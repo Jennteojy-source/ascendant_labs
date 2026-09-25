@@ -177,11 +177,12 @@ const server = http.createServer(async (req, res) => {
       }
 
       const trimmedInput = (input || '').trim();
+      const requestedStatus = String(status).toUpperCase() === 'ALL' ? 'ALL' : 'ACTIVE';
       const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
       const userAgent = req.headers['user-agent'];
       const clientLocation = detectClientLocation(req, clientContext);
       const searchParams = {
-        countries, status, mediaType, page, pageSize,
+        countries, status: requestedStatus, mediaType, page, pageSize,
         userCountry: clientLocation?.country || null,
       };
       // Firebase Hosting has a strict 60s hard timeout on rewrites.
@@ -226,17 +227,19 @@ const server = http.createServer(async (req, res) => {
           searchRes = await findComparables({
             vectors: searchVectors,
             countries: effectiveCountries,
-            status,
+            status: requestedStatus,
             mediaType,
-            limitPerVector: 25,
+            limitPerVector: 40,
+            precisePhrase: true,
             // Goal-driven retrieval: broaden or pivot only when recall is sparse
-            minRecall: Number(process.env.SEARCH_MIN_RECALL) || 3,
-            maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 4,
+            minRecall: Number(process.env.SEARCH_MIN_RECALL) || 8,
+            maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
             deadlineMs: Math.max(5000, Math.min(
               Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 16000,
-              searchDeadlineMs - Date.now() - 6000)),
+              searchDeadlineMs - Date.now() - 8500)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
-            isRelevantCandidate: ad => matchesProductIdentity(ad, queryProfile, trimmedInput),
+            isRelevantCandidate: ad => (requestedStatus !== 'ACTIVE' || ad.is_active === true) &&
+              matchesProductIdentity(ad, queryProfile, trimmedInput),
             enableAgenticLoop: false,
           });
 
@@ -274,12 +277,18 @@ const server = http.createServer(async (req, res) => {
           };
 
           const remainingForRanking = searchDeadlineMs - Date.now();
-          if (remainingForRanking >= 5000 && deterministicAds.length > 0) {
-            const rankingTimeout = Math.min(7000, remainingForRanking - 2000);
+          if (remainingForRanking >= 3500 && deterministicAds.length > 0) {
+            const rankingTimeout = Math.min(6500, remainingForRanking - 1500);
             rankedAds = await rerankAdsWithAI(rankedAds, evalProfile, { timeoutMs: rankingTimeout });
           }
           rerankedAds = rankedAds;
-          rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile));
+          pipeline.aiRanking = {
+            evaluated: rankedAds.filter(ad => ad.ranking?.judgeSource === 'AI').length,
+            fallback: rankedAds.filter(ad => ad.ranking?.judgeSource === 'FALLBACK').length,
+            skippedForBudget: deterministicAds.length > 0 && remainingForRanking < 3500,
+          };
+          rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile) &&
+            (requestedStatus !== 'ACTIVE' || ad.stats?.isActive === true));
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {

@@ -42,11 +42,11 @@ function normalizedTerm(value) {
 // These are query transformations, not location or data fallbacks. They run
 // only when the exact global query has poor recall, and keep the search tied
 // to the submitted identity.
-function buildRetrievalPlan(vectors = [], maxQueries = 4) {
+function buildRetrievalPlan(vectors = [], maxQueries = 4, options = {}) {
   const seen = new Set();
   const add = (result, type, query, extra = {}) => {
     const cleaned = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 80);
-    const key = `${normalizedTerm(cleaned)}:${(extra.countries || []).join(',')}:${extra.pageId || ''}`;
+    const key = `${normalizedTerm(cleaned)}:${(extra.countries || []).join(',')}:${extra.pageId || ''}:${extra.searchType || ''}`;
     if ((!cleaned && !extra.pageId) || seen.has(key)) return;
     seen.add(key);
     result.push({ type, query: cleaned, ...extra });
@@ -56,6 +56,11 @@ function buildRetrievalPlan(vectors = [], maxQueries = 4) {
   const exact = supplied.find(vector => String(vector?.type).toUpperCase() === 'EXACT_BRAND') || supplied[0];
   const plan = [];
   if (exact) add(plan, 'EXACT_BRAND', exact?.query, { countries: exact?.countries, pageId: exact?.pageId });
+  if (options.precisePhrase && exact && String(exact.query || '').trim().split(/\s+/).length > 1) {
+    add(plan, 'EXACT_PHRASE', exact.query, {
+      countries: exact.countries, searchType: 'keyword_exact_phrase',
+    });
+  }
   for (const vector of supplied) {
     add(plan, String(vector?.type || 'EXPANDED').toUpperCase(), vector?.query, { countries: vector?.countries, pageId: vector?.pageId });
   }
@@ -73,14 +78,14 @@ async function findComparables(searchPlan = {}, options = {}) {
   const { vectors = [], countries = ['ALL'], status = 'ACTIVE',
     limitPerVector = 20, mediaType = 'ALL', enableAgenticLoop = true,
     minRecall = 5, maxQueries = 5, deadlineMs = 45000, queryArchive = queryMetaArchive, nextQueries,
-    initialSearches = [], isRelevantCandidate = null } = merged;
+    initialSearches = [], isRelevantCandidate = null, precisePhrase = false } = merged;
   const startedAt = Date.now();
   const rawAdsMap = new Map();
   const vectorHits = {};
   const competitorPagesMap = new Map();
   const discoveryErrors = [];
   const retrievalAttempts = [];
-  const retrievalPlan = buildRetrievalPlan(vectors, maxQueries);
+  const retrievalPlan = buildRetrievalPlan(vectors, maxQueries, { precisePhrase });
 
   function collectResult(vector, result = {}) {
     const term = String(vector.query || '').trim();
@@ -160,9 +165,10 @@ async function findComparables(searchPlan = {}, options = {}) {
     if (typeof v === 'string') return normalizedTerm(v);
     if (v.pageId) return `page:${v.pageId}`;
     const term = normalizedTerm(v.query);
+    const mode = v.searchType === 'keyword_exact_phrase' ? ':exact_phrase' : '';
     const countryKey = (Array.isArray(v.countries) && v.countries.length && !v.countries.includes('ALL'))
       ? `:${v.countries.join(',')}` : '';
-    return term ? `${term}${countryKey}` : '';
+    return term ? `${term}${countryKey}${mode}` : '';
   }
 
   const attempted = [];
@@ -183,7 +189,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     collectResult(vector, seeded.result);
   }
   const initialBatch = [retrievalPlan[0]];
-  if (retrievalPlan[1] && ['COMPOUND_BRAND', 'CANONICAL_NAME'].includes(retrievalPlan[1].type)) {
+  if (retrievalPlan[1] && ['EXACT_PHRASE', 'COMPOUND_BRAND', 'CANONICAL_NAME'].includes(retrievalPlan[1].type)) {
     initialBatch.push(retrievalPlan[1]);
   }
   await Promise.all(initialBatch.map(runPlanned));

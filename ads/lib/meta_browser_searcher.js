@@ -242,7 +242,8 @@ function normalizePayloadAd(object) {
   const descriptions = findValidAdCopy([firstCard, snapshot, object], ['link_description', 'linkDescription', 'description', 'link_desc', 'ad_creative_link_descriptions', 'adCreativeLinkDescriptions']);
   const explicitActive = first(object, ['is_active', 'isActive', 'active'])
     ?? first(snapshot, ['is_active', 'isActive', 'active']);
-  const isActive = explicitActive != null ? Boolean(explicitActive) : null;
+  const isActive = explicitActive == null ? null
+    : explicitActive === true || explicitActive === 1 || String(explicitActive).toLowerCase() === 'true';
   const start = first(object, ['start_date', 'startDate', 'ad_delivery_start_time', 'adDeliveryStartTime', 'creation_time']);
   const stop = isActive === true ? null : first(object, ['end_date', 'endDate', 'ad_delivery_stop_time', 'adDeliveryStopTime']);
   const platforms = first(object, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms'])
@@ -547,7 +548,11 @@ async function executeBrowserSearch(browser, searchTerm, options = {}, { residen
     ]);
     let unchanged = 0;
     let previousCount = -1;
-    for (let round = 0; round < MAX_SCROLLS && ads.size < limit && !blocked && Date.now() - startedAt < timeoutMs; round++) {
+    const activeSearch = String(options.status || '').toUpperCase() === 'ACTIVE';
+    const enoughAds = () => activeSearch
+      ? [...ads.values()].filter(ad => ad.is_active === true).length >= limit
+      : ads.size >= limit;
+    for (let round = 0; round < MAX_SCROLLS && !enoughAds() && !blocked && Date.now() - startedAt < timeoutMs; round++) {
       (await page.evaluate(extractAdsFromDocument).catch(() => [])).map(domAdToRecord).forEach(collect);
       const inlinePayloads = await page.locator('script[type="application/json"]').evaluateAll(scripts => scripts
         .map(script => script.textContent || '').filter(text => text.length > 1 && text.length < 5000000).slice(0, 40)).catch(() => []);
@@ -581,7 +586,7 @@ async function executeBrowserSearch(browser, searchTerm, options = {}, { residen
       bodySample: lastBodyText.slice(0, 180), durationMs: Date.now() - startedAt,
     });
     return {
-      data: [...ads.values()].slice(0, limit),
+      data: [...ads.values()].sort((a, b) => Number(b.is_active === true) - Number(a.is_active === true)).slice(0, limit),
       error: blocked ? (blockReason || 'Meta blocked the browser session')
         : (inconclusive ? 'Meta search page did not finish loading result cards' : null),
       blocked,
@@ -590,7 +595,7 @@ async function executeBrowserSearch(browser, searchTerm, options = {}, { residen
     };
   } catch (error) {
     return {
-      data: [...ads.values()].slice(0, limit),
+      data: [...ads.values()].sort((a, b) => Number(b.is_active === true) - Number(a.is_active === true)).slice(0, limit),
       error: error.message,
       blocked,
       blockReason: blocked ? (blockReason || error.message) : null,

@@ -136,10 +136,16 @@ function deduplicateAndRankAds(rawAds, options = {}) {
       group.allAds.push(ad);
       group.variantCount++;
 
-      // Pick the ad with the earliest start time to reflect full creative longevity
+      // An active version represents the current creative better than an older
+      // inactive version with the same fingerprint. Within a status, retain the
+      // earliest start time for the creative's flight history.
+      const existingActive = group.primaryAd.is_active ?? group.primaryAd.isActive;
+      const newActive = ad.is_active ?? ad.isActive;
       const existingStart = new Date(group.primaryAd.ad_delivery_start_time || 0).getTime();
       const newStart = new Date(ad.ad_delivery_start_time || 0).getTime();
-      if (newStart > 0 && (newStart < existingStart || existingStart === 0)) {
+      if ((newActive === true && existingActive !== true) ||
+          (newActive === existingActive && newStart > 0 &&
+            (newStart < existingStart || existingStart === 0))) {
         group.primaryAd = ad;
       }
     }
