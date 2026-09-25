@@ -483,9 +483,18 @@ async function executeBrowserSearch(browser, searchTerm, options = {}, { residen
     }
 
     const currentUrl = page.url();
-    if (/\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(currentUrl)) {
+    if (/\/(?:login|checkpoint|challenge)(?:\/|\?|$)/.test(currentUrl) || navigationStatus === 403 || navigationStatus === 429) {
       blocked = true;
-      blockReason = `Redirected to ${currentUrl}`;
+      blockReason = (navigationStatus === 403 || navigationStatus === 429)
+        ? `HTTP ${navigationStatus} ${navigationStatus === 403 ? 'Forbidden' : 'Rate Limited'} by Meta`
+        : `Redirected to ${currentUrl}`;
+      return {
+        data: [],
+        error: blockReason,
+        blocked: true,
+        inconclusive: false,
+        blockReason,
+      };
     }
 
     await dismissConsent(page);
@@ -549,41 +558,59 @@ async function executeBrowserSearch(browser, searchTerm, options = {}, { residen
   }
 }
 
+let primaryCircuitOpenUntil = 0;
+
 async function searchMetaAds(searchTerm, options = {}, deps = {}) {
   // If a specific browser was explicitly supplied, use it directly
   if (deps.browser) {
     return executeBrowserSearch(deps.browser, searchTerm, options);
   }
 
-  // 1. Try Primary Cloud Run / Local Chromium first (0 marginal cost)
-  const primaryBrowser = await (deps.getBrowser || getSearchBrowser)();
-  const primaryResult = await executeBrowserSearch(primaryBrowser, searchTerm, options);
+  const fallbackEndpoint = browserlessEndpoint();
+  const isCircuitOpen = Boolean(fallbackEndpoint && Date.now() < primaryCircuitOpenUntil);
 
-  const isBlocked = Boolean(primaryResult.blocked || /blocked|checkpoint|challenge|403/i.test(primaryResult.error || ''));
-  if (!isBlocked && (!primaryResult.error || primaryResult.data?.length > 0)) {
-    return primaryResult;
+  let primaryResult = null;
+  if (!isCircuitOpen) {
+    // 1. Try Primary Cloud Run / Local Chromium first (0 marginal cost)
+    const primaryBrowser = await (deps.getBrowser || getSearchBrowser)();
+    primaryResult = await executeBrowserSearch(primaryBrowser, searchTerm, options);
+
+    const isBlocked = Boolean(primaryResult.blocked || /blocked|checkpoint|challenge|403|rate limit/i.test(primaryResult.error || ''));
+    if (!isBlocked && (!primaryResult.error || primaryResult.data?.length > 0)) {
+      return primaryResult;
+    }
+
+    if (isBlocked && fallbackEndpoint) {
+      primaryCircuitOpenUntil = Date.now() + 5 * 60 * 1000;
+    }
   }
 
   // 2. Check if Browserless fallback is configured
-  const fallbackEndpoint = browserlessEndpoint();
   if (!fallbackEndpoint) {
-    if (isBlocked) {
+    if (primaryResult?.blocked) {
       logger.warn('Meta blocked primary browser, but no Browserless fallback credentials configured', {
         query: searchTerm,
         blockReason: primaryResult.blockReason || primaryResult.error,
       });
     }
-    return primaryResult;
+    return primaryResult || { data: [], error: 'Primary browser failed and no Browserless fallback configured', blocked: true };
   }
 
   // 3. Fallback to managed Browserless with residential proxy
   const fallbackStartedAt = Date.now();
-  logger.warn('⚠️ Primary Cloud Run browser blocked by Meta or failed; falling back to managed Browserless residential proxy', {
-    query: searchTerm,
-    primaryBlocked: isBlocked,
-    blockReason: primaryResult.blockReason || primaryResult.error,
-    action: 'FALLBACK_INITIATED',
-  });
+  if (isCircuitOpen) {
+    logger.info('Primary browser circuit open (datacenter IP blocked); routing directly to Browserless residential proxy', {
+      query: searchTerm,
+      circuitRemainingSec: Math.round((primaryCircuitOpenUntil - Date.now()) / 1000),
+    });
+  } else {
+    logger.warn('⚠️ Primary Cloud Run browser blocked by Meta or failed; falling back to managed Browserless residential proxy', {
+      query: searchTerm,
+      primaryBlocked: Boolean(primaryResult?.blocked),
+      blockReason: primaryResult?.blockReason || primaryResult?.error,
+      action: 'FALLBACK_INITIATED',
+    });
+  }
 
   let fallbackBrowser;
   try {
