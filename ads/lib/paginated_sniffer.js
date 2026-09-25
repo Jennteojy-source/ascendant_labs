@@ -104,6 +104,13 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
       for (const frame of page.frames()) {
         const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
         if (!data) continue;
+        if (data.isRemoved) {
+          return {
+            ...mediaResult([], 'dom', 'removed', { isRemoved: true }),
+            isRemoved: true,
+            diagnostic: { httpStatus: detailHttpStatus, reason: data.removalReason || 'ad_removed_policy_violation' },
+          };
+        }
         data.json.forEach(inspectJSON);
         const found = mediaResult(data.items.map(item => ({ ...item,
           destinationUrl: (data.links || []).map(destinationUrl).find(Boolean), ctaText: data.cta })), 'dom');
@@ -124,6 +131,14 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
 
     if (!selected.creatives.length) {
       const pageText = await page.locator('body').innerText({ timeout: 1000 }).catch(() => '');
+      const isRemovedNotice = /(?:account or page (?:we )?later disabled|not following our advertising standards|this ad was run by an account or page|this ad (?:was|has been) (?:taken down|removed)|ad is no longer available|this ad was taken down|this ad may have expired, or the page may have been deleted|we couldn't find this ad|this content isn't available right now)/i.test(pageText);
+      if (isRemovedNotice) {
+        return {
+          ...mediaResult([], null, 'removed', { isRemoved: true }),
+          isRemoved: true,
+          diagnostic: { httpStatus: detailHttpStatus, reason: 'ad_removed_policy_violation' },
+        };
+      }
       const isSecurityScreen = /log in to continue|security check|temporarily blocked|automated behavior/i.test(pageText)
         && !/Library ID|Ad Library/i.test(pageText);
       const isRateLimited = detailHttpStatus && [401, 429].includes(detailHttpStatus);

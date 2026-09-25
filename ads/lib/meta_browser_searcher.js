@@ -193,9 +193,39 @@ function numericId(value) {
   return /^\d{1,40}$/.test(String(value || '')) ? String(value) : null;
 }
 
+const REMOVED_AD_PATTERN = /(?:account or page (?:we )?later disabled|not following our advertising standards|this ad was run by an account or page|this ad (?:was|has been) (?:taken down|removed)|ad is no longer available|this ad was taken down|this ad may have expired, or the page may have been deleted|we couldn't find this ad|this content isn't available right now)/i;
+
+function isRemovedPayloadAd(object, snapshot) {
+  if (!object || typeof object !== 'object') return false;
+  if (object.is_account_disabled || object.is_violating || object.is_profile_deleted) return true;
+  if (snapshot && typeof snapshot === 'object') {
+    if (snapshot.is_account_disabled || snapshot.is_violating || snapshot.is_profile_deleted) return true;
+  }
+  const textsToCheck = [
+    object.ad_creative_body,
+    object.message,
+    object.title,
+    object.error_message,
+    snapshot?.body,
+    snapshot?.title,
+    snapshot?.message,
+    snapshot?.link_title,
+    snapshot?.link_description,
+    ...(Array.isArray(object.ad_creative_bodies) ? object.ad_creative_bodies : []),
+    ...(Array.isArray(snapshot?.cards) ? snapshot.cards.flatMap(c => [c?.body, c?.title, c?.link_title, c?.message]) : []),
+  ];
+  for (const item of textsToCheck) {
+    if (!item) continue;
+    const s = asText(item);
+    if (s && REMOVED_AD_PATTERN.test(s)) return true;
+  }
+  return false;
+}
+
 function normalizePayloadAd(object) {
   if (!object || typeof object !== 'object' || Array.isArray(object)) return null;
   const snapshot = object.snapshot && typeof object.snapshot === 'object' ? object.snapshot : object;
+  if (isRemovedPayloadAd(object, snapshot)) return null;
   const id = numericId(first(object, ['ad_archive_id', 'adArchiveId', 'ad_library_id', 'adLibraryId']))
     || (object.snapshot ? numericId(object.id) : null);
   if (!id) return null;
@@ -307,7 +337,11 @@ function extractAdsFromDocument() {
     }
     if (!root) continue;
     seen.add(id);
-    const lines = (root.innerText || '').split('\n').map(line => line.trim()).filter(Boolean);
+    const cardText = root.innerText || '';
+    if (/(?:account or page (?:we )?later disabled|not following our advertising standards|this ad was run by an account or page|this ad (?:was|has been) (?:taken down|removed)|ad is no longer available|this ad was taken down|this ad may have expired, or the page may have been deleted|we couldn't find this ad|this content isn't available right now)/i.test(cardText)) {
+      continue;
+    }
+    const lines = cardText.split('\n').map(line => line.trim()).filter(Boolean);
     const startMatch = (root.innerText || '').match(/Started running on\s+([^\n]+)/i);
     const active = lines.some(line => /^Active$/i.test(line));
     const anchors = [...root.querySelectorAll('a[href]')];

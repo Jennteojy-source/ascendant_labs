@@ -26,6 +26,7 @@ const state = {
   searchId: null,
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
   blockedAdIds: new Set(), // inaccessible Meta previews are not shown as creatives
+  removedAdIds: new Set(), // ads removed or disabled by Meta (e.g. standards violations)
 };
 
 function cleanCopy(text) {
@@ -294,7 +295,14 @@ async function executeSearch(targetInput, page = 1) {
     if (searchGeneration !== mediaGeneration) return;
 
     state.currentProfile = data.queryProfile;
-    state.rawRankedAds = data.paginated.items;
+    state.rawRankedAds = (data.paginated?.items || []).filter(ad => {
+      const id = String(ad.id);
+      if (ad.isRemoved || ad.media?.status === 'removed' || ad.media?.isRemoved) {
+        state.removedAdIds.add(id);
+        return false;
+      }
+      return true;
+    });
     state.sourceAdsFound = Number(data.stats?.sourceAdsFound) || state.rawRankedAds.length;
 
     setActiveStep(4);
@@ -337,9 +345,16 @@ async function executeSearch(targetInput, page = 1) {
  */
 function applyFiltersAndRender(targetPage = 1) {
   state.currentPage = targetPage;
-  const items = state.rawRankedAds || [];
+  const items = (state.rawRankedAds || []).filter(ad => {
+    const id = String(ad.id);
+    if (state.removedAdIds.has(id) || ad.isRemoved) return false;
+    const media = currentMedia(ad);
+    if (media?.status === 'removed' || media?.isRemoved) return false;
+    return true;
+  });
 
   state.totalPages = Math.ceil(items.length / state.pageSize) || 1;
+  if (state.currentPage > state.totalPages) state.currentPage = Math.max(1, state.totalPages);
   const startIdx = (state.currentPage - 1) * state.pageSize;
   const pageItems = items.slice(startIdx, startIdx + state.pageSize);
   state.currentAds = pageItems;
@@ -561,6 +576,7 @@ function resetMediaSession() {
   adGrid.querySelectorAll('.card-media-box').forEach(box => AdMedia.dispose(box));
   state.resolvedMediaMap = {};
   state.blockedAdIds.clear();
+  state.removedAdIds.clear();
   creativeIndices.clear();
   mediaRefreshAttempts.clear();
   reportedMediaEvents.clear();
@@ -600,6 +616,14 @@ function initializeGridMedia() {
 
 function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) {
   if (!box) return;
+  const id = String(ad.id);
+  const media = currentMedia(ad);
+  if (ad.isRemoved || media?.status === 'removed' || media?.isRemoved || state.removedAdIds.has(id)) {
+    state.removedAdIds.add(id);
+    const card = document.getElementById(`ad-card-${id}`);
+    if (card) card.remove();
+    return;
+  }
   box.dataset.initialized = 'true';
   const generation = mediaGeneration;
   AdMedia.render(box, {
@@ -652,6 +676,24 @@ async function requestAdMedia(ad, { forceRefresh = false } = {}) {
     if (generation === mediaGeneration && media.status !== 'ready') reportMediaEvent(id, { type: 'preview_unavailable',
       reason: media.status, durationMs: Date.now() - startedAt });
     if (generation === mediaGeneration) {
+      if (media.status === 'removed' || media.isRemoved) {
+        state.removedAdIds.add(id);
+        ad.isRemoved = true;
+        state.rawRankedAds = (state.rawRankedAds || []).filter(a => String(a.id) !== id);
+        const card = document.getElementById(`ad-card-${id}`);
+        if (card) {
+          card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            card.remove();
+            applyFiltersAndRender(state.currentPage);
+          }, 250);
+        } else {
+          applyFiltersAndRender(state.currentPage);
+        }
+        return media;
+      }
       if (media.status === 'blocked' && !currentMedia(ad)?.creatives?.length) {
         state.blockedAdIds.add(id);
       }
@@ -884,7 +926,7 @@ window.copyAssetLink = function (url, btnElement) {
 window.openVariantsModal = function (adId) {
   const ad = (state.rawRankedAds || []).find(a => String(a.id) === String(adId))
           || (state.currentAds || []).find(a => String(a.id) === String(adId));
-  if (!ad) return;
+  if (!ad || ad.isRemoved || state.removedAdIds.has(String(adId))) return;
 
   const modal = document.getElementById('variantsModal');
   const advertiserEl = document.getElementById('modalAdvertiser');

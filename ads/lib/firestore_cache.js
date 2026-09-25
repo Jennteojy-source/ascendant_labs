@@ -14,6 +14,20 @@ function normalizeCacheEntry(entry, now = Date.now()) {
   const ttl = ['ready', 'partial'].includes(entry?.storageStatus) ? DURABLE_MEDIA_CACHE_TTL_MS : MEDIA_CACHE_TTL_MS;
   if (!entry || entry.schemaVersion !== MEDIA_SCHEMA_VERSION || !Number.isFinite(entry.cachedAt)
       || now - entry.cachedAt > ttl || entry.cachedAt > now + 60000) return null;
+  if (entry.status === 'removed' || entry.isRemoved) {
+    return {
+      schemaVersion: MEDIA_SCHEMA_VERSION,
+      source: entry.source || 'cache',
+      status: 'removed',
+      isRemoved: true,
+      cachedAt: entry.cachedAt,
+      mediaType: 'unknown',
+      thumbnailUrl: null,
+      videoUrl: null,
+      creatives: [],
+      displayFormat: null,
+    };
+  }
   const items = (entry.creatives || [entry]).map(c => ({ ...c,
     thumbnailUrl: isUrlExpired(c.thumbnailUrl, now) ? null : c.thumbnailUrl,
     imageSources: (c.imageSources || []).filter(u => !isUrlExpired(u, now)),

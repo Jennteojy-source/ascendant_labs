@@ -178,9 +178,11 @@ function deduplicateCreatives(items, options = {}) {
 function mediaResult(items, source, status = 'unavailable', options = {}) {
   const normalized = items.map(normalizeCreative).filter(Boolean);
   const creatives = deduplicateCreatives(normalized, options).slice(0, 20);
+  const isRemoved = Boolean(options.isRemoved || status === 'removed');
   return {
     schemaVersion: MEDIA_SCHEMA_VERSION, source,
-    status: creatives.length ? 'ready' : status,
+    status: creatives.length ? 'ready' : (isRemoved ? 'removed' : status),
+    isRemoved,
     ...(creatives[0] || { mediaType: 'unknown', thumbnailUrl: null, videoUrl: null }),
     creatives,
     displayFormat: options.displayFormat || creatives[0]?.displayFormat || null,
@@ -311,6 +313,12 @@ function inspectAdDocument(adId) {
   const json = [...document.querySelectorAll('script[type="application/json"]')]
     .map(s => s.textContent).filter(s => s && s.length < 2000000).slice(0, 40);
   if (!root) return { items: [], json, scoped: false };
+
+  const rootText = (root.innerText || '') + ' ' + (document.body ? (document.body.innerText || '') : '');
+  const isRemoved = /(?:account or page (?:we )?later disabled|not following our advertising standards|this ad was run by an account or page|this ad (?:was|has been) (?:taken down|removed)|ad is no longer available|this ad was taken down|this ad may have expired, or the page may have been deleted|we couldn't find this ad|this content isn't available right now)/i.test(rootText);
+  if (isRemoved) {
+    return { items: [], links: [], cta: null, json, scoped: true, isRemoved: true, removalReason: 'advertising_standards_or_disabled_account' };
+  }
 
   const isModalRoot = root.getAttribute?.('role') === 'dialog'
     || root.getAttribute?.('aria-modal') === 'true'

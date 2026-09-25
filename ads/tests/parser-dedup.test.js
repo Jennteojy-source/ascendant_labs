@@ -360,3 +360,87 @@ test('niche queries in reading, entertainment, and finance are not dropped by ha
   assert.equal(novelResults[0].id, '900000001');
   assert.equal(novelResults[0].ranking.relevanceType, 'OFFICIAL_BRAND');
 });
+
+test('ads from disabled accounts or violating advertising standards are filtered from payload extraction', () => {
+  const payload = {
+    ads: [
+      {
+        ad_archive_id: '1429688922515262',
+        page_name: 'Fresora',
+        snapshot: {
+          body: 'This ad was run by an account or Page we later disabled for not following our Advertising Standards.',
+          title: 'Fresh Breath From the Source',
+        },
+      },
+      {
+        ad_archive_id: '1429688922515263',
+        page_name: 'Fresora',
+        is_account_disabled: true,
+        snapshot: {
+          body: 'Fresora probiotic mouthwash',
+          title: 'Fresh Breath',
+        },
+      },
+      {
+        ad_archive_id: '1429688922515264',
+        page_name: 'Fresora',
+        snapshot: {
+          body: 'Fresora ends the mouthwash-mask-repeat cycle with probiotics.',
+          title: 'Fresh Breath From the Source',
+        },
+      },
+    ],
+  };
+
+  const ads = extractAdsFromPayload(payload);
+  assert.equal(ads.length, 1);
+  assert.equal(ads[0].id, '1429688922515264');
+});
+
+test('deduplicateAndRankAds removes ads flagged with disabled account, removed ad, or advertising standards violation', () => {
+  const rawAds = [
+    {
+      id: '1429688922515262',
+      page_name: 'Fresora',
+      ad_creative_bodies: ['This ad was run by an account or Page we later disabled for not following our Advertising Standards.'],
+      ad_creative_link_titles: ['Fresh Breath From the Source'],
+      ad_delivery_start_time: '2026-08-13T00:00:00.000Z',
+    },
+    {
+      id: '1429688922515263',
+      page_name: 'Fresora',
+      isRemoved: true,
+      ad_creative_bodies: ['Fresora probiotic mouthwash'],
+      ad_creative_link_titles: ['Fresh Breath'],
+      ad_delivery_start_time: '2026-08-13T00:00:00.000Z',
+    },
+    {
+      id: '1429688922515264',
+      page_name: 'Fresora',
+      media: { status: 'removed', isRemoved: true },
+      ad_creative_bodies: ['Fresora mouthwash'],
+      ad_creative_link_titles: ['Fresh Breath'],
+      ad_delivery_start_time: '2026-08-13T00:00:00.000Z',
+    },
+    {
+      id: '1429688922515265',
+      page_name: 'Fresora',
+      ad_creative_bodies: ['Fresora ends the mouthwash-mask-repeat cycle with BLIS K12.'],
+      ad_creative_link_titles: ['Fresh Breath From the Source'],
+      ad_delivery_start_time: '2026-08-13T00:00:00.000Z',
+    },
+  ];
+
+  const results = deduplicateAndRankAds(rawAds, {
+    targetBrand: 'Fresora',
+    searchQuery: 'fresora',
+  });
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, '1429688922515265');
+  assert.equal(isPresentableAd(rawAds[0]), false);
+  assert.equal(isPresentableAd(rawAds[1]), false);
+  assert.equal(isPresentableAd(rawAds[2]), false);
+  assert.equal(isPresentableAd(results[0]), true);
+});
+

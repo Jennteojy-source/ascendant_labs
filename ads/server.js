@@ -300,7 +300,9 @@ const server = http.createServer(async (req, res) => {
 
         for (const item of rankedAds) {
           if (mediaCache[item.id]) attachMedia(item, mediaCache[item.id]);
-          uniqueVisualAds.push(item);
+          if (!item.isRemoved && item.media?.status !== 'removed' && !item.media?.isRemoved) {
+            uniqueVisualAds.push(item);
+          }
         }
 
         // Return metadata immediately. Only cards that enter the viewport request
@@ -316,11 +318,11 @@ const server = http.createServer(async (req, res) => {
         // Paginate
         const paginated = paginateAds(uniqueVisualAds, page, pageSize);
 
-        const activeCount = rankedAds.filter(a => a.stats.isActive).length;
-        const highScaleCount = rankedAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;
-        const officialBrandCount = rankedAds.filter(a => a.ranking?.relationship === 'OFFICIAL_BRAND' || a.ranking?.relevanceType === 'OFFICIAL_BRAND').length;
-        const affiliatePartnerCount = rankedAds.filter(a => a.ranking?.relationship === 'AFFILIATE_PARTNER' || a.ranking?.relevanceType === 'AFFILIATE_PARTNER').length;
-        const reviewEditorialCount = rankedAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
+        const activeCount = uniqueVisualAds.filter(a => a.stats.isActive).length;
+        const highScaleCount = uniqueVisualAds.filter(a => a.stats.scaleTier.includes('High Scale')).length;
+        const officialBrandCount = uniqueVisualAds.filter(a => a.ranking?.relationship === 'OFFICIAL_BRAND' || a.ranking?.relevanceType === 'OFFICIAL_BRAND').length;
+        const affiliatePartnerCount = uniqueVisualAds.filter(a => a.ranking?.relationship === 'AFFILIATE_PARTNER' || a.ranking?.relevanceType === 'AFFILIATE_PARTNER').length;
+        const reviewEditorialCount = uniqueVisualAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
 
         // Await this: every completed live search must be durably recorded.
         const evaluation = buildSearchEvaluation({
@@ -443,17 +445,21 @@ const server = http.createServer(async (req, res) => {
       const allAdIds = results.map(a => String(a.id));
       const mediaCache = await getCachedMediaBatch(allAdIds);
 
+      const filteredResults = [];
       for (const item of results) {
         if (mediaCache[item.id]) {
           item.media = mediaCache[item.id];
           if (item.media.destinationUrl) item.destinationUrl = item.media.destinationUrl;
           if (item.media.ctaText) item.ctaText = item.media.ctaText;
         }
+        if (!item.isRemoved && item.media?.status !== 'removed' && !item.media?.isRemoved) {
+          filteredResults.push(item);
+        }
       }
 
-      const paginated = paginateAds(results, 1, 10);
-      const activeCount = results.filter(a => a.stats?.isActive).length;
-      const highScaleCount = results.filter(a => a.stats?.scaleTier?.includes('High Scale')).length;
+      const paginated = paginateAds(filteredResults, 1, 10);
+      const activeCount = filteredResults.filter(a => a.stats?.isActive).length;
+      const highScaleCount = filteredResults.filter(a => a.stats?.scaleTier?.includes('High Scale')).length;
 
       return sendJson(res, 200, {
         isReplay: true,
@@ -461,11 +467,11 @@ const server = http.createServer(async (req, res) => {
         query: session.query,
         profile: session.profile,
         paginated,
-        allAds: results,
+        allAds: filteredResults,
         stats: {
-          totalUniqueCreatives: results.length,
+          totalUniqueCreatives: filteredResults.length,
           activeCount,
-          inactiveCount: results.length - activeCount,
+          inactiveCount: filteredResults.length - activeCount,
           highScaleCount,
           brandAffiliateCount: results.filter(a => a.ranking?.relationship === 'BRAND_AFFILIATE').length,
           competitorCount: results.filter(a => a.ranking?.relationship === 'COMPETITOR').length,

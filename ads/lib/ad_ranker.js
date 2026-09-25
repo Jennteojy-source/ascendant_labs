@@ -71,6 +71,25 @@ function cleanAdText(text) {
   return s;
 }
 
+const REMOVED_AD_PATTERN = /(?:account or page (?:we )?later disabled|not following our advertising standards|this ad was run by an account or page|this ad (?:was|has been) (?:taken down|removed)|ad is no longer available|this ad was taken down|this ad may have expired, or the page may have been deleted|we couldn't find this ad|this content isn't available right now)/i;
+
+function isRemovedOrDisabledAd(ad) {
+  if (!ad) return true;
+  if (ad.isRemoved) return true;
+  if (ad.media?.status === 'removed' || ad.media?.isRemoved) return true;
+  if (ad.browserMedia?.status === 'removed' || ad.browserMedia?.isRemoved) return true;
+  const texts = [
+    ad.page_name,
+    ...(ad.ad_creative_bodies || []),
+    ...(ad.ad_creative_link_titles || []),
+    ...(ad.ad_creative_link_descriptions || []),
+    ...(ad.ad_creative_link_captions || []),
+    ad.body,
+    ad.headline,
+  ].filter(Boolean);
+  return texts.some(t => REMOVED_AD_PATTERN.test(typeof t === 'string' ? t : JSON.stringify(t)));
+}
+
 /**
  * Deduplicate and Rank Raw Ad Records
  */
@@ -80,6 +99,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
   const creativeGroups = new Map();
 
   for (const ad of rawAds) {
+    if (!ad || isRemovedOrDisabledAd(ad)) continue;
     if (/^(?:log\s*in|log\s*out|meta\s+ad\s+library|ad\s+library)$/i.test(String(ad.page_name || '').trim())) continue;
     const bodies = (ad.ad_creative_bodies || []).map(cleanAdText).filter(Boolean);
     const titles = (ad.ad_creative_link_titles || []).map(cleanAdText).filter(Boolean);
@@ -449,6 +469,7 @@ function paginateAds(rankedItems, page = 1, pageSize = 10) {
 }
 
 function isPresentableAd(ad) {
+  if (!ad || isRemovedOrDisabledAd(ad)) return false;
   const type = ad?.ranking?.relevanceType;
   const score = Number(ad?.ranking?.relevanceScore);
   // DISCOVERED is the fail-open score when the AI judge did not evaluate a
@@ -464,4 +485,5 @@ module.exports = {
   paginateAds,
   classifyHook,
   isPresentableAd,
+  isRemovedOrDisabledAd,
 };

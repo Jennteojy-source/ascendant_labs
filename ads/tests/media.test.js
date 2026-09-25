@@ -300,3 +300,20 @@ test('extractStructuredMedia extracts deeplink_ad_archive with body text and par
   assert.equal(result.creatives[0].destinationUrl, 'http://itunes.apple.com/app/id1437005085');
 });
 
+test('normalizeCacheEntry preserves removed ad status and properties', () => {
+  const now = Date.now();
+  const entry = normalizeCacheEntry({
+    schemaVersion: 2,
+    status: 'removed',
+    isRemoved: true,
+    source: 'dom',
+    cachedAt: now,
+  }, now);
+
+  assert.ok(entry);
+  assert.equal(entry.status, 'removed');
+  assert.equal(entry.isRemoved, true);
+  assert.equal(entry.creatives.length, 0);
+});
+
+
