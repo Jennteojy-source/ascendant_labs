@@ -226,6 +226,53 @@ body {
   margin-bottom: 16px;
 }
 
+.search-filter-pills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.83rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--border-medium);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.filter-pill:hover {
+  background: #ffffff;
+  color: var(--text-primary);
+  border-color: var(--border-strong, #cbd5e1);
+}
+
+.filter-pill.active {
+  background: #ffffff;
+  color: var(--text-primary);
+  border-color: var(--accent-primary, #df5a36);
+  box-shadow: 0 1.5px 6px rgba(223, 90, 54, 0.12);
+  font-weight: 600;
+}
+
+.filter-pill .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
 .search-bar-wrapper {
   display: flex;
   align-items: center;

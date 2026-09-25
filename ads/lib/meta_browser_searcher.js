@@ -115,6 +115,10 @@ function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
     url.searchParams.set('search_type', searchType);
   }
   url.searchParams.set('media_type', media);
+  if (options.sortMode !== 'none') {
+    url.searchParams.set('sort_data[direction]', options.sortDirection || 'desc');
+    url.searchParams.set('sort_data[mode]', options.sortMode || 'total_impressions');
+  }
   return url.href;
 }
 
@@ -236,8 +240,11 @@ function normalizePayloadAd(object) {
   const titles = findValidAdCopy([firstCard, snapshot, object], ['link_title', 'linkTitle', 'link_headline', 'headline', 'title', 'ad_creative_link_titles', 'adCreativeLinkTitles']);
   const captions = findValidAdCopy([firstCard, snapshot, object], ['caption', 'link_caption', 'linkCaption', 'link_url_caption', 'ad_creative_link_captions', 'adCreativeLinkCaptions']);
   const descriptions = findValidAdCopy([firstCard, snapshot, object], ['link_description', 'linkDescription', 'description', 'link_desc', 'ad_creative_link_descriptions', 'adCreativeLinkDescriptions']);
+  const explicitActive = first(object, ['is_active', 'isActive', 'active'])
+    ?? first(snapshot, ['is_active', 'isActive', 'active']);
+  const isActive = explicitActive != null ? Boolean(explicitActive) : null;
   const start = first(object, ['start_date', 'startDate', 'ad_delivery_start_time', 'adDeliveryStartTime', 'creation_time']);
-  const stop = first(object, ['end_date', 'endDate', 'ad_delivery_stop_time', 'adDeliveryStopTime']);
+  const stop = isActive === true ? null : first(object, ['end_date', 'endDate', 'ad_delivery_stop_time', 'adDeliveryStopTime']);
   const platforms = first(object, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms'])
     || first(snapshot, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms']);
   const perAd = keys => {
@@ -258,7 +265,8 @@ function normalizePayloadAd(object) {
       || asText(first(object, ['page_name', 'pageName', 'advertiser_name', 'advertiserName'])) || 'Advertiser',
     ad_creation_time: asDate(first(object, ['creation_time', 'creationTime'])) || asDate(start),
     ad_delivery_start_time: asDate(start),
-    ad_delivery_stop_time: asDate(stop),
+    ad_delivery_stop_time: isActive === true ? null : asDate(stop),
+    is_active: isActive,
     ad_snapshot_url: `https://www.facebook.com/ads/library/?id=${id}`,
     ad_creative_bodies: bodies,
     ad_creative_link_titles: titles,
@@ -286,6 +294,14 @@ function mergeAd(existing, incoming) {
     const current = merged[key];
     if (Array.isArray(value)) merged[key] = [...new Set([...(Array.isArray(current) ? current : []), ...value])];
     else if ((current == null || current === '' || current === 'Advertiser') && value != null && value !== '') merged[key] = value;
+  }
+  if (incoming.is_active != null) {
+    if (incoming.is_active === true || merged.is_active === true) {
+      merged.is_active = true;
+      merged.ad_delivery_stop_time = null;
+    } else if (merged.is_active == null) {
+      merged.is_active = incoming.is_active;
+    }
   }
   if (incoming.browserMedia?.creatives?.length > (existing.browserMedia?.creatives?.length || 0)) merged.browserMedia = incoming.browserMedia;
   return merged;
@@ -397,10 +413,12 @@ function extractAdsFromDocument() {
 
 function domAdToRecord(ad) {
   const media = mediaResult((ad.mediaItems || []).map(item => ({ ...item, ctaText: ad.ctaText })), 'dom');
+  const isActive = ad.active != null ? Boolean(ad.active) : null;
   return {
     id: String(ad.id), page_id: null, page_name: ad.pageName || 'Advertiser',
     ad_creation_time: asDate(ad.startDate), ad_delivery_start_time: asDate(ad.startDate),
-    ad_delivery_stop_time: ad.active ? null : new Date().toISOString(),
+    ad_delivery_stop_time: isActive === true ? null : (ad.active === false ? new Date().toISOString() : null),
+    is_active: isActive,
     ad_snapshot_url: `https://www.facebook.com/ads/library/?id=${ad.id}`,
     ad_creative_bodies: asTextArray(ad.body), ad_creative_link_titles: asTextArray(ad.headline),
     ad_creative_link_captions: [], ad_creative_link_descriptions: [],

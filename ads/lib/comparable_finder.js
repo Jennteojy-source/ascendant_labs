@@ -9,12 +9,14 @@ async function queryMetaArchive(searchTerm, options = {}) {
   const mediaType = options.mediaType || 'ALL';
   const searchType = options.searchType || (options.pageId ? 'page' : 'keyword_unordered');
   const pageId = options.pageId;
+  const sortMode = options.sortMode;
+  const sortDirection = options.sortDirection;
   // Queries intentionally remain live. Persisted media, not search results, is reused.
   try {
     const startedAt = Date.now();
     const budgetMs = Math.max(5000, Math.min(30000, Number(options.timeoutMs) || 30000));
     const request = timeoutMs => searchMetaAds(searchTerm,
-      { countries, status, limit, mediaType, searchType, pageId, timeoutMs });
+      { countries, status, limit, mediaType, searchType, pageId, timeoutMs, sortMode, sortDirection });
     let result = await request(budgetMs);
     const remainingMs = budgetMs - (Date.now() - startedAt);
     if (result.inconclusive && remainingMs >= 6000) {
@@ -131,6 +133,8 @@ async function findComparables(searchPlan = {}, options = {}) {
       searchType,
       pageId: vector.pageId,
       timeoutMs: remainingMs,
+      sortMode: options.sortMode,
+      sortDirection: options.sortDirection,
     });
     collectResult(vector, result);
     retrievalAttempts.push({

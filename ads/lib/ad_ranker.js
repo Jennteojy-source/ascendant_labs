@@ -177,6 +177,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         const vKey = `${vTitle}:::${vBody.slice(0, 100)}:::${vDesc.slice(0, 100)}`;
         if (!seenCopy.has(vKey)) {
           seenCopy.add(vKey);
+          const variantActive = a.is_active ?? a.isActive ?? null;
           variants.push({
             id: a.id,
             index: variants.length + 1,
@@ -185,7 +186,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
             description: vDesc,
             caption: vCap,
             startDate: a.ad_delivery_start_time ? new Date(a.ad_delivery_start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-            endDate: a.ad_delivery_stop_time ? new Date(a.ad_delivery_stop_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present',
+            endDate: variantActive === true ? 'Present' : (a.ad_delivery_stop_time ? new Date(a.ad_delivery_stop_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present'),
             euTotalReach: a.eu_total_reach ? Number(a.eu_total_reach) : null,
             platforms: a.publisher_platforms || [],
           });
@@ -194,16 +195,17 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     }
 
     // Flight Timeline
+    const explicitActive = ad.is_active ?? ad.isActive ?? null;
     const startDateRaw = ad.ad_delivery_start_time || ad.ad_creation_time;
-    const endDateRaw = ad.ad_delivery_stop_time || null;
+    const endDateRaw = (explicitActive === true) ? null : (ad.ad_delivery_stop_time || null);
     const startMs = startDateRaw ? new Date(startDateRaw).getTime() : now;
     const endMs = endDateRaw ? new Date(endDateRaw).getTime() : now;
 
-    const isActive = !endDateRaw || endMs > now;
+    const isActive = explicitActive != null ? Boolean(explicitActive) : (!endDateRaw || endMs > now);
     const flightDays = Math.max(1, Math.round((endMs - startMs) / (1000 * 3600 * 24)));
 
     const startFormatted = startDateRaw ? new Date(startDateRaw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
-    const endFormatted = endDateRaw ? new Date(endDateRaw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present';
+    const endFormatted = isActive ? 'Present' : (endDateRaw ? new Date(endDateRaw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present');
     const flightSummary = isActive
       ? `Active for ${flightDays} day${flightDays === 1 ? '' : 's'} (${startFormatted} – Present)`
       : `Ran for ${flightDays} day${flightDays === 1 ? '' : 's'} (${startFormatted} – ${endFormatted})`;

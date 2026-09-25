@@ -64,6 +64,24 @@ test('an ad that stopped within the last day is inactive', () => {
   assert.equal(result[0].stats.isActive, false);
 });
 
+test('an ad marked with is_active: true is active even if payload contains yesterday end_date', () => {
+  const payload = { data: { ads: [{
+    ad_archive_id: '999888777', page_name: 'ProDentim Official',
+    is_active: true,
+    start_date: Math.floor((Date.now() - 7 * 86400000) / 1000),
+    end_date: Math.floor((Date.now() - 86400000) / 1000),
+    snapshot: { body: 'ProDentim oral probiotic formula' }
+  }] } };
+  const [extracted] = extractAdsFromPayload(payload);
+  assert.equal(extracted.is_active, true);
+  assert.equal(extracted.ad_delivery_stop_time, null);
+
+  const [ranked] = deduplicateAndRankAds([extracted], { targetBrand: 'ProDentim' });
+  assert.equal(ranked.stats.isActive, true);
+  assert.equal(ranked.stats.endDate, 'Present');
+  assert.ok(ranked.ranking.rankScore >= 500, 'Active ad should receive active bonus');
+});
+
 test('a global search filter does not claim that an ad reached every country', () => {
   const [ad] = extractAdsFromPayload({ ads: [{ ad_archive_id: '888000333',
     page_name: 'Example', snapshot: { body: 'A real offer' } }] });
