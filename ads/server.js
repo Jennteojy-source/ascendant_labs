@@ -187,7 +187,7 @@ const server = http.createServer(async (req, res) => {
       };
       // Firebase Hosting has a strict 60s hard timeout on rewrites.
       // Leave room below Firebase Hosting's 60-second rewrite limit for the AI judge.
-      const SEARCH_MAX_BUDGET_MS = Math.min(50000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 45000);
+      const SEARCH_MAX_BUDGET_MS = Math.min(54000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 54000);
       const searchDeadlineMs = searchStartTime + SEARCH_MAX_BUDGET_MS;
       let rankedAds = null;
       let queryProfile = null;
