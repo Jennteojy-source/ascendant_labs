@@ -179,3 +179,29 @@ test('opening the modal before extraction finishes still displays the completed 
   await page.waitForFunction(() => document.querySelector('#modalMediaBox img')?.naturalWidth === 400);
   assert.equal(await page.locator('#modalMediaBox img').getAttribute('src'), image);
 });
+
+test('ad displayed inside URL-link modal overlay is extracted with CTA and destination', async t => {
+  const page = await browser.newPage(); t.after(() => page.close());
+  await page.route('**/*', route => route.fulfill({ contentType: 'image/svg+xml', body: svg }));
+  await page.setContent(`
+    <div role="dialog" aria-modal="true">
+      <div class="header">
+        <span>This ad is from a URL link</span>
+        <span>Library ID: 999999999</span>
+      </div>
+      <div class="ad-content">
+        <img width="600" height="600" src="${image}">
+        <a href="https://example.com/proton-app">
+          <button>Install now</button>
+        </a>
+      </div>
+    </div>
+  `);
+  await page.waitForFunction(() => [...document.images].every(i => i.complete));
+  const result = await page.evaluate(inspectAdDocument, '1687170112378329');
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].thumbnailUrl, image);
+  assert.equal(result.cta, 'Install now');
+  assert.equal(result.links.includes('https://example.com/proton-app'), true);
+});
+

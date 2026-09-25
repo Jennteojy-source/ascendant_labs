@@ -57,7 +57,7 @@ test('snapshot navigation is constrained to the requested ad on Meta', () => {
   assert.equal(snapshotTarget('123', 'https://www.facebook.com/ads/library/?id=999'), null);
   assert.equal(snapshotTarget('123', 'https://www.facebook.com.evil.example/ads/library/?id=123'), null);
   assert.equal(snapshotTarget('123', 'http://127.0.0.1/ads/library/?id=123'), null);
-  assert.equal(snapshotTarget('123', 'https://www.facebook.com/ads/library/?id=123'), 'https://www.facebook.com/ads/library/?id=123');
+  assert.equal(snapshotTarget('123', 'https://www.facebook.com/ads/library/?id=123'), 'https://www.facebook.com/ads/library/?id=123&active_status=all&ad_type=all&country=ALL');
 });
 
 test('search response media bypasses a blocked detail page and rejects foreign stored paths', async () => {
@@ -263,3 +263,40 @@ test('preserves genuine multi-card carousel ads with distinct card titles', () =
   assert.equal(result.creatives[1].title, 'Cadbury Top Deck');
   assert.equal(result.creatives[2].title, 'Cadbury Wholenut');
 });
+
+test('extractStructuredMedia extracts deeplink_ad_archive with body text and parent collation ID', () => {
+  const payload = {
+    data: {
+      ad_library_main: {
+        deeplink_ad_archive_result: {
+          deeplink_ad_archive: {
+            ad_archive_id: '999999999999', // Different parent collation ID
+            snapshot: {
+              title: 'Proton VPN',
+              cta_text: 'Install now',
+              display_format: 'IMAGE',
+              link_url: 'http://itunes.apple.com/app/id1437005085',
+              body: { text: 'Encrypted and private VPN browsing' },
+              images: [
+                {
+                  resized_image_url: 'https://scontent.xx.fbcdn.net/resized.jpg',
+                  original_image_url: 'https://scontent.xx.fbcdn.net/original.jpg',
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const result = extractStructuredMedia(payload, '1687170112378329');
+  assert.equal(result.status, 'ready');
+  assert.equal(result.thumbnailUrl, 'https://scontent.xx.fbcdn.net/resized.jpg');
+  assert.equal(result.imageSources.length, 2);
+  assert.equal(result.creatives[0].title, 'Proton VPN');
+  assert.equal(result.creatives[0].body, 'Encrypted and private VPN browsing');
+  assert.equal(result.creatives[0].ctaText, 'Install now');
+  assert.equal(result.creatives[0].destinationUrl, 'http://itunes.apple.com/app/id1437005085');
+});
+

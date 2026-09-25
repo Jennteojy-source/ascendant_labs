@@ -191,34 +191,40 @@ function extractStructuredMedia(payload, adId) {
   const items = [];
   let visited = 0;
   let rootDisplayFormat = null;
-  const read = (object, displayFormat = null) => {
+  const read = (object, displayFormat = null, inherited = {}) => {
     if (!object || typeof object !== 'object') return;
     const videoSources = [object.video_sd_url, object.videoSdUrl, object.video_hd_url, object.videoHdUrl];
     const imageSources = [object.video_preview_image_url, object.videoPreviewImageUrl,
       object.resized_image_url, object.resizedImageUrl, object.original_image_url, object.originalImageUrl];
+    const destination = object.link_url || object.linkUrl || inherited.destinationUrl;
+    const cta = object.cta_text || object.ctaText || inherited.ctaText;
+    const title = object.title || object.link_title || object.linkTitle || inherited.title;
+    const bodyText = object.body?.text || (typeof object.body === 'string' ? object.body : null)
+      || object.ad_creative_body || object.adCreativeBody || inherited.body;
     const creative = normalizeCreative({
       videoSources, imageSources,
       mediaType: videoSources.some(Boolean) || object.video_preview_image_url || object.videoPreviewImageUrl ? 'video' : 'image',
-      destinationUrl: object.link_url || object.linkUrl,
-      ctaText: object.cta_text || object.ctaText,
-      title: object.title || object.link_title || object.linkTitle,
-      body: object.body || object.ad_creative_body || object.adCreativeBody,
+      destinationUrl: destination,
+      ctaText: cta,
+      title,
+      body: bodyText,
       displayFormat,
-      width: object.width, height: object.height,
+      width: object.width || inherited.width, height: object.height || inherited.height,
     });
     if (creative) items.push(creative);
 
     const fmt = object.display_format || object.displayFormat || displayFormat;
+    const meta = { destinationUrl: destination, ctaText: cta, title, body: bodyText };
     if (Array.isArray(object.cards)) {
-      object.cards.forEach(child => read(child, fmt));
+      object.cards.forEach(child => read(child, fmt, meta));
     }
     if (Array.isArray(object.videos)) {
-      object.videos.forEach(v => read(v, fmt));
+      object.videos.forEach(v => read(v, fmt, meta));
     }
     // Meta Ads Library snapshot.images are responsive sizes of the main image, NOT separate carousel cards.
     if (!Array.isArray(object.cards) && Array.isArray(object.images)) {
       if (!creative) {
-        object.images.forEach(img => read(img, fmt));
+        object.images.forEach(img => read(img, fmt, meta));
       } else {
         for (const img of object.images) {
           const extra = [img.video_preview_image_url, img.videoPreviewImageUrl,
@@ -232,7 +238,12 @@ function extractStructuredMedia(payload, adId) {
   };
   const walk = (value, depth = 0) => {
     if (!value || typeof value !== 'object' || depth > 50 || ++visited > 20000) return;
-    const id = value.ad_archive_id ?? value.adArchiveID ?? value.ad_archiveId;
+    if (value.deeplink_ad_archive && typeof value.deeplink_ad_archive === 'object') {
+      const snap = value.deeplink_ad_archive.snapshot || value.deeplink_ad_archive;
+      rootDisplayFormat = snap.display_format || snap.displayFormat || value.deeplink_ad_archive.display_format || null;
+      read(snap, rootDisplayFormat);
+    }
+    const id = value.ad_archive_id ?? value.adArchiveID ?? value.ad_archiveId ?? value.ad_library_id ?? value.adLibraryId ?? (value.snapshot ? value.id : null);
     if (id != null) {
       if (String(id) === String(adId)) {
         const snap = value.snapshot || value;
@@ -280,6 +291,17 @@ function inspectAdDocument(adId) {
       }
     }
   }
+  // When viewing an individual ad snapshot URL, Meta displays the requested ad inside a modal dialog.
+  if (!root) {
+    const dialogs = [...document.querySelectorAll('[role="dialog"], div[aria-modal="true"]')];
+    const adDialog = dialogs.find(d => {
+      const text = d.innerText || '';
+      const isUrlLinkModal = text.includes('This ad is from a URL link') || text.includes('Link to ad');
+      if (isUrlLinkModal) return true;
+      return new RegExp(`(?:Library ID|Ad ID):\\s*${adId}\\b`, 'i').test(text);
+    });
+    if (adDialog) root = adDialog;
+  }
   // Dedicated snapshot documents can be scoped by their URL, but search pages cannot.
   if (!root && /\/ads\/archive\/render_ad/.test(location.pathname)
       && new URL(location.href).searchParams.get('id') === adId
@@ -289,12 +311,19 @@ function inspectAdDocument(adId) {
   const json = [...document.querySelectorAll('script[type="application/json"]')]
     .map(s => s.textContent).filter(s => s && s.length < 2000000).slice(0, 40);
   if (!root) return { items: [], json, scoped: false };
+
+  const isModalRoot = root.getAttribute?.('role') === 'dialog'
+    || root.getAttribute?.('aria-modal') === 'true'
+    || (root.innerText || '').includes('This ad is from a URL link');
+
   const visible = el => {
-    const owner = el.closest('[data-ad-id], [data-ad-archive-id]');
-    if (owner && (owner.getAttribute('data-ad-id') || owner.getAttribute('data-ad-archive-id')) !== adId) return false;
+    if (!isModalRoot) {
+      const owner = el.closest('[data-ad-id], [data-ad-archive-id]');
+      if (owner && (owner.getAttribute('data-ad-id') || owner.getAttribute('data-ad-archive-id')) !== adId) return false;
+    }
     const r = el.getBoundingClientRect();
     const css = getComputedStyle(el);
-    return r.width >= 120 && r.height >= 100 && css.display !== 'none' && css.visibility !== 'hidden';
+    return (r.width >= 100 || (el.naturalWidth && el.naturalWidth >= 100)) && css.display !== 'none' && css.visibility !== 'hidden';
   };
   const items = [];
   for (const video of root.querySelectorAll('video')) {
@@ -306,11 +335,12 @@ function inspectAdDocument(adId) {
     video.play().catch(() => {});
   }
   for (const img of root.querySelectorAll('img')) {
-    if (!visible(img) || !img.complete || img.naturalWidth < 150 || img.naturalHeight < 100
-        || /profile|avatar|logo/i.test(img.alt || '') || img.classList.contains('_8nqq')) continue;
+    if (!visible(img) || (img.naturalWidth > 0 && img.naturalWidth < 120 && img.naturalHeight > 0 && img.naturalHeight < 120)
+        || /profile|avatar|logo/i.test(img.alt || '') || img.classList.contains('_8nqq')
+        || /(?:s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\.82787|_8nqq)/i.test(img.src || '')) continue;
     const src = img.currentSrc || img.src;
-    if (items.some(v => v.thumbnailUrl === src)) continue;
-    items.push({ mediaType: 'image', thumbnailUrl: src, width: img.naturalWidth, height: img.naturalHeight });
+    if (!src || items.some(v => v.thumbnailUrl === src)) continue;
+    items.push({ mediaType: 'image', thumbnailUrl: src, width: img.naturalWidth || null, height: img.naturalHeight || null });
   }
   for (const el of root.querySelectorAll('[style*="background-image"]')) {
     if (!visible(el)) continue;
@@ -320,7 +350,7 @@ function inspectAdDocument(adId) {
   const links = [...root.querySelectorAll('a[href]')].map(a => a.href);
   const cta = [...root.querySelectorAll('a, button, [role="button"]')]
     .map(b => (b.innerText || '').trim())
-    .find(s => /^(shop now|learn more|order now|get offer|sign up|download|book now|apply now|contact us|subscribe|buy now|visit website)$/i.test(s));
+    .find(s => /^(shop now|learn more|order now|get offer|sign up|download|install now|book now|apply now|contact us|subscribe|buy now|visit website)$/i.test(s));
   return { items, links, cta, json, scoped: true };
 }
 

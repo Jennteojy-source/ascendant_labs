@@ -85,7 +85,8 @@ async function createCollectorContext(browser, { residential = false } = {}) {
     serviceWorkers: 'block',
     // Optional managed-browser mode may use its own TLS interception CA.
     ignoreHTTPSErrors: residential || browserConnectionMode() === 'managed-browserless',
-    userAgent: process.env.META_BROWSER_USER_AGENT || undefined,
+    userAgent: process.env.META_BROWSER_USER_AGENT
+      || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
     storageState: process.env.META_BROWSER_STORAGE_STATE || undefined,
   });
   return { context, owned: true };

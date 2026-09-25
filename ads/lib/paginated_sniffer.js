@@ -13,10 +13,16 @@ function snapshotTarget(adId, supplied) {
           || url.username || url.password || url.port
           || !/^\/ads\/(library\/?|archive\/render_ad\/?)$/.test(url.pathname)
           || url.searchParams.get('id') !== String(adId)) return null;
+      if (!url.searchParams.has('active_status')) url.searchParams.set('active_status', 'all');
+      if (!url.searchParams.has('ad_type')) url.searchParams.set('ad_type', 'all');
+      if (!url.searchParams.has('country')) url.searchParams.set('country', 'ALL');
       return url.href;
     } catch { return null; }
   }
   const url = new URL('https://www.facebook.com/ads/library/');
+  url.searchParams.set('active_status', 'all');
+  url.searchParams.set('ad_type', 'all');
+  url.searchParams.set('country', 'ALL');
   url.searchParams.set('id', adId);
   return url.href;
 }
@@ -79,17 +85,22 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
       reads.add(read);
       read.finally(() => reads.delete(read));
     });
-    const navigation = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 12000 });
+    const navigation = await page.goto(target, { waitUntil: 'load', timeout: 15000 }).catch(err => {
+      logger.warn('Initial ad page navigation failed or timed out', { adId: String(adId), error: err.message });
+      return null;
+    });
     detailHttpStatus = navigation?.status() || null;
-    const isBlockedPage = async response => Boolean((response && [401, 403, 429].includes(response.status()))
-      || /\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())
-      || /log in to continue|security check|temporarily blocked|automated behavior/i.test(
-        await page.locator('body').innerText({ timeout: 1000 }).catch(() => '')));
-    let blocked = await isBlockedPage(navigation);
+
     const started = Date.now();
     let signature = '';
     let stableSince = started;
-    while (!blocked && Date.now() - started < 8000) {
+    let challengeDetected = false;
+
+    while (Date.now() - started < 8000) {
+      if (/\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())) {
+        challengeDetected = true;
+        break;
+      }
       for (const frame of page.frames()) {
         const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
         if (!data) continue;
@@ -107,33 +118,28 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
           && Date.now() - started >= (posterOnly ? 4000 : 1500)) break;
       await page.waitForTimeout(250);
     }
-    // Some ads expose the creative only in Meta's dedicated render document.
-    // Visit it only when the regular Library detail supplied no usable media.
-    if (!structured.creatives.length && !best.creatives.length) {
-      const renderUrl = `https://www.facebook.com/ads/archive/render_ad/?id=${encodeURIComponent(adId)}`;
-      const renderNavigation = await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => null);
-      if (renderNavigation) detailHttpStatus = renderNavigation.status();
-      blocked = blocked || await isBlockedPage(renderNavigation);
-      const fallbackStarted = Date.now();
-      while (!blocked && Date.now() - fallbackStarted < 4000 && !structured.creatives.length && !best.creatives.length) {
-        for (const frame of page.frames()) {
-          const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
-          if (!data) continue;
-          data.json.forEach(inspectJSON);
-          const found = mediaResult(data.items.map(item => ({ ...item,
-            destinationUrl: (data.links || []).map(destinationUrl).find(Boolean), ctaText: data.cta })), 'dom');
-          if (found.creatives.length) best = found;
-        }
-        if (!structured.creatives.length && !best.creatives.length) await page.waitForTimeout(250);
-      }
-    }
+
     await Promise.race([Promise.allSettled([...reads]), page.waitForTimeout(1000)]);
     const selected = structured.creatives.length ? structured : best;
-    if (!selected.creatives.length) blocked = blocked || await isBlockedPage(null);
-    if (!selected.creatives.length && blocked) return {
-      ...mediaResult([], null, 'blocked'),
-      diagnostic: { httpStatus: detailHttpStatus, reason: detailHttpStatus === 403 ? 'meta_http_403' : 'meta_challenge' },
-    };
+
+    if (!selected.creatives.length) {
+      const pageText = await page.locator('body').innerText({ timeout: 1000 }).catch(() => '');
+      const isSecurityScreen = /log in to continue|security check|temporarily blocked|automated behavior/i.test(pageText)
+        && !/Library ID|Ad Library/i.test(pageText);
+      const isRateLimited = detailHttpStatus && [401, 429].includes(detailHttpStatus);
+      const isForbiddenErrorScreen = detailHttpStatus === 403 && (!pageText || (!pageText.includes('Ad Library') && !pageText.includes('Library ID')));
+
+      if (challengeDetected || isSecurityScreen || isRateLimited || isForbiddenErrorScreen) {
+        return {
+          ...mediaResult([], null, 'blocked'),
+          diagnostic: { httpStatus: detailHttpStatus, reason: detailHttpStatus === 403 ? 'meta_http_403' : 'meta_challenge' },
+        };
+      }
+      return {
+        ...mediaResult([], null, 'unavailable'),
+        diagnostic: { httpStatus: detailHttpStatus, reason: 'ad_not_found' },
+      };
+    }
     return mediaResult(selected.creatives.map(c => ({ ...c,
       videoUrl: failedUrls.has(c.videoUrl) ? null : c.videoUrl,
       videoSources: c.videoSources.filter(url => !failedUrls.has(url)),
@@ -258,7 +264,7 @@ function createMediaSniffer(deps) {
 }
 
 const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, getFallbackBrowser, sniffSingleAd,
-  enableResidentialFallback: process.env.MEDIA_SNIFF_RESIDENTIAL_FALLBACK === '1',
+  enableResidentialFallback: process.env.MEDIA_SNIFF_RESIDENTIAL_FALLBACK !== '0',
   concurrency: Number(process.env.MEDIA_SNIFF_CONCURRENCY) || 2 });
 module.exports = { sniffPageMedia, getBrowser, getFallbackBrowser, snapshotTarget, sniffSingleAd, createMediaSniffer,
   searchResponseMedia,
