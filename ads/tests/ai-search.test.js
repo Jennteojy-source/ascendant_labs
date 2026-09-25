@@ -78,6 +78,15 @@ test('multiword offers get a precise phrase search alongside broad search', () =
     ['keyword_unordered', 'keyword_exact_phrase']);
 });
 
+test('unified results search active ads first and preserve archive coverage', () => {
+  const plan = buildRetrievalPlan([
+    { type: 'EXACT_BRAND', query: 'ProDentim', countries: ['ALL'] },
+  ], 4, { includeArchive: true });
+  assert.deepEqual(plan.map(item => [item.type, item.status]), [
+    ['EXACT_BRAND', 'ACTIVE'], ['ARCHIVE_EXACT', 'ALL'],
+  ]);
+});
+
 test('active exact-product creative outranks an inactive long-running creative', async () => {
   const active = ad(1, 'ProDentim', 'ProDentim oral probiotic');
   const inactive = ad(2, 'ProDentim', 'ProDentim oral probiotic');

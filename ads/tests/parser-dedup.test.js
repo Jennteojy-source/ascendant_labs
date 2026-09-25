@@ -99,6 +99,20 @@ test('inactive exact-name hits do not stop discovery of active product ads', asy
   assert.equal(result.ads.some(ad => ad.id === '1434842278501314'), true);
 });
 
+test('unified search issues separate active and archive requests', async () => {
+  const statuses = [];
+  await findComparables({
+    vectors: [{ type: 'EXACT_BRAND', query: 'ProDentim', countries: ['ALL'] }],
+    status: 'ACTIVE', includeArchive: true, minRecall: 1, maxQueries: 2,
+    queryArchive: async (_query, options) => {
+      statuses.push(options.status);
+      return { data: [] };
+    },
+    enableAgenticLoop: false,
+  });
+  assert.deepEqual(statuses.sort(), ['ACTIVE', 'ALL']);
+});
+
 test('an ad that stopped within the last day is inactive', () => {
   const result = deduplicateAndRankAds([{
     id: '3030220743851482', page_name: 'Smart Discount Store',

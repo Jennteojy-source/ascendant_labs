@@ -87,7 +87,8 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
   try {
     const raw = await (options.generateText || generateText)(
       prompt,
-      { temperature: 0.1, maxOutputTokens: 5000, responseMimeType: 'application/json', responseSchema: RELEVANCE_SCHEMA },
+      { temperature: 0.1, maxOutputTokens: 3000, thinkingConfig: { thinkingBudget: 0 },
+        responseMimeType: 'application/json', responseSchema: RELEVANCE_SCHEMA },
       { operation: 'ad_relevance', timeoutMs: options.timeoutMs || 8000 }
     );
     const match = String(raw || '').match(/\[[\s\S]*\]/);
@@ -118,7 +119,7 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
 async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
   if (!candidateAds || candidateAds.length === 0) return [];
 
-  const batchSize = 16;
+  const batchSize = 12;
   const aiEvaluationsMap = new Map();
 
   const toEvaluate = Number(options.maxCandidates) > 0

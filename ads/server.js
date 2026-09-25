@@ -186,8 +186,8 @@ const server = http.createServer(async (req, res) => {
         userCountry: clientLocation?.country || null,
       };
       // Firebase Hosting has a strict 60s hard timeout on rewrites.
-      // Bound the entire search pipeline to 28s so the response is guaranteed to return <= 30s.
-      const SEARCH_MAX_BUDGET_MS = Math.min(28000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 26000);
+      // Leave room below Firebase Hosting's 60-second rewrite limit for the AI judge.
+      const SEARCH_MAX_BUDGET_MS = Math.min(50000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 45000);
       const searchDeadlineMs = searchStartTime + SEARCH_MAX_BUDGET_MS;
       let rankedAds = null;
       let queryProfile = null;
@@ -227,10 +227,11 @@ const server = http.createServer(async (req, res) => {
           searchRes = await findComparables({
             vectors: searchVectors,
             countries: effectiveCountries,
-            status: requestedStatus,
+            status: 'ACTIVE',
             mediaType,
             limitPerVector: 40,
             precisePhrase: true,
+            includeArchive: requestedStatus === 'ALL',
             // Goal-driven retrieval: broaden or pivot only when recall is sparse
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 8,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
@@ -238,7 +239,7 @@ const server = http.createServer(async (req, res) => {
               Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 16000,
               searchDeadlineMs - Date.now() - 8500)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
-            isRelevantCandidate: ad => (requestedStatus !== 'ACTIVE' || ad.is_active === true) &&
+            isRelevantCandidate: ad => ad.is_active === true &&
               matchesProductIdentity(ad, queryProfile, trimmedInput),
             enableAgenticLoop: false,
           });
@@ -277,15 +278,15 @@ const server = http.createServer(async (req, res) => {
           };
 
           const remainingForRanking = searchDeadlineMs - Date.now();
-          if (remainingForRanking >= 3500 && deterministicAds.length > 0) {
-            const rankingTimeout = Math.min(6500, remainingForRanking - 1500);
+          if (remainingForRanking >= 5000 && deterministicAds.length > 0) {
+            const rankingTimeout = Math.min(16000, remainingForRanking - 2000);
             rankedAds = await rerankAdsWithAI(rankedAds, evalProfile, { timeoutMs: rankingTimeout });
           }
           rerankedAds = rankedAds;
           pipeline.aiRanking = {
             evaluated: rankedAds.filter(ad => ad.ranking?.judgeSource === 'AI').length,
             fallback: rankedAds.filter(ad => ad.ranking?.judgeSource === 'FALLBACK').length,
-            skippedForBudget: deterministicAds.length > 0 && remainingForRanking < 3500,
+            skippedForBudget: deterministicAds.length > 0 && remainingForRanking < 5000,
           };
           rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile) &&
             (requestedStatus !== 'ACTIVE' || ad.stats?.isActive === true));
