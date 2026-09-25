@@ -37,7 +37,10 @@ function compact(value) {
 
 function sanitizeSearchVectors(brandName, vectors = [], options = {}) {
   const brand = String(brandName || '').trim();
-  const identities = [brand, ...(options.aliases || [])].map(compact).filter(Boolean);
+  const words = brand.split(/\s+/).filter(Boolean);
+  const compound = words.length >= 2 ? brand.replace(/[^\p{L}\p{N}]+/gu, '') : '';
+  const compoundAliases = compound && compound.length >= 3 && compound.length <= 25 ? [compound] : [];
+  const identities = [brand, ...(options.aliases || []), ...compoundAliases].map(compact).filter(Boolean);
   const seen = new Set();
   const safe = [];
   const targetCountry = options.targetCountry || 'ALL';
@@ -87,7 +90,7 @@ async function expandQueryWithAI(userQuery) {
     research = await generateContent(
       `Research the exact entity meant by this search: ${JSON.stringify(trimmed)}. Identify what it sells or provides, verified alternate product names, its domain, and whether the query is a named offer, a category, or an advertiser. Distinguish similarly named unrelated entities. State uncertainty when evidence is weak.`,
       { temperature: 0, maxOutputTokens: 500 },
-      { operation: 'product_grounding', tools: [{ googleSearch: {} }], timeoutMs: 9000 }
+      { operation: 'product_grounding', tools: [{ googleSearch: {} }], timeoutMs: 3500 }
     );
     if (!research.groundingSources.length) research = null;
   } catch (error) {
@@ -120,8 +123,17 @@ Return the canonical name, intentType (NAMED_OFFER, CATEGORY, or ADVERTISER), ac
 
     if (parsed.brandName && Array.isArray(parsed.searchVectors)) {
       const supportedText = compact(research?.text);
-      const aliases = (Array.isArray(parsed.aliases) && research ? parsed.aliases : [])
-        .map(alias => String(alias || '').trim()).filter(alias => alias && supportedText.includes(compact(alias)))
+      const parsedAliases = Array.isArray(parsed.aliases) ? parsed.aliases : [];
+      const aliases = parsedAliases
+        .map(alias => String(alias || '').trim()).filter(alias => {
+          if (!alias) return false;
+          const cAlias = compact(alias);
+          if (research && supportedText.includes(cAlias)) return true;
+          const cBrand = compact(parsed.brandName);
+          const cInput = compact(trimmed);
+          return (cBrand && (cBrand.includes(cAlias) || cAlias.includes(cBrand))) ||
+                 (cInput && (cInput.includes(cAlias) || cAlias.includes(cInput)));
+        })
         .slice(0, 5);
       const intentType = ['NAMED_OFFER', 'CATEGORY', 'ADVERTISER'].includes(parsed.intentType)
         ? parsed.intentType : 'NAMED_OFFER';
@@ -129,6 +141,20 @@ Return the canonical name, intentType (NAMED_OFFER, CATEGORY, or ADVERTISER), ac
       const originalMatchesBrand = compact(trimmed).includes(compact(brandName)) || compact(brandName).includes(compact(trimmed));
       const groundedBrand = research && supportedText.includes(compact(brandName));
       if (!originalMatchesBrand && !groundedBrand) throw new Error('Ungrounded product identity');
+
+      const brandWords = brandName.split(/\s+/).filter(Boolean);
+      const compoundBrand = brandWords.length >= 2 ? brandName.replace(/[^\p{L}\p{N}]+/gu, '') : '';
+      if (compoundBrand && compoundBrand.length >= 3 && compoundBrand.length <= 25 &&
+          !aliases.some(a => compact(a) === compact(compoundBrand))) {
+        aliases.push(compoundBrand);
+      }
+
+      const searchVectors = [...parsed.searchVectors];
+      if (compoundBrand && compoundBrand.length >= 3 && compoundBrand.length <= 25 &&
+          !searchVectors.some(v => compact(v.query) === compact(compoundBrand))) {
+        searchVectors.splice(1, 0, { type: 'COMPOUND_BRAND', query: compoundBrand });
+      }
+
       return {
         brandName,
         intentType,
@@ -138,7 +164,7 @@ Return the canonical name, intentType (NAMED_OFFER, CATEGORY, or ADVERTISER), ac
         aliases,
         groundingSources: research?.groundingSources || [],
         productKeywords: Array.isArray(parsed.productKeywords) ? parsed.productKeywords : [parsed.coreProduct || brandName],
-        searchVectors: sanitizeSearchVectors(brandName, parsed.searchVectors, {
+        searchVectors: sanitizeSearchVectors(brandName, searchVectors, {
           targetCountry, aliases, intentType,
           originalQuery: /^https?:\/\//i.test(trimmed) ? null : trimmed,
         }),
@@ -187,15 +213,28 @@ function buildFallbackExpansion(input) {
   }
 
   const words = effectiveName.split(/\s+/).filter(w => w.length >= 1);
+  const compound = words.length >= 2 ? effectiveName.replace(/[^\p{L}\p{N}]+/gu, '') : '';
 
   const searchVectors = [
     { type: 'EXACT_BRAND', query: effectiveName },
+  ];
+
+  if (compound && compound.length >= 3 && compound.length <= 25) {
+    searchVectors.push({ type: 'COMPOUND_BRAND', query: compound });
+  }
+
+  searchVectors.push(
     { type: 'PAGE_VARIATION', query: `${effectiveName} Official` },
     { type: 'AFFILIATE_ANGLE', query: `${effectiveName} review` },
-  ];
+  );
 
   if (words.length === 1 && effectiveName.length >= 3) {
     searchVectors.push({ type: 'PRODUCT_NAME', query: `${effectiveName} offer` });
+  }
+
+  const aliases = [];
+  if (compound && compound.length >= 3 && compound.length <= 25) {
+    aliases.push(compound);
   }
 
   return {
@@ -204,8 +243,12 @@ function buildFallbackExpansion(input) {
     category: 'Direct Response',
     coreProduct: effectiveName,
     productKeywords: [effectiveName],
-    aliases: [], groundingSources: [],
-    searchVectors: sanitizeSearchVectors(effectiveName, searchVectors),
+    aliases,
+    groundingSources: [],
+    searchVectors: sanitizeSearchVectors(effectiveName, searchVectors, {
+      aliases,
+      originalQuery: trimmed,
+    }),
     painPoints: [],
     source: 'fallback',
   };

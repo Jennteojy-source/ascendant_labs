@@ -268,11 +268,13 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     }
 
     const isReviewAdvertorial = /\b(review|reviewed|vs|tested|ratings?|top \d|best \d|scam|legit|hands-on|discount code|promo code|coupon|worth it)\b/i.test(combinedContent);
+    const isBrandEquivalentQuery = Boolean(rawQuery && targetBrand &&
+      rawQuery.trim().toLowerCase() === targetBrand.trim().toLowerCase());
 
     if (brandInPage) {
       relevanceType = 'OFFICIAL_BRAND';
       relevanceScore = 100;
-    } else if (brandInCopy || domainMatched || (queryInPageOrCopy && rawQuery && rawQuery === targetBrand)) {
+    } else if (brandInCopy || domainMatched || (queryInPageOrCopy && isBrandEquivalentQuery)) {
       if (isReviewAdvertorial) {
         relevanceType = 'REVIEW_EDITORIAL';
         relevanceScore = 90;

@@ -178,8 +178,10 @@ const server = http.createServer(async (req, res) => {
       const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
       const userAgent = req.headers['user-agent'];
       const searchParams = { countries, status, mediaType, page, pageSize };
-      const searchDeadlineMs = searchStartTime + Math.max(30000,
-        Math.min(50000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 45000));
+      // Firebase Hosting has a strict 60s hard timeout on rewrites.
+      // Bound the entire search pipeline to 40s so the response is guaranteed to return < 45s.
+      const SEARCH_MAX_BUDGET_MS = Math.min(42000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 40000);
+      const searchDeadlineMs = searchStartTime + SEARCH_MAX_BUDGET_MS;
       let rankedAds = null;
       let queryProfile = null;
       let searchRes = null;
@@ -223,8 +225,8 @@ const server = http.createServer(async (req, res) => {
             minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
             maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
             deadlineMs: Math.max(5000, Math.min(
-              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 38000,
-              searchDeadlineMs - Date.now() - 3000)),
+              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 28000,
+              searchDeadlineMs - Date.now() - 8000)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
             isRelevantCandidate: ad => matchesProductIdentity(ad, queryProfile, trimmedInput),
             enableAgenticLoop: false,
@@ -263,7 +265,11 @@ const server = http.createServer(async (req, res) => {
             productKeywords: queryProfile.productKeywords || [targetBrand],
           };
 
-          rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          const remainingForRanking = searchDeadlineMs - Date.now();
+          if (remainingForRanking >= 5000 && deterministicAds.length > 0) {
+            const rankingTimeout = Math.min(7000, remainingForRanking - 2000);
+            rankedAds = await rerankAdsWithAI(rankedAds, evalProfile, { timeoutMs: rankingTimeout });
+          }
           rerankedAds = rankedAds;
           rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile));
           pipeline.stages.rankingMs = Date.now() - rankingStarted;

@@ -88,7 +88,7 @@ Return ONLY a valid raw JSON array (no markdown, no backticks):
     const raw = await generateText(
       prompt,
       { temperature: 0.1, maxOutputTokens: 5000, responseMimeType: 'application/json', responseSchema: RELEVANCE_SCHEMA },
-      { operation: 'ad_relevance', timeoutMs: 15000 }
+      { operation: 'ad_relevance', timeoutMs: options.timeoutMs || 8000 }
     );
     const match = String(raw || '').match(/\[[\s\S]*\]/);
     const cleaned = match ? match[0] : String(raw || '').replace(/```json|```/g, '').trim();
@@ -121,13 +121,14 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
   const batchSize = 16;
   const aiEvaluationsMap = new Map();
 
-  const toEvaluate = candidateAds;
+  const toEvaluate = Number(options.maxCandidates) > 0
+    ? candidateAds.slice(0, options.maxCandidates) : candidateAds;
   const batches = [];
   for (let i = 0; i < toEvaluate.length; i += batchSize) {
     batches.push(toEvaluate.slice(i, i + batchSize));
   }
 
-  const batchPromises = batches.map((b) => (options.evaluateBatch || evaluateBatchWithAI)(targetProfile, b));
+  const batchPromises = batches.map((b) => (options.evaluateBatch || evaluateBatchWithAI)(targetProfile, b, options));
   const batchResults = await Promise.allSettled(batchPromises);
 
   for (const [batchIndex, res] of batchResults.entries()) {
@@ -154,9 +155,15 @@ async function rerankAdsWithAI(candidateAds, targetProfile, options = {}) {
     // A model outage falls back only to clear identity evidence.
     if (!aiEval) {
       const matched = matchesProductIdentity(ad, targetProfile, targetProfile.brandName);
-      relationship = matched && targetProfile.intentType !== 'CATEGORY'
-        ? ad.ranking?.relevanceType || 'DISCOVERED' : 'DISCOVERED';
-      relevanceScore = matched ? ad.ranking?.relevanceScore || 45 : 0;
+      if (matched && targetProfile.intentType !== 'CATEGORY') {
+        relationship = ['OFFICIAL_BRAND', 'AFFILIATE_PARTNER', 'REVIEW_EDITORIAL'].includes(ad.ranking?.relevanceType)
+          ? ad.ranking.relevanceType
+          : (ad.ranking?.isReviewAdvertorial ? 'REVIEW_EDITORIAL' : 'AFFILIATE_PARTNER');
+        relevanceScore = ad.ranking?.relevanceScore || 85;
+      } else {
+        relationship = 'DISCOVERED';
+        relevanceScore = 0;
+      }
     }
 
     // Retain all candidate ads with continuous relevance scoring
