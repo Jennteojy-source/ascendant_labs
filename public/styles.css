@@ -903,6 +903,14 @@ body {
 }
 
 /* Media Box (Dynamic — fits natural ad creative size, no forced aspect ratio) */
+.search-run-id {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 0.75rem;
+  text-align: right;
+  user-select: all;
+}
+
 .card-media-box {
   position: relative;
   width: 100%;

@@ -34,7 +34,31 @@ ads/
 npm run ad:server                     # Start web server and API
 npm run ad:search -- "product"        # Run multi-vector agentic search CLI
 npm test                              # Run search and media regression tests
+npm run ad:eval -- search_ID          # Read a live search's evaluation record
 ```
+
+## Evaluating live searches
+
+Every search response includes a `searchId`, also shown above the result cards. Save that ID
+along with the query and a brief judgment (for example, an irrelevant ad ID or a blank
+preview). From a shell with read access to the production Firestore project, run
+`npm run ad:eval -- search_ID`. The report contains:
+
+- Query vectors and each Meta retrieval attempt, including result count, duration,
+  blocked/inconclusive state, and how many creatives were available at discovery.
+- A bounded candidate trail showing which query found each ad, its deterministic and
+  AI rank, relevance score and reason, and the stage where it was removed.
+- The saved result copy and ranking, plus subsequent media extraction, storage,
+  and browser load/failure events correlated by the same search ID.
+
+Use a small fixed set of queries covering exact brands, aliases, affiliate pages,
+category terms, and sparse/no-result cases. For each run, judge top-result relevance,
+missing expected ads, copy quality, active status, and the fraction of visible
+creatives that actually rendered. Compare reports for the same queries after a code
+change; do not rely on one successful live search. Browser events are client reports,
+while `media_resolved` events are server observations. The report omits signed media
+URLs and client IPs. Events are retained with the Firestore search record; the
+in-memory fallback only covers the current process.
 
 ## Managed browser deployment
 

@@ -23,6 +23,7 @@ const state = {
   rawRankedAds: [],       // All ads returned by server
   sourceAdsFound: 0,      // Raw Ads Library records before creative deduplication
   currentProfile: null,
+  searchId: null,
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
   blockedAdIds: new Set(), // inaccessible Meta previews are not shown as creatives
 };
@@ -170,6 +171,9 @@ async function executeSearch(targetInput, page = 1) {
   if (searchInFlight) return;
   searchInFlight = true;
   resetMediaSession();
+  state.searchId = null;
+  const searchRunId = document.getElementById('searchRunId');
+  if (searchRunId) searchRunId.hidden = true;
   const searchGeneration = mediaGeneration;
   state.currentInput = targetInput;
   state.currentPage = page;
@@ -273,6 +277,13 @@ async function executeSearch(targetInput, page = 1) {
         ? 'The search service returned an invalid response. Please retry.'
         : `The search service is temporarily unavailable (${response.status}). Please retry.`;
       throw new Error(detail);
+    }
+    if (searchGeneration === mediaGeneration && data.searchId) {
+      state.searchId = data.searchId;
+      if (searchRunId) {
+        searchRunId.textContent = `Search ID: ${state.searchId}`;
+        searchRunId.hidden = false;
+      }
     }
     if (!response.ok) throw new Error(data.error || `Search failed (${response.status})`);
     if (data.error) throw new Error(data.error);
@@ -520,6 +531,23 @@ const pendingSniffQueue = new Set();
 const mediaRequests = new Map();
 const creativeIndices = new Map();
 const mediaRefreshAttempts = new Set();
+const reportedMediaEvents = new Set();
+
+function reportMediaEvent(adId, event) {
+  if (!state.searchId || !/^\d{1,40}$/.test(String(adId))) return;
+  const key = `${adId}:${event.type}:${event.assetKind || ''}`;
+  if (reportedMediaEvents.has(key)) return;
+  reportedMediaEvents.add(key);
+  let assetHost = '';
+  try { assetHost = event.url ? new URL(event.url, location.origin).hostname : ''; } catch {}
+  fetch('/api/client-event', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+    body: JSON.stringify({ searchId: state.searchId, event: {
+      type: event.type, adId: String(adId), assetKind: event.assetKind || null,
+      assetHost, reason: event.reason || '', durationMs: event.durationMs || null,
+    } }),
+  }).catch(() => {});
+}
 
 function resetMediaSession() {
   mediaGeneration++;
@@ -531,6 +559,7 @@ function resetMediaSession() {
   state.blockedAdIds.clear();
   creativeIndices.clear();
   mediaRefreshAttempts.clear();
+  reportedMediaEvents.clear();
 }
 
 function currentMedia(ad) {
@@ -573,6 +602,7 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
     adId: String(ad.id), media: currentMedia(ad), index: creativeIndices.get(String(ad.id)) || 0,
     displayFormat: ad.display_format || currentMedia(ad)?.displayFormat || null,
     onIndexChange: index => creativeIndices.set(String(ad.id), index),
+    onEvent: event => reportMediaEvent(ad.id, event),
     onRefresh: () => {
       const id = String(ad.id);
       if (generation !== mediaGeneration || mediaRefreshAttempts.has(id)) return;
@@ -594,6 +624,7 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
 async function requestAdMedia(ad, { forceRefresh = false } = {}) {
   const generation = mediaGeneration;
   const id = String(ad.id);
+  const startedAt = Date.now();
   const key = `${generation}:${id}:${forceRefresh ? 'refresh' : 'initial'}`;
   if (mediaRequests.has(key)) return mediaRequests.get(key);
   const request = (async () => {
@@ -601,7 +632,7 @@ async function requestAdMedia(ad, { forceRefresh = false } = {}) {
     try {
       const response = await fetch('/api/sniff-page', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null,
+        body: JSON.stringify({ searchId: state.searchId, ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null,
           media: forceRefresh ? null : currentMedia(ad) }], forceRefresh }),
         signal: AbortSignal.timeout(90000),
       });
@@ -610,8 +641,12 @@ async function requestAdMedia(ad, { forceRefresh = false } = {}) {
       media = data.mediaMap?.[id];
       if (!media) throw new Error('Missing preview');
     } catch {
+      if (generation === mediaGeneration) reportMediaEvent(id, { type: 'media_request_failed',
+        reason: 'request_or_response_error', durationMs: Date.now() - startedAt });
       media = { schemaVersion: 2, status: 'retryable_failure', creatives: [], mediaType: 'unknown' };
     }
+    if (generation === mediaGeneration && media.status !== 'ready') reportMediaEvent(id, { type: 'preview_unavailable',
+      reason: media.status, durationMs: Date.now() - startedAt });
     if (generation === mediaGeneration) {
       if (media.status === 'blocked' && !currentMedia(ad)?.creatives?.length) {
         state.blockedAdIds.add(id);

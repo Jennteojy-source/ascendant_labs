@@ -25,7 +25,9 @@ const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const { browserConnectionMode, getSearchBrowser } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
 const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/media_storage');
-const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession, upsertCanonicalMedia } = require('./lib/search_logger');
+const { logSearchSession, createSearchId, recordSearchEvent, getRecentSearches, getSearchDiagnostics,
+  getSearchSession, upsertCanonicalMedia } = require('./lib/search_logger');
+const { buildSearchEvaluation } = require('./lib/search_evaluation');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
@@ -157,6 +159,7 @@ const server = http.createServer(async (req, res) => {
     // 3. API Route: Multi-Vector Comparable Search
     if (req.method === 'POST' && pathname === '/api/search') {
       const searchStartTime = Date.now();
+      const searchId = createSearchId();
       const body = await readJsonBody(req);
       const {
         input,
@@ -180,6 +183,8 @@ const server = http.createServer(async (req, res) => {
       let rankedAds = null;
       let queryProfile = null;
       let searchRes = null;
+      let deterministicAds = [];
+      let rerankedAds = [];
       const pipeline = { startedAt: new Date(searchStartTime).toISOString(), stages: {} };
 
       try {
@@ -198,6 +203,7 @@ const server = http.createServer(async (req, res) => {
           const coreKeywords = [queryProfile.coreProduct, ...(queryProfile.competitors || [])];
 
           logger.info('Stage 1 — AI Query Expansion complete', {
+            searchId,
             input: trimmedInput,
             brandName: targetBrand,
             targetCountry: targetCountry || 'ALL',
@@ -227,6 +233,7 @@ const server = http.createServer(async (req, res) => {
           pipeline.stages.discoveryMs = Date.now() - discoveryStarted;
 
           logger.info('Stage 2 — Agentic Ads Library search complete', {
+            searchId,
             totalRawAds: searchRes.totalRawAds,
             discoveredCompetitors: searchRes.discoveredCompetitors,
             discoveryMs: pipeline.stages.discoveryMs,
@@ -243,6 +250,7 @@ const server = http.createServer(async (req, res) => {
             targetDomain: '',
             searchQuery: trimmedInput,
           });
+          deterministicAds = rankedAds;
 
           const evalProfile = {
             brandName: targetBrand,
@@ -256,10 +264,12 @@ const server = http.createServer(async (req, res) => {
           };
 
           rankedAds = await rerankAdsWithAI(rankedAds, evalProfile);
+          rerankedAds = rankedAds;
           rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile));
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
 
           logger.info('Stage 3 — AI ranking complete', {
+            searchId,
             input: trimmedInput,
             targetBrand,
             totalAdsFound: rankedAds.length,
@@ -299,7 +309,13 @@ const server = http.createServer(async (req, res) => {
         const reviewEditorialCount = rankedAds.filter(a => a.ranking?.relationship === 'REVIEW_EDITORIAL' || a.ranking?.relevanceType === 'REVIEW_EDITORIAL').length;
 
         // Await this: every completed live search must be durably recorded.
+        const evaluation = buildSearchEvaluation({
+          rawAds: searchRes?.ads || [], deterministicAds, rerankedAds,
+          returnedAds: uniqueVisualAds, retrievalAttempts: searchRes?.retrievalAttempts || [],
+          pipeline: { ...pipeline, totalMs: Date.now() - searchStartTime }, profile: queryProfile,
+        });
         await logSearchSession({
+          id: searchId,
           query: input,
           status: searchRes?.hasPartialBlocks ? 'PARTIAL' : 'SUCCESS',
           isBlocked: false,
@@ -314,9 +330,11 @@ const server = http.createServer(async (req, res) => {
           latencyMs: Date.now() - searchStartTime,
           clientIp,
           userAgent,
+          evaluation,
         }).catch(err => console.warn('[Server] Log search notice:', err.message));
 
         return sendJson(res, 200, {
+          searchId,
           queryProfile,
           paginated,
           pipeline: { ...pipeline, totalMs: Date.now() - searchStartTime },
@@ -337,6 +355,7 @@ const server = http.createServer(async (req, res) => {
         const searchStatus = isBlocked ? 'BLOCKED' : 'ERROR';
 
         logger.error('Search request failed or blocked', {
+          searchId,
           query: trimmedInput,
           status: searchStatus,
           isBlocked,
@@ -346,6 +365,7 @@ const server = http.createServer(async (req, res) => {
 
         // Always log blocked or failed searches to Firestore!
         await logSearchSession({
+          id: searchId,
           query: input,
           status: searchStatus,
           isBlocked,
@@ -362,9 +382,13 @@ const server = http.createServer(async (req, res) => {
           latencyMs: Date.now() - searchStartTime,
           clientIp,
           userAgent,
+          evaluation: buildSearchEvaluation({ rawAds: searchRes?.ads || [], deterministicAds,
+            rerankedAds, returnedAds: [], retrievalAttempts: err.retrievalAttempts || searchRes?.retrievalAttempts || [],
+            pipeline: { ...pipeline, totalMs: Date.now() - searchStartTime }, profile: queryProfile }),
         }).catch(logErr => console.warn('[Server] Log failed search notice:', logErr.message));
 
         return sendJson(res, isBlocked ? 403 : 500, {
+          searchId,
           error: isBlocked
             ? 'Meta blocked the browser session. Configure the managed Browserless connection.'
             : `Search failed: ${err.message}`,
@@ -437,6 +461,21 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // Browser outcomes complete the evaluation trail after the search response.
+    if (req.method === 'POST' && pathname === '/api/client-event') {
+      const origin = req.headers.origin;
+      if (origin) {
+        let sameOrigin = false;
+        try { sameOrigin = new URL(origin).host === req.headers.host; } catch {}
+        if (!sameOrigin) return sendJson(res, 403, { error: 'Invalid origin' });
+      }
+      const body = await readJsonBody(req);
+      if (!['asset_loaded', 'asset_failed', 'preview_unavailable', 'media_request_failed']
+        .includes(body.event?.type)) return sendJson(res, 400, { error: 'Invalid event type' });
+      const saved = await recordSearchEvent(body.searchId, { ...body.event, reportedBy: 'browser' });
+      return sendJson(res, saved ? 200 : 400, saved ? { recorded: true } : { error: 'Invalid event' });
+    }
+
     // 4. API Route: On-Demand Paginated Media Sniffer
     if (req.method === 'POST' && pathname === '/api/sniff-page') {
       const body = await readJsonBody(req);
@@ -449,6 +488,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       logger.info('Media sniffing batch started', {
+        searchId: body.searchId || null,
         batchSize: ads.length,
         adIds: ads.map(a => a.id),
       });
@@ -456,12 +496,22 @@ const server = http.createServer(async (req, res) => {
       // Sniff media for up to 10 ads on the active page
       const extractedMedia = await sniffPageMedia(ads, { forceRefresh: body.forceRefresh === true });
       const mediaMap = await persistMediaBatch(extractedMedia);
+      await Promise.all(ads.map(ad => {
+        const media = mediaMap[String(ad.id)];
+        return recordSearchEvent(body.searchId, {
+          type: 'media_resolved', reportedBy: 'server', adId: ad.id, mediaStatus: media?.status || 'missing',
+          source: media?.source || '', storageStatus: media?.storageStatus || '',
+          httpStatus: media?.diagnostic?.httpStatus || null,
+          reason: media?.diagnostic?.reason || '',
+        });
+      }));
       await saveMediaBatch(mediaMap);
       // A later-page preview is just as durable as a first-page preview: update
       // its canonical Firestore ad record after the GCS object is persisted.
       await upsertCanonicalMedia(ads.map(ad => ({ id: ad.id, media: mediaMap[String(ad.id)] || ad.media })));
 
       logger.info('Media sniffing batch completed', {
+        searchId: body.searchId || null,
         resolvedCount: Object.keys(mediaMap).length,
       });
 

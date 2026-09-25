@@ -51,6 +51,7 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
   const failedUrls = new Set();
   const reads = new Set();
   let responseReads = 0;
+  let detailHttpStatus = null;
   const quality = media => media.creatives.reduce((score, c) => score + 100 + (c.videoUrl ? 10 : 0) + c.videoSources.length + c.imageSources.length, 0);
   const inspectJSON = raw => {
     try {
@@ -79,6 +80,7 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
       read.finally(() => reads.delete(read));
     });
     const navigation = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 12000 });
+    detailHttpStatus = navigation?.status() || null;
     const isBlockedPage = async response => Boolean((response && [401, 403, 429].includes(response.status()))
       || /\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())
       || /log in to continue|security check|temporarily blocked|automated behavior/i.test(
@@ -110,6 +112,7 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
     if (!structured.creatives.length && !best.creatives.length) {
       const renderUrl = `https://www.facebook.com/ads/archive/render_ad/?id=${encodeURIComponent(adId)}`;
       const renderNavigation = await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => null);
+      if (renderNavigation) detailHttpStatus = renderNavigation.status();
       blocked = blocked || await isBlockedPage(renderNavigation);
       const fallbackStarted = Date.now();
       while (!blocked && Date.now() - fallbackStarted < 4000 && !structured.creatives.length && !best.creatives.length) {
@@ -127,7 +130,10 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
     await Promise.race([Promise.allSettled([...reads]), page.waitForTimeout(1000)]);
     const selected = structured.creatives.length ? structured : best;
     if (!selected.creatives.length) blocked = blocked || await isBlockedPage(null);
-    if (!selected.creatives.length && blocked) return mediaResult([], null, 'blocked');
+    if (!selected.creatives.length && blocked) return {
+      ...mediaResult([], null, 'blocked'),
+      diagnostic: { httpStatus: detailHttpStatus, reason: detailHttpStatus === 403 ? 'meta_http_403' : 'meta_challenge' },
+    };
     return mediaResult(selected.creatives.map(c => ({ ...c,
       videoUrl: failedUrls.has(c.videoUrl) ? null : c.videoUrl,
       videoSources: c.videoSources.filter(url => !failedUrls.has(url)),
@@ -139,7 +145,8 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
       adId: String(adId),
       errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200),
     });
-    return mediaResult([], null, 'retryable_failure');
+    return { ...mediaResult([], null, 'retryable_failure'),
+      diagnostic: { httpStatus: detailHttpStatus, reason: error.name === 'TimeoutError' ? 'timeout' : 'collector_error' } };
   } finally {
     if (owned) await context.close().catch(() => {});
     else await page.close().catch(() => {});

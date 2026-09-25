@@ -14,7 +14,7 @@ const ad = (id, media) => ({ id, pageName: 'Example advertiser', media,
   copy: { body: 'A relevant product advertisement.', headline: 'Example creative' },
   stats: { flightDays: 10, isActive: true, countries: ['US'], platforms: ['facebook'] }, ranking: {} });
 
-async function appPage(t, ads, sniff = async () => ({})) {
+async function appPage(t, ads, sniff = async () => ({}), options = {}) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
   t.after(() => page.close());
   const errors = [];
@@ -26,8 +26,13 @@ async function appPage(t, ads, sniff = async () => ({})) {
       return route.fulfill({ contentType: 'image/svg+xml', body: svg });
     }
     if (u.hostname !== '127.0.0.1') return route.abort();
-    if (u.pathname === '/api/search') return route.fulfill({ json: { queryProfile: {}, paginated: { items: ads } } });
+    if (u.pathname === '/api/search') return route.fulfill({ json: {
+      searchId: options.searchId || null, queryProfile: {}, paginated: { items: ads } } });
     if (u.pathname === '/api/sniff-page') return route.fulfill({ json: { mediaMap: await sniff(request.postDataJSON()) } });
+    if (u.pathname === '/api/client-event') {
+      options.onEvent?.(request.postDataJSON());
+      return route.fulfill({ json: {} });
+    }
     if (u.pathname === '/api/health') return route.fulfill({ json: { status: 'OK' } });
     const name = u.pathname === '/' ? 'index.html' : u.pathname.slice(1);
     if (!['index.html', 'app.js', 'media.js', 'styles.css'].includes(name)) return route.fulfill({ status: 404 });
@@ -40,6 +45,16 @@ async function appPage(t, ads, sniff = async () => ({})) {
   t.after(() => assert.deepEqual(errors, [], 'no browser JavaScript errors'));
   return page;
 }
+
+test('browser reports rendered asset outcome with its search ID and no signed URL', async t => {
+  const events = [];
+  await appPage(t, [ad('123', mediaResult([{ thumbnailUrl: image }], 'structured'))],
+    async () => ({}), { searchId: 'search_1234567890123_0123456789abcdef0123', onEvent: event => events.push(event) });
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.equal(events.some(item => item.event.type === 'asset_loaded' && item.event.adId === '123'), true);
+  assert.equal(events[0].searchId, 'search_1234567890123_0123456789abcdef0123');
+  assert.equal(JSON.stringify(events).includes('sig='), false);
+});
 
 test('DOM fallback stays inside the requested ad and retains valid t51 images', async t => {
   const page = await browser.newPage(); t.after(() => page.close());

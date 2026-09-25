@@ -7,11 +7,19 @@
  */
 
 const { Firestore, FieldValue } = require('@google-cloud/firestore');
+const crypto = require('crypto');
 
 const COLLECTION_NAME = 'search_history';
 const ADS_COLLECTION_NAME = 'ad_library_ads';
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ascendant-labs-45812';
 const memoryHistory = [];
+const memoryEvents = new Map();
+const validatedEventSearches = new Set();
+const SEARCH_ID_PATTERN = /^search_\d{13}_[a-f0-9]{20}$/;
+
+function createSearchId() {
+  return `search_${Date.now()}_${crypto.randomBytes(10).toString('hex')}`;
+}
 
 let firestoreInstance = null;
 let firestoreAvailable = null;
@@ -71,8 +79,10 @@ function sanitizeAdForStorage(ad) {
     },
     media: {
       schemaVersion: 2,
-      status: ad.media?.status || 'ready',
-      mediaType: ad.media?.mediaType || (ad.media?.videoUrl ? 'video' : 'image'),
+      status: ad.media?.status || 'missing',
+      mediaType: ad.media?.mediaType || (ad.media?.videoUrl ? 'video' : ad.media?.thumbnailUrl ? 'image' : 'unknown'),
+      source: ad.media?.source || null,
+      storageStatus: ad.media?.storageStatus || null,
       thumbnailUrl: ad.media?.thumbnailUrl || null,
       videoUrl: ad.media?.videoUrl || null,
       creatives: Array.isArray(ad.media?.creatives) && ad.media.creatives.length > 0
@@ -96,6 +106,7 @@ function sanitizeAdForStorage(ad) {
       relevanceScore: Number(ad.ranking?.relevanceScore || 50),
       relationship: ad.ranking?.relationship || 'COMPETITOR',
       relevanceType: ad.ranking?.relevanceType || 'COMPETITOR',
+      reason: ad.ranking?.reason || null,
     },
     aiAnalysis: ad.aiAnalysis ? {
       relationship: ad.aiAnalysis.relationship || 'COMPETITOR',
@@ -176,6 +187,7 @@ async function upsertCanonicalMedia(ads = []) {
  */
 async function logSearchSession(sessionData = {}) {
   const {
+    id: suppliedId = null,
     query = '',
     status = 'SUCCESS',
     isBlocked = false,
@@ -193,12 +205,13 @@ async function logSearchSession(sessionData = {}) {
     latencyMs = 0,
     clientIp = null,
     userAgent = null,
+    evaluation = null,
   } = sessionData;
 
   const trimmedQuery = (query || '').trim();
   if (!trimmedQuery) return null;
 
-  const id = `search_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const id = SEARCH_ID_PATTERN.test(suppliedId || '') ? suppliedId : createSearchId();
   const canonicalAds = (ads || []).map(sanitizeAdForStorage).filter(Boolean);
   // Keep replay payload bounded; the session still references every canonical ad.
   const sanitizedAds = canonicalAds.slice(0, 80);
@@ -241,6 +254,7 @@ async function logSearchSession(sessionData = {}) {
       suggestedVectors: profile.suggestedVectors || [],
     } : null,
     topResultsSummary,
+    evaluation: evaluation || null,
     resultAdIds: canonicalAds.map(ad => ad.id),
     results: sanitizedAds,
     metadata: {
@@ -274,8 +288,12 @@ async function logSearchSession(sessionData = {}) {
     topResultsSummary: docData.topResultsSummary,
     results: docData.results,
     profile: docData.profile,
+    evaluation: docData.evaluation,
+    searchParams: docData.searchParams,
   });
   if (memoryHistory.length > 100) memoryHistory.length = 100;
+  validatedEventSearches.add(id);
+  while (validatedEventSearches.size > 100) validatedEventSearches.delete(validatedEventSearches.values().next().value);
 
   // 2. Save to Google Cloud Firestore
   const db = getFirestore();
@@ -433,9 +451,12 @@ async function getSearchSession(id) {
     return {
       id: found.id,
       query: found.query,
+      status: found.status,
+      searchParams: found.searchParams,
       totalFound: found.totalFound,
       profile: found.profile,
       results: found.results,
+      evaluation: found.evaluation || null,
       metadata: { loggedAt: found.timestamp },
     };
   }
@@ -443,8 +464,102 @@ async function getSearchSession(id) {
   return null;
 }
 
+const EVENT_TYPES = new Set(['media_requested', 'media_resolved', 'media_request_failed',
+  'asset_loaded', 'asset_failed', 'preview_unavailable']);
+function normalizeSearchEvent(event = {}) {
+  if (!EVENT_TYPES.has(event.type) || !/^\d{1,40}$/.test(String(event.adId || ''))) return null;
+  const assetHost = String(event.assetHost || '');
+  const reason = String(event.reason || '');
+  const code = value => /^[a-z_]{1,40}$/.test(String(value || '')) ? String(value) : '';
+  return {
+    type: event.type,
+    reportedBy: event.reportedBy === 'server' ? 'server' : 'browser',
+    adId: String(event.adId),
+    mediaStatus: code(event.mediaStatus),
+    source: code(event.source),
+    storageStatus: code(event.storageStatus),
+    assetKind: ['image', 'video'].includes(event.assetKind) ? event.assetKind : null,
+    assetHost: /^[a-z0-9.-]{1,80}$/i.test(assetHost) ? assetHost : '',
+    reason: /^[a-z_]{1,80}$/.test(reason) ? reason : '',
+    httpStatus: Number.isInteger(event.httpStatus) && event.httpStatus >= 100 && event.httpStatus <= 599
+      ? event.httpStatus : null,
+    durationMs: Number.isFinite(event.durationMs) ? Math.min(120000, Math.max(0, Math.round(event.durationMs))) : null,
+    at: new Date().toISOString(),
+  };
+}
+
+async function recordSearchEvent(searchId, event) {
+  if (!SEARCH_ID_PATTERN.test(searchId || '')) return false;
+  const safe = normalizeSearchEvent(event);
+  if (!safe) return false;
+  if (!validatedEventSearches.has(searchId)) {
+    if (!await getSearchSession(searchId)) return false;
+    validatedEventSearches.add(searchId);
+    while (validatedEventSearches.size > 100) validatedEventSearches.delete(validatedEventSearches.values().next().value);
+  }
+  const events = memoryEvents.get(searchId) || [];
+  if (events.length >= 100) return false;
+  events.push(safe);
+  memoryEvents.set(searchId, events);
+  while (memoryEvents.size > 100) memoryEvents.delete(memoryEvents.keys().next().value);
+  const db = getFirestore();
+  if (db) {
+    try {
+      await db.collection(COLLECTION_NAME).doc(searchId).collection('events').add(safe);
+    } catch (error) {
+      console.warn('[SearchLogger] Evaluation event write notice:', error.message);
+    }
+  }
+  return true;
+}
+
+async function getSearchEvaluation(searchId) {
+  if (!SEARCH_ID_PATTERN.test(searchId || '')) return null;
+  const session = await getSearchSession(searchId);
+  if (!session) return null;
+  let events = memoryEvents.get(searchId) || [];
+  const db = getFirestore();
+  if (db) {
+    try {
+      const snapshot = await db.collection(COLLECTION_NAME).doc(searchId)
+        .collection('events').orderBy('at').limit(100).get();
+      events = snapshot.docs.map(doc => doc.data());
+    } catch (error) {
+      console.warn('[SearchLogger] Evaluation event read notice:', error.message);
+    }
+  }
+  const resolved = events.filter(event => event.type === 'media_resolved');
+  return {
+    searchId, query: session.query, status: session.status,
+    summary: {
+      rawCandidates: session.evaluation?.counts?.raw || 0,
+      returned: session.evaluation?.counts?.returned || 0,
+      notReturned: Math.max(0, (session.evaluation?.counts?.raw || 0)
+        - (session.evaluation?.counts?.returned || 0)),
+      auditTruncated: session.evaluation?.truncatedCandidates || 0,
+      searchMediaReady: session.evaluation?.counts?.searchMediaReady || 0,
+      mediaReadyAfterSniff: resolved.filter(event => event.mediaStatus === 'ready').length,
+      mediaBlockedAfterSniff: resolved.filter(event => event.mediaStatus === 'blocked').length,
+      browserAssetsLoaded: events.filter(event => event.type === 'asset_loaded').length,
+      browserAssetsFailed: events.filter(event => event.type === 'asset_failed').length,
+    },
+    searchParams: session.searchParams, profile: session.profile,
+    evaluation: session.evaluation || null,
+    results: (session.results || []).map(ad => ({
+      id: ad.id, pageName: ad.pageName, copy: ad.copy, ranking: ad.ranking,
+      media: { status: ad.media?.status || 'missing', source: ad.media?.source || null,
+        storageStatus: ad.media?.storageStatus || null, creativeCount: ad.media?.creatives?.length || 0 },
+    })),
+    events,
+  };
+}
+
 module.exports = {
   logSearchSession,
+  createSearchId,
+  recordSearchEvent,
+  getSearchEvaluation,
+  normalizeSearchEvent,
   getRecentSearches,
   getSearchDiagnostics,
   getSearchSession,

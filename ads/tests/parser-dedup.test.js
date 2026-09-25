@@ -126,10 +126,10 @@ test('retrieval plan keeps exact global identity first and adds bounded relaxati
     { type: 'AFFILIATE_ANGLE', query: 'Lyza Education review' },
   ], 6);
   assert.deepEqual(plan.map(item => item.type), [
-    'EXACT_BRAND', 'PAGE_VARIATION', 'AFFILIATE_ANGLE', 'RELAXED_COMPACT', 'RELAXED_BRAND_TOKEN',
+    'EXACT_BRAND', 'PAGE_VARIATION', 'AFFILIATE_ANGLE', 'RELAXED_COMPACT',
   ]);
   assert.equal(plan[0].query, 'Lyza Education');
-  assert.equal(plan.at(-1).query, 'Lyza');
+  assert.equal(plan.at(-1).query, 'LyzaEducation');
 });
 
 test('fallback terms run only when exact global retrieval is sparse', async () => {
@@ -177,7 +177,8 @@ test('AI follow-up queries retain brand identity and replace static fallback whe
   assert.deepEqual(sanitizeAgentQueries([
     { type: 'PAGE_VARIATION', query: 'Lyza Coding' },
     { type: 'PRODUCT_NAME', query: 'Unrelated Brand' },
-  ], 'Lyza Education', 2), [{ type: 'PAGE_VARIATION', query: 'Lyza Coding' }]);
+  ], 'Lyza Education', 2, { aliases: ['Lyza Coding'] }),
+  [{ type: 'PAGE_VARIATION', query: 'Lyza Coding' }]);
 
   const calls = [];
   await findComparables({

@@ -49,6 +49,7 @@
       if (!byFingerprint.has(key)) {
         byFingerprint.set(key, c);
       } else {
+        options.onEvent?.({ type: 'preview_unavailable', reason: media.status || 'missing' });
         const existing = byFingerprint.get(key);
         const existingArea = (existing.width || 0) * (existing.height || 0);
         const newArea = (c.width || 0) * (c.height || 0);
@@ -226,6 +227,8 @@
       image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
       let sourceIndex = 0;
       image.onload = () => {
+        if (disposed) return;
+        options.onEvent?.({ type: 'asset_loaded', assetKind: 'image', url: image.currentSrc || image.src });
         clearTimeout(timer);
         stage.classList.remove('is-loading');
         image.classList.add('media-ready');
@@ -238,6 +241,8 @@
         if (disposed) return;
         if (++sourceIndex < images.length) image.src = images[sourceIndex];
         else {
+          options.onEvent?.({ type: 'asset_failed', assetKind: 'image', url: image.src,
+            reason: 'all_sources_failed' });
           stage.classList.remove('is-loading');
           image.remove();
           stage.classList.add('media-empty');
@@ -270,6 +275,8 @@
       if (images[0]) player.poster = images[0];
       let sourceIndex = 0;
       const onReady = () => {
+        if (disposed) return;
+        options.onEvent?.({ type: 'asset_loaded', assetKind: 'video', url: player.currentSrc || player.src });
         clearTimeout(timer);
         stage.classList.remove('is-loading');
         player.classList.add('media-ready');
@@ -288,7 +295,11 @@
         clearTimeout(timer);
         stage.classList.remove('is-loading');
         if (++sourceIndex < videos.length) { player.src = videos[sourceIndex]; player.load(); }
-        else { showImage(true); failed('Video unavailable; showing its poster when available.'); }
+        else {
+          options.onEvent?.({ type: 'asset_failed', assetKind: 'video', url: player.currentSrc || player.src,
+            reason: 'all_sources_failed' });
+          showImage(true); failed('Video unavailable; showing its poster when available.');
+        }
       };
       stage.replaceChildren(player);
       player.src = videos[0];

@@ -3,7 +3,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { logSearchSession, getRecentSearches, getSearchDiagnostics } = require('../lib/search_logger');
+const { logSearchSession, createSearchId, recordSearchEvent, getSearchEvaluation,
+  getRecentSearches, getSearchDiagnostics } = require('../lib/search_logger');
+const { buildSearchEvaluation } = require('../lib/search_evaluation');
 
 test('search logger records successful searches with ad summaries', async () => {
   const query = 'unit_test_pillow_' + Date.now();
@@ -79,4 +81,30 @@ test('getSearchDiagnostics aggregates system telemetry', async () => {
   assert.equal(typeof diagnostics.summary.successCount, 'number');
   assert.ok(typeof diagnostics.summary.blockedRate, 'string');
   assert.ok(Array.isArray(diagnostics.recentSearches));
+});
+
+test('evaluation links retrieval, ranking decisions, and media outcomes by search ID', async () => {
+  const id = createSearchId();
+  const raw = [
+    { id: '12345678', matchedQueries: ['prodentim'], discoveryVectors: ['EXACT_BRAND'],
+      browserMedia: { status: 'ready' } },
+    { id: '87654321', matchedQueries: ['prodentim'], discoveryVectors: ['EXACT_BRAND'] },
+  ];
+  const ranked = [{ id: '12345678', ranking: { rankScore: 120, relevanceScore: 90,
+    relationship: 'AFFILIATE_PARTNER', reason: 'Product named in headline' } }];
+  const evaluation = buildSearchEvaluation({ rawAds: raw, deterministicAds: ranked,
+    rerankedAds: ranked, returnedAds: ranked, retrievalAttempts: [{ query: 'prodentim', resultCount: 2 }] });
+  await logSearchSession({ id, query: 'prodentim', ads: ranked, evaluation });
+  assert.equal(await recordSearchEvent(id, { type: 'media_resolved', adId: '12345678',
+    mediaStatus: 'blocked', httpStatus: 403, reason: 'meta_http_403',
+    assetHost: 'scontent.xx.fbcdn.net', url: 'https://secret.example/token=abc' }), true);
+  const report = await getSearchEvaluation(id);
+  assert.equal(report.searchId, id);
+  assert.equal(report.evaluation.candidates[0].fate, 'returned');
+  assert.equal(report.evaluation.candidates[1].fate, 'removed_before_ranking');
+  assert.equal(report.events[0].httpStatus, 403);
+  assert.equal(JSON.stringify(report).includes('secret.example'), false);
+  assert.equal(await recordSearchEvent(id, { type: 'arbitrary', adId: '12345678' }), false);
+  assert.equal(await recordSearchEvent('search_1234567890123_0123456789abcdef0123',
+    { type: 'asset_loaded', adId: '12345678' }), false);
 });

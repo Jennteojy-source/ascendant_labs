@@ -77,6 +77,7 @@ async function findComparables(searchPlan = {}, options = {}) {
   const vectorHits = {};
   const competitorPagesMap = new Map();
   const discoveryErrors = [];
+  const retrievalAttempts = [];
   const retrievalPlan = buildRetrievalPlan(vectors, maxQueries);
 
   function collectResult(vector, result = {}) {
@@ -132,6 +133,14 @@ async function findComparables(searchPlan = {}, options = {}) {
       timeoutMs: remainingMs,
     });
     collectResult(vector, result);
+    retrievalAttempts.push({
+      query: term, vectorType: vector.type || 'KEYWORD', countries: targetCountries,
+      pageId: vector.pageId || null, resultCount: Array.isArray(result.data) ? result.data.length : 0,
+      mediaReadyCount: (result.data || []).filter(ad => ad.browserMedia?.status === 'ready').length,
+      blocked: Boolean(result.blocked), inconclusive: Boolean(result.inconclusive),
+      error: result.error ? String(result.error).slice(0, 160) : null,
+      durationMs: Date.now() - vectorStartedAt,
+    });
     logger.info('Search vector completed', {
       query: term, vectorType: vector.type || 'KEYWORD',
       countries: targetCountries, pageId: vector.pageId || null,
@@ -227,6 +236,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     error.blockReason = blockedItem?.blockReason || (blockedItem ? 'Meta blocked the browser session' : null);
     error.discoveryErrors = discoveryErrors;
     error.vectorHits = vectorHits;
+    error.retrievalAttempts = retrievalAttempts;
     throw error;
   }
   return {
@@ -234,6 +244,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     vectorHits,
     discoveredCompetitors,
     discoveryErrors,
+    retrievalAttempts,
     isBlocked: false,
     hasPartialBlocks: discoveryErrors.some(e => e.blocked),
     deadlineReached: Date.now() - startedAt >= deadlineMs,
