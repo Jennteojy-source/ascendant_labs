@@ -47,6 +47,50 @@ function cleanCopy(text) {
   return s;
 }
 
+function countryEvidence(stats) {
+  const basis = ['reached', 'targeted', 'listed'].includes(stats?.countryBasis)
+    ? stats.countryBasis : 'unknown';
+  const labels = { reached: 'Shown in', targeted: 'Audience locations',
+    excluded: 'Excluded locations', listed: 'Meta-listed locations' };
+  const titles = {
+    reached: 'Meta reports that this ad reached people in these countries.',
+    targeted: 'Countries included in this ad’s audience locations. Delivery is not confirmed.',
+    excluded: 'Countries excluded from this ad’s audience locations.',
+    listed: 'Meta lists these as targeted or reached countries without distinguishing which.',
+  };
+  const flags = {
+    US: '🇺🇸', GB: '🇬🇧', CA: '🇨🇦', AU: '🇦🇺', NZ: '🇳🇿',
+    DE: '🇩🇪', FR: '🇫🇷', IT: '🇮🇹', ES: '🇪🇸', NL: '🇳🇱',
+    SE: '🇸🇪', NO: '🇳🇴', DK: '🇩🇰', FI: '🇫🇮', IE: '🇮🇪',
+    CH: '🇨🇭', AT: '🇦🇹', BE: '🇧🇪', PL: '🇵🇱', SG: '🇸🇬',
+    JP: '🇯🇵', KR: '🇰🇷', BR: '🇧🇷', MX: '🇲🇽',
+  };
+  const normalize = values => [...new Set((values || [])
+    .map(value => String(value).toUpperCase())
+    .filter(value => /^[A-Z]{2}$/.test(value) && value !== 'EN' && value !== 'ZZ'))];
+  const reached = normalize(stats?.reachedCountries || (basis === 'reached' ? stats?.countries : []));
+  const targeted = normalize(stats?.targetedCountries || (basis === 'targeted' ? stats?.countries : []));
+  const excluded = normalize(stats?.excludedCountries);
+  const listed = normalize(stats?.listedCountries || (basis === 'listed' ? stats?.countries : []));
+  const preciseCodes = new Set([...reached, ...targeted, ...excluded]);
+  const additionalListed = listed.filter(code => !preciseCodes.has(code));
+  const rows = [
+    ['reached', reached], ['targeted', targeted], ['excluded', excluded],
+    ['listed', additionalListed],
+  ].filter(([, codes]) => codes.length).map(([type, codes]) => ({
+    label: labels[type], title: titles[type], value: codes.join(', '),
+    withFlags: codes.map(code => `${flags[code] || ''} ${code}`.trim()).join(', '),
+  }));
+  const primary = rows.find(row => row.label !== labels.excluded) || null;
+  return { rows, primary };
+}
+
+function knownDate(value) {
+  if (!value || /^(?:unknown|recent|present)$/i.test(String(value).trim())) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 // DOM References
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
@@ -327,25 +371,10 @@ function renderAdGrid(ads) {
     const statusClass = ad.stats.isActive ? 'active' : 'inactive';
     const statusText = ad.stats.isActive ? 'Active' : 'Inactive';
 
-    // Country Flag Mapper
-    const countryFlagMap = {
-      US: '🇺🇸 US', GB: '🇬🇧 UK', CA: '🇨🇦 CA', AU: '🇦🇺 AU', NZ: '🇳🇿 NZ',
-      DE: '🇩🇪 DE', FR: '🇫🇷 FR', IT: '🇮🇹 IT', ES: '🇪🇸 ES', NL: '🇳🇱 NL',
-      SE: '🇸🇪 SE', NO: '🇳🇴 NO', DK: '🇩🇰 DK', FI: '🇫🇮 FI', IE: '🇮🇪 IE',
-      CH: '🇨🇭 CH', AT: '🇦🇹 AT', BE: '🇧🇪 BE', PL: '🇵🇱 PL', SG: '🇸🇬 SG',
-      JP: '🇯🇵 JP', KR: '🇰🇷 KR', BR: '🇧🇷 BR', MX: '🇲🇽 MX'
-    };
-
-    // Format countries where ad is posted
-    const rawCountries = (ad.stats?.countries || []).filter(c => c && typeof c === 'string' && c.length <= 3 && c.toUpperCase() !== 'EN');
-    const formattedCountries = rawCountries.length > 0
-      ? rawCountries.map(c => countryFlagMap[c.toUpperCase()] || c.toUpperCase()).join(', ')
-      : '🇺🇸 US, 🇬🇧 UK, 🇨🇦 CA, 🇦🇺 AU';
+    const country = countryEvidence(ad.stats);
 
     // Format platform chips from raw Meta data
-    const rawPlatforms = (ad.stats?.platforms && ad.stats.platforms.length > 0)
-      ? ad.stats.platforms
-      : ['facebook', 'instagram'];
+    const rawPlatforms = Array.isArray(ad.stats?.platforms) ? ad.stats.platforms : [];
 
     const platformItems = rawPlatforms
       .map(p => {
@@ -365,9 +394,10 @@ function renderAdGrid(ads) {
       .join('');
 
     // Format start date
-    const startDate = ad.stats?.startDate
-      ? new Date(ad.stats.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : '';
+    const startDate = knownDate(ad.stats?.startDate)?.toLocaleDateString('en-US',
+      { month: 'short', day: 'numeric', year: 'numeric' }) || '';
+    const hasFlightDuration = Boolean(startDate && Number.isFinite(Number(ad.stats?.flightDays))
+      && Number(ad.stats.flightDays) > 0);
 
     // Format EU Reach (ONLY display when available and > 0)
     const rawEuReach = ad.stats?.euTotalReach || ad.stats?.euReach;
@@ -400,41 +430,40 @@ function renderAdGrid(ads) {
         ${mediaHtml}
       </div>
 
-      <div class="card-destination-strip" id="card-dest-${ad.id}" onclick="event.stopPropagation(); window.openOutboundUrl('${ad.id}')" title="Visit landing page (opens in new tab)" role="button" tabindex="0">
+      <div class="card-destination-strip" id="card-dest-${ad.id}" style="${ad.destinationUrl || ad.displayDomain ? '' : 'display:none;'}" onclick="event.stopPropagation(); window.openOutboundUrl('${ad.id}')" title="Visit landing page (opens in new tab)" role="button" tabindex="0">
         <span class="card-dest-domain" title="${ad.destinationUrl || ad.displayDomain || ''}">🌐 ${ad.displayDomain || 'Website'}</span>
         <span class="card-dest-cta">${ad.ctaText || 'Learn More'} ↗</span>
       </div>
 
-      <div class="card-stats-strip">
-        <div class="stat-item">
+      ${hasFlightDuration || startDate || euReachFormatted || country.primary ? `<div class="card-stats-strip">
+        ${hasFlightDuration ? `<div class="stat-item">
           <span class="stat-label">Duration</span>
           <span class="stat-value">
             ${ad.stats.flightDays} day${ad.stats.flightDays === 1 ? '' : 's'}
           </span>
-        </div>
+        </div>` : ''}
         ${euReachFormatted ? `
           <div class="stat-item" title="Official EU Verified Audience Reach returned by Meta">
             <span class="stat-label">EU Reach</span>
             <span class="stat-value">🇪🇺 ${euReachFormatted}</span>
           </div>
-        ` : `
-          <div class="stat-item">
-            <span class="stat-label">Started</span>
-            <span class="stat-value">${startDate || 'Recent'}</span>
-          </div>
-        `}
-        <div class="stat-item" title="Countries where ad is actively posted">
-          <span class="stat-label">Target Countries</span>
-          <span class="stat-value" style="font-size: 0.76rem; font-weight: 600;">${formattedCountries}</span>
-        </div>
-      </div>
+        ` : ''}
+        ${startDate ? `<div class="stat-item">
+          <span class="stat-label">Started</span>
+          <span class="stat-value">${startDate}</span>
+        </div>` : ''}
+        ${country.primary ? `<div class="stat-item" title="${country.primary.title}">
+          <span class="stat-label">${country.primary.label}</span>
+          <span class="stat-value" style="font-size: 0.76rem; font-weight: 600;">${country.primary.withFlags}</span>
+        </div>` : ''}
+      </div>` : ''}
 
-      <div class="card-platforms-row">
+      ${platformItems.length ? `<div class="card-platforms-row">
         <span class="meta-label">Platforms:</span>
         <div class="platform-chips-wrap">
           ${platformPillsHtml}
         </div>
-      </div>
+      </div>` : ''}
 
       <!-- In-Card Variant Carousel Controller (Shown only when multiple variants exist) -->
       ${variantCount > 1 ? `
@@ -490,6 +519,7 @@ let sniffRunning = false;
 const pendingSniffQueue = new Set();
 const mediaRequests = new Map();
 const creativeIndices = new Map();
+const mediaRefreshAttempts = new Set();
 
 function resetMediaSession() {
   mediaGeneration++;
@@ -500,6 +530,7 @@ function resetMediaSession() {
   state.resolvedMediaMap = {};
   state.blockedAdIds.clear();
   creativeIndices.clear();
+  mediaRefreshAttempts.clear();
 }
 
 function currentMedia(ad) {
@@ -542,6 +573,15 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
     adId: String(ad.id), media: currentMedia(ad), index: creativeIndices.get(String(ad.id)) || 0,
     displayFormat: ad.display_format || currentMedia(ad)?.displayFormat || null,
     onIndexChange: index => creativeIndices.set(String(ad.id), index),
+    onRefresh: () => {
+      const id = String(ad.id);
+      if (generation !== mediaGeneration || mediaRefreshAttempts.has(id)) return;
+      mediaRefreshAttempts.add(id);
+      requestAdMedia(ad, { forceRefresh: true }).then(() => {
+        if (box.id === 'modalMediaBox' && box.isConnected
+            && String(window._currentModalAd?.id) === id) renderAdMedia(ad, box);
+      });
+    },
   });
   if (box.id === 'modalMediaBox' && !currentMedia(ad)) {
     requestAdMedia(ad).then(() => {
@@ -551,17 +591,18 @@ function renderAdMedia(ad, box = document.getElementById(`media-box-${ad.id}`)) 
   }
 }
 
-async function requestAdMedia(ad) {
+async function requestAdMedia(ad, { forceRefresh = false } = {}) {
   const generation = mediaGeneration;
   const id = String(ad.id);
-  const key = `${generation}:${id}`;
+  const key = `${generation}:${id}:${forceRefresh ? 'refresh' : 'initial'}`;
   if (mediaRequests.has(key)) return mediaRequests.get(key);
   const request = (async () => {
     let media;
     try {
       const response = await fetch('/api/sniff-page', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null }] }),
+        body: JSON.stringify({ ads: [{ id, adSnapshotUrl: ad.adSnapshotUrl || null,
+          media: forceRefresh ? null : currentMedia(ad) }], forceRefresh }),
         signal: AbortSignal.timeout(90000),
       });
       if (!response.ok) throw new Error('Preview request failed');
@@ -576,7 +617,7 @@ async function requestAdMedia(ad) {
         state.blockedAdIds.add(id);
       }
       // Retain media resolution (ready, blocked fallback, or unavailable)
-      if (media.status === 'ready' || !currentMedia(ad)) state.resolvedMediaMap[id] = media;
+      if (forceRefresh || media.status === 'ready' || !currentMedia(ad)) state.resolvedMediaMap[id] = media;
       if (media.destinationUrl) {
         ad.destinationUrl = media.destinationUrl;
         try { ad.displayDomain = new URL(media.destinationUrl).hostname.replace(/^www\./, ''); } catch {}
@@ -584,6 +625,7 @@ async function requestAdMedia(ad) {
       if (media.ctaText) ad.ctaText = media.ctaText;
       const strip = document.getElementById(`card-dest-${id}`);
       if (strip) {
+        if (ad.destinationUrl || ad.displayDomain) strip.style.display = '';
         const domain = strip.querySelector('.card-dest-domain');
         const cta = strip.querySelector('.card-dest-cta');
         if (domain) { domain.textContent = `🌐 ${ad.displayDomain || 'Website'}`; domain.title = ad.destinationUrl || ''; }
@@ -600,7 +642,10 @@ async function requestAdMedia(ad) {
 function observeCardsForSniffing() {
   cardObserver?.disconnect();
   const queue = ad => {
-    if (!currentMedia(ad)) pendingSniffQueue.add(String(ad.id));
+    const media = currentMedia(ad);
+    if (!media || (media.status === 'ready' && !['ready', 'partial'].includes(media.storageStatus))) {
+      pendingSniffQueue.add(String(ad.id));
+    }
     scheduleFlushSniffQueue();
   };
   if (!window.IntersectionObserver) {
@@ -816,8 +861,11 @@ window.openVariantsModal = function (adId) {
 
   if (badgeEl) badgeEl.innerHTML = '';
 
-  const flightDays = ad.stats?.flightDays || 1;
-  const statusStr = ad.stats?.isActive ? `Active for ${flightDays} days` : `Ran for ${flightDays} days`;
+  const hasFlightDuration = knownDate(ad.stats?.startDate)
+    && Number.isFinite(Number(ad.stats?.flightDays)) && Number(ad.stats.flightDays) > 0;
+  const statusStr = hasFlightDuration
+    ? `${ad.stats?.isActive ? 'Active for' : 'Ran for'} ${ad.stats.flightDays} days`
+    : (ad.stats?.isActive ? 'Active' : 'Inactive');
   if (metaSubEl) metaSubEl.textContent = `Meta Ad ID: ${ad.id} • ${statusStr}`;
 
   window._currentModalAd = ad;
@@ -850,6 +898,7 @@ window.switchModalVariant = function (idx) {
 function renderModalContent(ad, activeIdx = 0) {
   const bodyEl = document.getElementById('modalBody');
   if (!bodyEl) return;
+  const country = countryEvidence(ad.stats);
 
   const variants = (ad.variants && ad.variants.length > 0) ? ad.variants : [{
     index: 1,
@@ -896,6 +945,11 @@ function renderModalContent(ad, activeIdx = 0) {
   const rawEuReach = currentVariant.euTotalReach || ad.stats?.euTotalReach;
   const hasEuReach = rawEuReach && !isNaN(rawEuReach) && Number(rawEuReach) > 0;
   const euReachText = hasEuReach ? `🇪🇺 ${Number(rawEuReach).toLocaleString()} EU Users` : null;
+  const launchDate = knownDate(currentVariant.startDate || ad.stats?.startDate)
+    ?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || null;
+  const hasFlightDuration = Boolean(knownDate(ad.stats?.startDate)
+    && Number.isFinite(Number(ad.stats?.flightDays))
+    && Number(ad.stats.flightDays) > 0);
   const destUrl = ad.destinationUrl || (ad.displayDomain ? `https://${ad.displayDomain}` : '');
 
   bodyEl.innerHTML = `
@@ -919,31 +973,26 @@ function renderModalContent(ad, activeIdx = 0) {
           ` : ''}
 
           <!-- Verified Meta Stats Table -->
-          <div class="meta-stats-grid">
-            <div class="meta-stat-cell">
+          ${hasFlightDuration || euReachText || country.rows.length || launchDate ? `<div class="meta-stats-grid">
+            ${hasFlightDuration ? `<div class="meta-stat-cell">
               <span class="meta-stat-label">Flight Duration</span>
-              <span class="meta-stat-val">${ad.stats?.flightDays || 1} Days Active</span>
-            </div>
+              <span class="meta-stat-val">${ad.stats.flightDays} ${ad.stats?.isActive ? 'Days Active' : 'Days'}</span>
+            </div>` : ''}
             ${euReachText ? `
               <div class="meta-stat-cell">
                 <span class="meta-stat-label">EU Reach</span>
                 <span class="meta-stat-val" style="color: #1d4ed8;">${euReachText}</span>
               </div>
-            ` : `
-              <div class="meta-stat-cell">
-                <span class="meta-stat-label">Regions</span>
-                <span class="meta-stat-val">${(ad.stats?.countries || []).join(', ') || 'Global'}</span>
-              </div>
-            `}
-            <div class="meta-stat-cell">
-              <span class="meta-stat-label">Scale Tier</span>
-              <span class="meta-stat-val">${ad.stats?.scaleTier ? ad.stats.scaleTier.split('(')[0].trim() : 'Active'}</span>
-            </div>
-            <div class="meta-stat-cell">
+            ` : ''}
+            ${country.rows.map(row => `<div class="meta-stat-cell">
+              <span class="meta-stat-label" title="${row.title}">${row.label}</span>
+              <span class="meta-stat-val">${row.value}</span>
+            </div>`).join('')}
+            ${launchDate ? `<div class="meta-stat-cell">
               <span class="meta-stat-label">Launch Date</span>
-              <span class="meta-stat-val">${currentVariant.startDate || ad.stats?.startDate || 'Recent'}</span>
-            </div>
-          </div>
+              <span class="meta-stat-val">${launchDate}</span>
+            </div>` : ''}
+          </div>` : ''}
         </div>
       </div>
 

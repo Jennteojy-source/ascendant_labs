@@ -9,6 +9,18 @@
 const crypto = require('crypto');
 const { assetFingerprint } = require('./media_resolver');
 
+function countryCodes(values) {
+  if (!Array.isArray(values)) return [];
+  return [...new Set(values.map(value => {
+    const raw = typeof value === 'string' ? value
+      : value && typeof value === 'object'
+        ? (value.country_code || value.countryCode || value.country || value.code)
+        : null;
+    const code = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
+    return /^[A-Z]{2}$/.test(code) && code !== 'EN' && code !== 'ZZ' ? code : null;
+  }).filter(Boolean))].sort();
+}
+
 /**
  * Classify hook archetype from ad text
  */
@@ -63,7 +75,6 @@ function cleanAdText(text) {
  * Deduplicate and Rank Raw Ad Records
  */
 function deduplicateAndRankAds(rawAds, options = {}) {
-  const targetCountries = options.countries || ['US'];
 
   // 1. Group by creative fingerprint to collapse identical creatives
   const creativeGroups = new Map();
@@ -156,7 +167,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
             startDate: a.ad_delivery_start_time ? new Date(a.ad_delivery_start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
             endDate: a.ad_delivery_stop_time ? new Date(a.ad_delivery_stop_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Present',
             euTotalReach: a.eu_total_reach ? Number(a.eu_total_reach) : null,
-            platforms: a.publisher_platforms || ['facebook', 'instagram'],
+            platforms: a.publisher_platforms || [],
           });
         }
       }
@@ -168,7 +179,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     const startMs = startDateRaw ? new Date(startDateRaw).getTime() : now;
     const endMs = endDateRaw ? new Date(endDateRaw).getTime() : now;
 
-    const isActive = !endDateRaw || endMs > now - 24 * 3600 * 1000;
+    const isActive = !endDateRaw || endMs > now;
     const flightDays = Math.max(1, Math.round((endMs - startMs) / (1000 * 3600 * 24)));
 
     const startFormatted = startDateRaw ? new Date(startDateRaw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
@@ -306,14 +317,25 @@ function deduplicateAndRankAds(rawAds, options = {}) {
     else if (isActive) grade = 'Active Tester';
     else grade = 'Ended';
 
-    // Countries served: strictly use target countries or ad's target locations, NOT language
-    let countries = Array.isArray(targetCountries) && targetCountries.length > 0 ? targetCountries : ['US', 'GB', 'CA', 'AU'];
-    if (Array.isArray(ad.target_locations) && ad.target_locations.length > 0) {
-      countries = ad.target_locations.map(l => l.country_code || l.name || l).filter(Boolean);
-    } else if (Array.isArray(ad.target_countries) && ad.target_countries.length > 0) {
-      countries = ad.target_countries;
-    }
-    const languages = Array.isArray(ad.languages) && ad.languages.length > 0 ? ad.languages : ['en'];
+    // The search country is a filter, not evidence of this ad's delivery or targeting.
+    const reached = countryCodes(group.allAds.flatMap(item => [
+      ...(Array.isArray(item.reached_countries) ? item.reached_countries : []),
+      ...(Array.isArray(item.age_country_gender_reach_breakdown) ? item.age_country_gender_reach_breakdown : []),
+    ]));
+    const targetingLocations = group.allAds.flatMap(item => [
+      ...(Array.isArray(item.target_countries) ? item.target_countries : []),
+      ...(Array.isArray(item.target_locations) ? item.target_locations : []),
+    ]);
+    const isExcluded = location => location && typeof location === 'object'
+      && (location.excluded === true || location.is_excluded === true
+        || String(location.included_or_excluded || location.includedOrExcluded || '').toLowerCase() === 'excluded');
+    const targeted = countryCodes(targetingLocations.filter(location => !isExcluded(location)));
+    const excluded = countryCodes(targetingLocations.filter(isExcluded));
+    const listed = countryCodes(group.allAds.flatMap(item =>
+      Array.isArray(item.targeted_or_reached_countries) ? item.targeted_or_reached_countries : []));
+    const countryBasis = reached.length ? 'reached' : targeted.length ? 'targeted' : listed.length ? 'listed' : 'unknown';
+    const countries = reached.length ? reached : targeted.length ? targeted : listed;
+    const languages = Array.isArray(ad.languages) ? ad.languages : [];
 
     // Baseline destination URL & display domain extraction
     let displayDomain = caption || '';
@@ -357,7 +379,7 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         isActive,
         flightDays,
         flightSummary,
-        startDate: startFormatted,
+        startDate: ad.ad_delivery_start_time ? startFormatted : null,
         endDate: endFormatted,
         scaleTier,
         impressionTier: scaleTier,
@@ -367,7 +389,12 @@ function deduplicateAndRankAds(rawAds, options = {}) {
         spend: ad.spend || null,
         languages: languages,
         countries,
-        platforms: ad.publisher_platforms || ['facebook', 'instagram'],
+        countryBasis,
+        reachedCountries: reached,
+        targetedCountries: targeted,
+        excludedCountries: excluded,
+        listedCountries: listed,
+        platforms: ad.publisher_platforms || [],
       },
       copy: {
         headline,

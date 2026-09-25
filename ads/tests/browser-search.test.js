@@ -81,6 +81,24 @@ test('visible Library cards provide a DOM fallback when response JSON changes', 
   assert.equal(ad.mediaItems.length, 1);
 });
 
+test('DOM fallback finds ad images when search blocks image downloads', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.route('**/*.jpg', route => route.abort());
+  await page.setContent(`<article>
+    <div>Library ID: 987654323</div>
+    <div>Started running on Jan 1, 2025 <a href="https://www.facebook.com/ads/library/?id=987654323">See ad details</a></div>
+    <div><p>Creative copy for this ad.</p>
+      <img src="https://scontent.xx.fbcdn.net/creative.jpg" style="width:600px;height:400px">
+    </div>
+  </article>`);
+  const [ad] = await page.evaluate(extractAdsFromDocument);
+  assert.equal(ad.id, '987654323');
+  assert.deepEqual(ad.mediaItems.map(item => item.thumbnailUrl),
+    ['https://scontent.xx.fbcdn.net/creative.jpg']);
+  assert.equal(ad.mediaItems[0].width, 600);
+});
+
 test('DOM fallback excludes navigation labels outside the nearest ad card', async t => {
   const page = await browser.newPage();
   t.after(() => page.close());

@@ -103,6 +103,12 @@ async function findComparables(searchPlan = {}, options = {}) {
         existing.discoveryVectors = [...new Set([...existing.discoveryVectors, vector.type || 'KEYWORD'])];
         existing.matchedQueries = [...new Set([...existing.matchedQueries, term])];
         if (!existing.browserMedia && ad.browserMedia) existing.browserMedia = ad.browserMedia;
+        for (const key of ['reached_countries', 'target_countries', 'target_locations',
+          'targeted_or_reached_countries', 'age_country_gender_reach_breakdown']) {
+          if (Array.isArray(ad[key]) && ad[key].length) {
+            existing[key] = [...(Array.isArray(existing[key]) ? existing[key] : []), ...ad[key]];
+          }
+        }
       }
       vectorHits[term]++;
       if (ad.page_name) competitorPagesMap.set(ad.page_name, (competitorPagesMap.get(ad.page_name) || 0) + 1);

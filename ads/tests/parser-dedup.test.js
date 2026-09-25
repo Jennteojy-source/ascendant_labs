@@ -54,6 +54,43 @@ test('the same image served at different sizes and with revised copy is one crea
   assert.equal(ranked[0].variants.length, 2);
 });
 
+test('an ad that stopped within the last day is inactive', () => {
+  const result = deduplicateAndRankAds([{
+    id: '3030220743851482', page_name: 'Smart Discount Store',
+    ad_delivery_start_time: new Date(Date.now() - 61 * 86400000).toISOString(),
+    ad_delivery_stop_time: new Date(Date.now() - 3600000).toISOString(),
+    ad_creative_bodies: ['Yu Sleep evening wellness routine'],
+  }], { targetBrand: 'Yu Sleep' });
+  assert.equal(result[0].stats.isActive, false);
+});
+
+test('a global search filter does not claim that an ad reached every country', () => {
+  const [ad] = extractAdsFromPayload({ ads: [{ ad_archive_id: '888000333',
+    page_name: 'Example', snapshot: { body: 'A real offer' } }] });
+  const [ranked] = deduplicateAndRankAds([ad], { countries: ['ALL'], targetBrand: 'Example' });
+  assert.deepEqual(ranked.stats.countries, []);
+  assert.equal(ranked.stats.countryBasis, 'unknown');
+});
+
+test('per-ad reached and targeted countries remain distinct from search geography', () => {
+  const [ad] = extractAdsFromPayload({ ads: [{ ad_archive_id: '888000334',
+    page_name: 'Example', reached_countries: ['SG', 'US'],
+    target_locations: [{ country_code: 'CA', included_or_excluded: 'Included' },
+      { country_code: 'RU', included_or_excluded: 'Excluded' }],
+    snapshot: { body: 'A real offer' } }] });
+  const [ranked] = deduplicateAndRankAds([ad], { countries: ['ALL'], targetBrand: 'Example' });
+  assert.deepEqual(ranked.stats.countries, ['SG', 'US']);
+  assert.equal(ranked.stats.countryBasis, 'reached');
+  assert.deepEqual(ranked.stats.reachedCountries, ['SG', 'US']);
+  assert.deepEqual(ranked.stats.targetedCountries, ['CA']);
+  assert.deepEqual(ranked.stats.excludedCountries, ['RU']);
+
+  const [targeted] = deduplicateAndRankAds([{ ...ad, reached_countries: [] }],
+    { countries: ['ALL'], targetBrand: 'Example' });
+  assert.deepEqual(targeted.stats.countries, ['CA']);
+  assert.equal(targeted.stats.countryBasis, 'targeted');
+});
+
 test('navigation captured as an ad is removed before ranking', () => {
   const ranked = deduplicateAndRankAds([{ id: '888000222', page_name: 'Log in',
     ad_creative_bodies: ['Meta Ad Library'], ad_creative_link_titles: ['Ad Library'] }]);

@@ -61,6 +61,12 @@ function sanitizeAdForStorage(ad) {
       reachEst: ad.stats?.reachEst || 'Standard',
       languages: Array.isArray(ad.stats?.languages) ? ad.stats.languages : [],
       countries: Array.isArray(ad.stats?.countries) ? ad.stats.countries : [],
+      countryBasis: ['reached', 'targeted', 'listed'].includes(ad.stats?.countryBasis)
+        ? ad.stats.countryBasis : 'unknown',
+      reachedCountries: Array.isArray(ad.stats?.reachedCountries) ? ad.stats.reachedCountries : [],
+      targetedCountries: Array.isArray(ad.stats?.targetedCountries) ? ad.stats.targetedCountries : [],
+      excludedCountries: Array.isArray(ad.stats?.excludedCountries) ? ad.stats.excludedCountries : [],
+      listedCountries: Array.isArray(ad.stats?.listedCountries) ? ad.stats.listedCountries : [],
       platforms: Array.isArray(ad.stats?.platforms) ? ad.stats.platforms : [],
     },
     media: {
@@ -134,6 +140,31 @@ async function upsertCanonicalAds(ads = []) {
     return true;
   } catch (err) {
     console.warn('[SearchLogger] Canonical ad write notice:', err.message);
+    firestoreAvailable = false;
+    return false;
+  }
+}
+
+async function upsertCanonicalMedia(ads = []) {
+  const db = getFirestore();
+  if (!db || firestoreAvailable === false) return false;
+  try {
+    const batch = db.batch();
+    for (const ad of ads.filter(item => /^\d{1,40}$/.test(String(item?.id || '')))) {
+      const id = String(ad.id);
+      const media = sanitizeAdForStorage({ id, media: ad.media }).media;
+      batch.set(db.collection(ADS_COLLECTION_NAME).doc(id), {
+        media,
+        storage: { bucket: process.env.MEDIA_STORAGE_BUCKET || `${PROJECT_ID}-ad-media`,
+          assetObjectPaths: media.assetObjectPaths || [] },
+        lastSeenAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+    await batch.commit();
+    firestoreAvailable = true;
+    return true;
+  } catch (err) {
+    console.warn('[SearchLogger] Canonical media write notice:', err.message);
     firestoreAvailable = false;
     return false;
   }
@@ -420,4 +451,5 @@ module.exports = {
   sanitizeAdForStorage,
   storedAssetPaths,
   upsertCanonicalAds,
+  upsertCanonicalMedia,
 };

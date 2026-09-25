@@ -1008,6 +1008,13 @@ body {
   text-underline-offset: 2px;
 }
 
+.card-media-box .creative-stage.media-unavailable {
+  aspect-ratio: auto;
+  min-height: 180px;
+  padding: 24px;
+  text-align: center;
+}
+
 .media-empty-spinner {
   width: 26px;
   height: 26px;
@@ -1247,7 +1254,7 @@ body {
 .card-stats-strip {
   padding: 10px 16px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
   background: #fafafa;
   border-bottom: 1px solid var(--border-subtle);
@@ -2387,11 +2394,11 @@ body.modal-open {
     font-weight: 700;
   }
 
-  /* Mobile Balanced 3-Column Stats Strip */
+  /* Let optional evidence fill the available width without empty columns. */
   .card-stats-strip {
     padding: 10px 14px;
     gap: 8px;
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)) !important;
   }
 
   .card-stats-strip .stat-label {
@@ -2758,7 +2765,7 @@ body.modal-open {
     font-size: 1.35rem;
   }
   .card-stats-strip {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)) !important;
     padding: 8px 10px;
     gap: 4px;
   }

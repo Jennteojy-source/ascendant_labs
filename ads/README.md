@@ -42,7 +42,9 @@ Production connects outbound to a managed browser service. The project does not 
 
 ### Browser collection
 The Cloud Run Chromium instance handles searches and ad previews. Blocked detail
-previews are skipped without a paid residential retry. The browser is warmed
+previews are skipped without a paid residential retry by default. Set
+`MEDIA_SNIFF_RESIDENTIAL_FALLBACK=1` only if a paid Browserless fallback is intended.
+The browser is warmed
 before Cloud Run reports readiness, avoiding a first-search launch penalty.
 `BROWSER_WS_ENDPOINT` remains an optional explicit managed-browser override,
 but production has no Browserless credential mounted.
@@ -53,6 +55,25 @@ Creatives are copied into a private Cloud Storage bucket only when their card is
 - `MEDIA_PERSIST_CONCURRENCY`: simultaneous media copies (default: `2`, maximum: `4`).
 - `MEDIA_STORAGE_DISABLED=1`: disable durable copies and retain verified Meta CDN fallbacks.
 
+Search results may include creative URLs from Meta's response. For visible cards,
+the server now uses those ad-bound URLs first and copies accessible media into Cloud
+Storage without opening the per-ad detail page. This matters when Meta serves search
+results but denies a separate detail request. The detail page remains a fallback when
+search provided no media. Direct CDN URLs can expire or return an error. If an image
+or video cannot load in the user's browser, the card forces one fresh detail request
+per search. A `blocked` preview
+means the detail page returned a login, checkpoint, challenge, or denial response;
+`unavailable` means no usable creative was extracted, which does not itself prove
+that Meta blocked access. Check `Ad media extraction completed` and `Asset ingestion
+failed` logs for the affected ad ID.
+
+An authenticated browser can be tested by setting `META_BROWSER_STORAGE_STATE` to
+the path of a Playwright storage-state JSON file generated from a dedicated test
+account. The same state is used for search and detail contexts. Keep the file outside
+source control and refresh it when the session expires. `FACEBOOK_EMAIL` and
+`FACEBOOK_PASSWORD` in `.env` are not consumed by the collector, and a login does
+not guarantee that Meta will serve every ad or CDN asset.
+
 Apply `storage-lifecycle.json` to the bucket to delete cached analysis media after 14 days.
 
 ### Other managed Playwright providers
@@ -62,6 +83,13 @@ Apply `storage-lifecycle.json` to the bucket to delete cached analysis media aft
 Fallback mode: launches local headless Chromium when no remote endpoints are configured.
 
 No Meta Ads Library API token is read or transmitted. The web search pipeline first asks Gemini to research the product with Google Search grounding, then uses a structured Gemini response to plan Meta queries. Grounded aliases can be used in follow-up queries. Gemini judges every candidate before the API presents named-offer matches; an exact name match supports a conservative fallback if the model is unavailable. The grounded profile and sources are returned in `queryProfile` and recorded with search history. Configure `VERTEX_GEMINI_MODEL` only to override the default `gemini-3.8-flash` model. Google Search grounding adds a Vertex request and may increase search latency and cost.
+
+The `country=ALL` search filter is not an ad's target or delivery geography.
+Results show countries only when Meta supplies ad-bound reached, included or excluded
+audience locations, or targeted-or-reached country fields. The UI labels that evidence
+separately and omits locations when the evidence is absent. A targeted country does not prove that the ad
+received impressions there; the public Library does not provide a complete
+country-by-country delivery list for every commercial ad.
 
 Cloud Logging records search vector durations/failures, each ad preview outcome,
 asset download outcomes and bytes, and Vertex input/output/cached token counts.

@@ -1,6 +1,6 @@
 /** Ad-specific creative extraction with bounded concurrency and refreshes. */
 const cache = require('./firestore_cache');
-const { mediaResult, extractStructuredMedia, inspectAdDocument, destinationUrl } = require('./media_resolver');
+const { mediaResult, mediaUrl, extractStructuredMedia, inspectAdDocument, destinationUrl } = require('./media_resolver');
 const { getSearchBrowser: getBrowser, getFallbackBrowser, createCollectorContext } = require('./meta_browser_searcher');
 const logger = require('./gcp_logger');
 
@@ -19,6 +19,26 @@ function snapshotTarget(adId, supplied) {
   const url = new URL('https://www.facebook.com/ads/library/');
   url.searchParams.set('id', adId);
   return url.href;
+}
+
+function searchResponseMedia(adId, supplied) {
+  if (!supplied || typeof supplied !== 'object') return null;
+  const allowed = value => {
+    const url = mediaUrl(value);
+    return url && (!url.startsWith('/api/media/') || url.startsWith(`/api/media/${adId}/`)) ? url : null;
+  };
+  const creatives = (Array.isArray(supplied.creatives) ? supplied.creatives : [supplied])
+    .slice(0, 10).filter(item => item && typeof item === 'object').map(item => ({
+      mediaType: item.mediaType,
+      videoUrl: allowed(item.videoUrl),
+      videoSources: (Array.isArray(item.videoSources) ? item.videoSources : []).slice(0, 4).map(allowed).filter(Boolean),
+      thumbnailUrl: allowed(item.thumbnailUrl),
+      imageSources: (Array.isArray(item.imageSources) ? item.imageSources : []).slice(0, 4).map(allowed).filter(Boolean),
+      width: item.width, height: item.height, destinationUrl: item.destinationUrl,
+      ctaText: item.ctaText, title: item.title, body: item.body, displayFormat: item.displayFormat,
+    }));
+  const media = mediaResult(creatives, 'search_response', 'unavailable', { displayFormat: supplied.displayFormat });
+  return media.status === 'ready' ? media : null;
 }
 
 async function sniffSingleAd(browser, adId, supplied, { residential = false } = {}) {
@@ -59,12 +79,15 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
       read.finally(() => reads.delete(read));
     });
     const navigation = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 12000 });
-    const primaryBlocked = Boolean((navigation && [401, 403, 429].includes(navigation.status()))
-      || /\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url()));
+    const isBlockedPage = async response => Boolean((response && [401, 403, 429].includes(response.status()))
+      || /\/(login|checkpoint|challenge)(?:\/|\?|$)/.test(page.url())
+      || /log in to continue|security check|temporarily blocked|automated behavior/i.test(
+        await page.locator('body').innerText({ timeout: 1000 }).catch(() => '')));
+    let blocked = await isBlockedPage(navigation);
     const started = Date.now();
     let signature = '';
     let stableSince = started;
-    while (!primaryBlocked && Date.now() - started < 8000) {
+    while (!blocked && Date.now() - started < 8000) {
       for (const frame of page.frames()) {
         const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
         if (!data) continue;
@@ -86,9 +109,10 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
     // Visit it only when the regular Library detail supplied no usable media.
     if (!structured.creatives.length && !best.creatives.length) {
       const renderUrl = `https://www.facebook.com/ads/archive/render_ad/?id=${encodeURIComponent(adId)}`;
-      await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => null);
+      const renderNavigation = await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => null);
+      blocked = blocked || await isBlockedPage(renderNavigation);
       const fallbackStarted = Date.now();
-      while (Date.now() - fallbackStarted < 4000 && !structured.creatives.length && !best.creatives.length) {
+      while (!blocked && Date.now() - fallbackStarted < 4000 && !structured.creatives.length && !best.creatives.length) {
         for (const frame of page.frames()) {
           const data = await frame.evaluate(inspectAdDocument, String(adId)).catch(() => null);
           if (!data) continue;
@@ -102,7 +126,8 @@ async function sniffSingleAd(browser, adId, supplied, { residential = false } = 
     }
     await Promise.race([Promise.allSettled([...reads]), page.waitForTimeout(1000)]);
     const selected = structured.creatives.length ? structured : best;
-    if (!selected.creatives.length && primaryBlocked) return mediaResult([], null, 'blocked');
+    if (!selected.creatives.length) blocked = blocked || await isBlockedPage(null);
+    if (!selected.creatives.length && blocked) return mediaResult([], null, 'blocked');
     return mediaResult(selected.creatives.map(c => ({ ...c,
       videoUrl: failedUrls.has(c.videoUrl) ? null : c.videoUrl,
       videoSources: c.videoSources.filter(url => !failedUrls.has(url)),
@@ -155,11 +180,14 @@ function createMediaSniffer(deps) {
           await acquire();
           try {
             const startedAt = Date.now();
-            const browser = await deps.getBrowser();
-            let value = await deps.sniffSingleAd(browser, id, ad.adSnapshotUrl);
+            let value = !forceRefresh && searchResponseMedia(id, ad.media);
+            if (!value) {
+              const browser = await deps.getBrowser();
+              value = await deps.sniffSingleAd(browser, id, ad.adSnapshotUrl);
+            }
 
             // Fallback to Browserless residential proxy only if primary browser was blocked by Meta
-            if (value.status === 'blocked' && deps.getFallbackBrowser) {
+            if (value.status === 'blocked' && deps.enableResidentialFallback && deps.getFallbackBrowser) {
               const fallbackStartedAt = Date.now();
               logger.warn('⚠️ Ad detail sniffing blocked on primary browser; falling back to Browserless residential proxy', {
                 adId: id,
@@ -223,6 +251,8 @@ function createMediaSniffer(deps) {
 }
 
 const sniffPageMedia = createMediaSniffer({ ...cache, getBrowser, getFallbackBrowser, sniffSingleAd,
+  enableResidentialFallback: process.env.MEDIA_SNIFF_RESIDENTIAL_FALLBACK === '1',
   concurrency: Number(process.env.MEDIA_SNIFF_CONCURRENCY) || 2 });
 module.exports = { sniffPageMedia, getBrowser, getFallbackBrowser, snapshotTarget, sniffSingleAd, createMediaSniffer,
+  searchResponseMedia,
   loadCache: () => Object.fromEntries(cache.memoryCache) };

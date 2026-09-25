@@ -25,7 +25,7 @@ const { sniffPageMedia, loadCache } = require('./lib/paginated_sniffer');
 const { browserConnectionMode, getSearchBrowser } = require('./lib/meta_browser_searcher');
 const { getCachedMediaBatch, saveMediaBatch } = require('./lib/firestore_cache');
 const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/media_storage');
-const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession, upsertCanonicalAds } = require('./lib/search_logger');
+const { logSearchSession, getRecentSearches, getSearchDiagnostics, getSearchSession, upsertCanonicalMedia } = require('./lib/search_logger');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
@@ -459,7 +459,7 @@ const server = http.createServer(async (req, res) => {
       await saveMediaBatch(mediaMap);
       // A later-page preview is just as durable as a first-page preview: update
       // its canonical Firestore ad record after the GCS object is persisted.
-      await upsertCanonicalAds(ads.map(ad => ({ ...ad, media: mediaMap[String(ad.id)] || ad.media })));
+      await upsertCanonicalMedia(ads.map(ad => ({ id: ad.id, media: mediaMap[String(ad.id)] || ad.media })));
 
       logger.info('Media sniffing batch completed', {
         resolvedCount: Object.keys(mediaMap).length,

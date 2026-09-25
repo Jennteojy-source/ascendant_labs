@@ -160,14 +160,21 @@
       clearTimeout(timer);
       status(text);
     }
+    function refreshFailedAsset() {
+      if (disposed || refreshing || typeof onRefresh !== 'function') return;
+      refreshing = true;
+      onRefresh();
+    }
     if (!creative) {
       stage.classList.add('media-empty');
       if (!media) {
         stage.classList.add('is-loading');
         stage.innerHTML = '<div class="media-empty-spinner"></div><span>Finding creative…</span>';
       } else {
+        stage.classList.add('media-unavailable');
         stage.classList.remove('is-loading');
-        stage.textContent = media.status === 'blocked' ? 'Meta blocked this preview.' : 'Preview unavailable';
+        stage.textContent = media.status === 'blocked'
+          ? 'Meta did not provide this ad image to the automated preview.' : 'Preview unavailable';
         if (/^\d{1,40}$/.test(String(options.adId || ''))) {
           const original = document.createElement('a');
           original.href = `https://www.facebook.com/ads/library/?id=${options.adId}`;
@@ -176,7 +183,7 @@
           original.textContent = 'View original ad ↗';
           stage.append(original);
         }
-        status('No preview available.');
+        status('');
       }
       return;
     }
@@ -210,6 +217,7 @@
         stage.replaceChildren();
         stage.classList.add('media-empty');
         stage.textContent = 'Preview unavailable';
+        refreshFailedAsset();
         return;
       }
       stage.classList.add('is-loading');
@@ -235,6 +243,7 @@
           stage.classList.add('media-empty');
           stage.textContent = 'Image unavailable';
           failed('Could not load this image.');
+          refreshFailedAsset();
         }
       };
       stage.replaceChildren(image);
@@ -243,6 +252,7 @@
         if (!disposed && !image.complete) {
           stage.classList.remove('is-loading');
           failed('Image is taking too long to load.');
+          refreshFailedAsset();
         }
       }, 25000);
     }

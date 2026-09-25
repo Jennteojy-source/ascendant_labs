@@ -96,17 +96,13 @@ test('expired image triggers one refresh and swaps in fresh media', async t => {
   assert.equal(await page.locator('#media-box-123 img').getAttribute('src'), image);
 });
 
-test('video failure retains poster, bounds automatic refresh, and allows explicit retry', async t => {
+test('video failure retains poster without an unnecessary refresh', async t => {
   let refreshes = 0;
   const media = mediaResult([{ videoUrl: 'https://video.xx.fbcdn.net/broken.mp4', thumbnailUrl: image }], 'structured');
   const page = await appPage(t, [ad('123', media)], async () => { refreshes++; return { '123': media }; });
-  await page.getByRole('button', { name: 'Retry preview' }).waitFor();
   await page.waitForFunction(() => document.querySelector('#media-box-123 img')?.naturalWidth === 400);
-  assert.equal(refreshes, 1);
+  assert.equal(refreshes, 0);
   assert.equal(await page.locator('#media-box-123 video').count(), 0);
-  await page.getByRole('button', { name: 'Retry preview' }).click();
-  await page.waitForFunction(() => document.querySelector('#media-box-123 .media-status')?.textContent.includes('You can retry'));
-  assert.equal(refreshes, 2);
 });
 
 test('blocked preview card displays graceful fallback without disappearing or repeated extraction', async t => {
@@ -115,10 +111,10 @@ test('blocked preview card displays graceful fallback without disappearing or re
     attempts++;
     return { '123': mediaResult([], null, 'blocked') };
   });
-  await page.waitForFunction(() => document.querySelector('#media-box-123')?.textContent.includes('Meta blocked this preview'));
+  await page.waitForFunction(() => document.querySelector('#media-box-123')?.textContent.includes('Meta did not provide this ad image'));
   assert.equal(attempts, 1);
   assert.equal(await page.locator('#ad-card-123').count(), 1);
-  assert.match(await page.locator('#media-box-123').innerText(), /Meta blocked this preview/);
+  assert.match(await page.locator('#media-box-123').innerText(), /Meta did not provide this ad image/);
   assert.match(await page.locator('#media-box-123').innerText(), /View original ad/);
 });
 

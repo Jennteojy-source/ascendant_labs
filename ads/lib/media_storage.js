@@ -106,14 +106,25 @@ async function storeSource(adId, sourceUrl, kind, deps = {}) {
 async function persistCreative(adId, creative, deps = {}) {
   const next = { ...creative };
   let stored = 0; let attempted = 0; let bytesDownloaded = 0;
-  const imageSource = [creative.thumbnailUrl, ...(creative.imageSources || [])]
-    .find(url => mediaUrl(url) || isStoredMediaUrl(url));
-  const videoSource = [creative.videoUrl, ...(creative.videoSources || [])]
-    .find(url => mediaUrl(url) || isStoredMediaUrl(url));
-  if (imageSource) {
+  const imageSources = [...new Set([creative.thumbnailUrl, ...(creative.imageSources || [])]
+    .filter(url => mediaUrl(url) || isStoredMediaUrl(url)))].slice(0, 4);
+  const videoSources = [...new Set([creative.videoUrl, ...(creative.videoSources || [])]
+    .filter(url => mediaUrl(url) || isStoredMediaUrl(url)))].slice(0, 4);
+  const saveFirstAvailable = async (sources, kind) => {
+    let lastError;
+    for (const source of sources) {
+      try { return await storeSource(adId, source, kind, deps); }
+      catch (error) {
+        lastError = error;
+        if (error.message === 'Media storage is unavailable') break;
+      }
+    }
+    throw lastError;
+  };
+  if (imageSources.length) {
     attempted++;
     try {
-      const saved = await storeSource(adId, imageSource, 'image', deps);
+      const saved = await saveFirstAvailable(imageSources, 'image');
       next.thumbnailUrl = saved.url;
       next.imageSources = [...new Set([saved.url, ...(creative.imageSources || []), creative.thumbnailUrl].filter(Boolean))];
       stored++; bytesDownloaded += saved.bytes;
@@ -122,10 +133,10 @@ async function persistCreative(adId, creative, deps = {}) {
         errorType: error.name || 'Error', reason: String(error.message || '').slice(0, 200) });
     }
   }
-  if (videoSource) {
+  if (videoSources.length) {
     attempted++;
     try {
-      const saved = await storeSource(adId, videoSource, 'video', deps);
+      const saved = await saveFirstAvailable(videoSources, 'video');
       next.videoUrl = saved.url;
       next.videoSources = [...new Set([saved.url, ...(creative.videoSources || []), creative.videoUrl].filter(Boolean))];
       stored++; bytesDownloaded += saved.bytes;

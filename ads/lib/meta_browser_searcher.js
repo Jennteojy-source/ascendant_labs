@@ -209,6 +209,16 @@ function normalizePayloadAd(object) {
   const stop = first(object, ['end_date', 'endDate', 'ad_delivery_stop_time', 'adDeliveryStopTime']);
   const platforms = first(object, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms'])
     || first(snapshot, ['publisher_platform', 'publisher_platforms', 'publisherPlatforms']);
+  const perAd = keys => {
+    for (const source of [object, snapshot]) {
+      for (const key of keys) {
+        const value = source?.[key];
+        if (Array.isArray(value) && value.length) return value;
+        if (value && !Array.isArray(value)) return [value];
+      }
+    }
+    return [];
+  };
   const media = extractStructuredMedia(object, id);
   return {
     id,
@@ -225,6 +235,11 @@ function normalizePayloadAd(object) {
     ad_creative_link_descriptions: descriptions,
     publisher_platforms: asTextArray(platforms).map(value => value.toLowerCase()),
     languages: asTextArray(first(object, ['languages', 'language'])),
+    reached_countries: perAd(['reached_countries', 'reachedCountries', 'ad_reached_countries', 'adReachedCountries']),
+    target_countries: perAd(['target_countries', 'targetCountries']),
+    target_locations: perAd(['target_locations', 'targetLocations']),
+    targeted_or_reached_countries: perAd(['targeted_or_reached_countries', 'targetedOrReachedCountries']),
+    age_country_gender_reach_breakdown: perAd(['age_country_gender_reach_breakdown', 'ageCountryGenderReachBreakdown']),
     eu_total_reach: first(object, ['eu_total_reach', 'euTotalReach']),
     impressions: first(object, ['impressions']),
     spend: first(object, ['spend']),
@@ -265,6 +280,14 @@ function extractAdsFromPayload(payload) {
 function extractAdsFromDocument() {
   const results = [];
   const idsIn = node => [...new Set([...(node.innerText || '').matchAll(/(?:Library ID|Ad ID):\s*(\d+)/gi)].map(m => m[1]))];
+  const creativeImage = image => {
+    const rect = image.getBoundingClientRect();
+    const src = image.currentSrc || image.src || '';
+    return rect.width >= 120 && rect.height >= 100
+      && /https:\/\/[^/]*\.(?:fbcdn\.net|fbsbx\.com)\//i.test(src)
+      && !/(?:s60x60|s150x150|s206x206|p50x50|p100x100|profile_pic|t51\.82787|_8nqq)/i.test(src)
+      && !/profile|avatar|logo/i.test(image.alt || '');
+  };
   const leaves = [...document.querySelectorAll('span, div')].filter(node => node.childElementCount === 0
     && /^(?:Library ID|Ad ID):\s*\d+$/i.test((node.innerText || '').trim()));
   const seen = new Set();
@@ -276,7 +299,8 @@ function extractAdsFromDocument() {
       const ids = idsIn(node);
       if (ids.some(other => other !== id)) break;
       // The nearest complete card keeps navigation and neighbouring ads out of copy.
-      if ((node.innerText || '').length >= 60 && node.querySelector('a[href], img, video')) {
+      if ((node.innerText || '').length >= 60
+          && (node.querySelector('video') || [...node.querySelectorAll('img')].some(creativeImage))) {
         root = node; break;
       }
     }
@@ -321,10 +345,13 @@ function extractAdsFromDocument() {
       videoSources: [...video.querySelectorAll('source')].map(source => source.src),
       thumbnailUrl: video.poster, width: video.videoWidth, height: video.videoHeight,
     }));
-    const images = [...root.querySelectorAll('img')].map(image => ({
+    // Search deliberately aborts image downloads. Use the rendered slot and
+    // ad-scoped URL rather than naturalWidth, which stays zero in that case.
+    const images = [...root.querySelectorAll('img')].filter(creativeImage).map(image => ({
       mediaType: 'image', thumbnailUrl: image.currentSrc || image.src,
-      width: image.naturalWidth, height: image.naturalHeight,
-    })).filter(image => image.width >= 150 && image.height >= 100);
+      width: image.naturalWidth || Math.round(image.getBoundingClientRect().width),
+      height: image.naturalHeight || Math.round(image.getBoundingClientRect().height),
+    }));
     const cta = [...root.querySelectorAll('a, button, [role="button"]')]
       .map(node => (node.innerText || '').trim()).find(text => /^(shop now|learn more|order now|get offer|sign up|download|book now|apply now|contact us|subscribe|buy now|visit website)$/i.test(text));
     results.push({ id, pageName, startDate: startMatch?.[1]?.trim() || null, active,
@@ -342,7 +369,7 @@ function domAdToRecord(ad) {
     ad_snapshot_url: `https://www.facebook.com/ads/library/?id=${ad.id}`,
     ad_creative_bodies: asTextArray(ad.body), ad_creative_link_titles: asTextArray(ad.headline),
     ad_creative_link_captions: [], ad_creative_link_descriptions: [],
-    publisher_platforms: ['facebook', 'instagram'], languages: [],
+    publisher_platforms: [], languages: [],
     browserMedia: media.status === 'ready' ? media : null,
   };
 }

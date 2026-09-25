@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { extractStructuredMedia, isAvatarUrl, destinationUrl, mediaResult } = require('../lib/media_resolver');
 const { normalizeCacheEntry } = require('../lib/firestore_cache');
-const { snapshotTarget, createMediaSniffer } = require('../lib/paginated_sniffer');
+const { snapshotTarget, searchResponseMedia, createMediaSniffer } = require('../lib/paginated_sniffer');
 const { fetchAllowedMedia, objectName, persistMedia, publicMediaUrl } = require('../lib/media_storage');
 const image = 'https://scontent.xx.fbcdn.net/v/t51.2885-15/creative.jpg';
 const video = 'https://video.xx.fbcdn.net/creative.mp4';
@@ -58,6 +58,19 @@ test('snapshot navigation is constrained to the requested ad on Meta', () => {
   assert.equal(snapshotTarget('123', 'https://www.facebook.com.evil.example/ads/library/?id=123'), null);
   assert.equal(snapshotTarget('123', 'http://127.0.0.1/ads/library/?id=123'), null);
   assert.equal(snapshotTarget('123', 'https://www.facebook.com/ads/library/?id=123'), 'https://www.facebook.com/ads/library/?id=123');
+});
+
+test('search response media bypasses a blocked detail page and rejects foreign stored paths', async () => {
+  const videoCreative = mediaResult([{ videoUrl: video, thumbnailUrl: image }], 'structured');
+  const sniff = createMediaSniffer({ concurrency: 1, getCachedMediaBatch: async () => ({}),
+    saveMediaBatch: async () => {},
+    getBrowser: async () => { throw new Error('detail browser should not open'); },
+    sniffSingleAd: async () => { throw new Error('detail page should not open'); } });
+  const result = (await sniff([{ id: '123', media: videoCreative }]))['123'];
+  assert.equal(result.status, 'ready');
+  assert.equal(result.source, 'search_response');
+  assert.equal(result.videoUrl, video);
+  assert.equal(searchResponseMedia('123', { thumbnailUrl: `/api/media/999/${'a'.repeat(64)}.jpg` }), null);
 });
 
 test('simultaneous requests share an ad extraction and the process-wide concurrency budget', async () => {
@@ -120,6 +133,23 @@ test('media ingestion validates bytes and replaces expiring CDN URLs with stable
   assert.match(durable.thumbnailUrl, /^\/api\/media\/123\/[a-f0-9]{64}\.jpg$/);
   assert.equal(saved.length, 1);
   assert.equal(saved[0].options.metadata.cacheControl, 'public, max-age=31536000, immutable');
+});
+
+test('media ingestion tries a second CDN variant when the first has expired', async () => {
+  const alternate = 'https://scontent.xx.fbcdn.net/alternate.jpg';
+  const requested = [];
+  const bucket = { file: () => ({ exists: async () => [false], save: async () => {} }) };
+  const fetch = async url => {
+    requested.push(url);
+    return url === image
+      ? new Response('expired', { status: 403 })
+      : new Response(Buffer.from('jpeg data'), { status: 200, headers: { 'content-type': 'image/jpeg' } });
+  };
+  const result = await persistMedia('123', mediaResult([{ thumbnailUrl: image,
+    imageSources: [image, alternate] }], 'structured'), { bucket, fetch });
+  assert.deepEqual(requested, [image, alternate]);
+  assert.equal(result.storageStatus, 'ready');
+  assert.match(result.thumbnailUrl, /^\/api\/media\/123\//);
 });
 
 test('deduplicates multiple resized resolutions of the same image asset', () => {
