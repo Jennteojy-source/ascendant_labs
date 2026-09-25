@@ -178,7 +178,11 @@ async function findComparables(searchPlan = {}, options = {}) {
     attempted.push(key);
     collectResult(vector, seeded.result);
   }
-  await runPlanned(retrievalPlan[0]);
+  const initialBatch = [retrievalPlan[0]];
+  if (retrievalPlan[1] && ['COMPOUND_BRAND', 'CANONICAL_NAME'].includes(retrievalPlan[1].type)) {
+    initialBatch.push(retrievalPlan[1]);
+  }
+  await Promise.all(initialBatch.map(runPlanned));
   const relevantCount = () => typeof isRelevantCandidate === 'function'
     ? [...rawAdsMap.values()].filter(isRelevantCandidate).length : rawAdsMap.size;
   while (relevantCount() < minRecall && attempted.length < maxQueries && Date.now() - startedAt < deadlineMs) {

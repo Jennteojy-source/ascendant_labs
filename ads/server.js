@@ -179,8 +179,8 @@ const server = http.createServer(async (req, res) => {
       const userAgent = req.headers['user-agent'];
       const searchParams = { countries, status, mediaType, page, pageSize };
       // Firebase Hosting has a strict 60s hard timeout on rewrites.
-      // Bound the entire search pipeline to 40s so the response is guaranteed to return < 45s.
-      const SEARCH_MAX_BUDGET_MS = Math.min(42000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 40000);
+      // Bound the entire search pipeline to 28s so the response is guaranteed to return <= 30s.
+      const SEARCH_MAX_BUDGET_MS = Math.min(28000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 26000);
       const searchDeadlineMs = searchStartTime + SEARCH_MAX_BUDGET_MS;
       let rankedAds = null;
       let queryProfile = null;
@@ -222,11 +222,11 @@ const server = http.createServer(async (req, res) => {
             mediaType,
             limitPerVector: 25,
             // Goal-driven retrieval: broaden or pivot only when recall is sparse
-            minRecall: Number(process.env.SEARCH_MIN_RECALL) || 5,
-            maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 5,
+            minRecall: Number(process.env.SEARCH_MIN_RECALL) || 3,
+            maxQueries: Number(process.env.SEARCH_MAX_RETRIEVAL_QUERIES) || 4,
             deadlineMs: Math.max(5000, Math.min(
-              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 28000,
-              searchDeadlineMs - Date.now() - 8000)),
+              Number(process.env.SEARCH_RETRIEVAL_DEADLINE_MS) || 16000,
+              searchDeadlineMs - Date.now() - 6000)),
             nextQueries: context => decideNextSearch({ input: trimmedInput, profile: queryProfile, ...context }),
             isRelevantCandidate: ad => matchesProductIdentity(ad, queryProfile, trimmedInput),
             enableAgenticLoop: false,
