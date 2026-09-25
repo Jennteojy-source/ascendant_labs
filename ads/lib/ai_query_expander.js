@@ -46,12 +46,16 @@ function sanitizeSearchVectors(brandName, vectors = [], options = {}) {
   const targetCountry = options.targetCountry || 'ALL';
   const defaultCountries = targetCountry && targetCountry !== 'ALL' ? [targetCountry] : ['ALL'];
 
+  const compoundFromVectors = vectors.find(v => v && v.type === 'COMPOUND_BRAND');
+  const restVectors = vectors.filter(v => !v || v.type !== 'COMPOUND_BRAND');
+
   const candidates = [
     { type: 'EXACT_BRAND', query: options.originalQuery || brand, countries: defaultCountries },
+    ...(compoundFromVectors ? [compoundFromVectors] : []),
     ...(options.originalQuery && compact(options.originalQuery) !== compact(brand)
       ? [{ type: 'CANONICAL_NAME', query: brand, countries: defaultCountries }] : []),
     ...(targetCountry !== 'ALL' ? [{ type: 'GLOBAL_BRAND', query: brand, countries: ['ALL'] }] : []),
-    ...vectors,
+    ...restVectors,
   ];
 
   for (const vector of candidates) {
