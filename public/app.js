@@ -174,6 +174,9 @@ async function executeSearch(targetInput, page = 1) {
   if (searchInFlight) return;
   searchInFlight = true;
   resetMediaSession();
+  state.rawRankedAds = [];
+  state.sourceAdsFound = 0;
+  adGrid.innerHTML = '';
   state.searchId = null;
   const searchRunId = document.getElementById('searchRunId');
   if (searchRunId) searchRunId.hidden = true;
