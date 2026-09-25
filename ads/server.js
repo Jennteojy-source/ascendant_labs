@@ -16,6 +16,7 @@ require('./lib/local_env').loadLocalEnv();
 
 const { profilePDP } = require('./lib/pdp_profiler');
 const { expandQueryWithAI } = require('./lib/ai_query_expander');
+const { detectClientLocation } = require('./lib/geo_detector');
 const { decideNextSearch } = require('./lib/ai_retrieval_agent');
 const { findComparables, queryMetaArchive } = require('./lib/comparable_finder');
 const { deduplicateAndRankAds, paginateAds } = require('./lib/ad_ranker');
@@ -168,6 +169,7 @@ const server = http.createServer(async (req, res) => {
         mediaType = 'ALL',
         page = 1,
         pageSize = 10,
+        clientContext = {},
       } = body;
 
       if (!input) {
@@ -177,7 +179,11 @@ const server = http.createServer(async (req, res) => {
       const trimmedInput = (input || '').trim();
       const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
       const userAgent = req.headers['user-agent'];
-      const searchParams = { countries, status, mediaType, page, pageSize };
+      const clientLocation = detectClientLocation(req, clientContext);
+      const searchParams = {
+        countries, status, mediaType, page, pageSize,
+        userCountry: clientLocation?.country || null,
+      };
       // Firebase Hosting has a strict 60s hard timeout on rewrites.
       // Bound the entire search pipeline to 28s so the response is guaranteed to return <= 30s.
       const SEARCH_MAX_BUDGET_MS = Math.min(28000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 26000);
@@ -195,20 +201,22 @@ const server = http.createServer(async (req, res) => {
         {
           // ─── Stage 1: AI Query Expansion ───────────────────────────
           const expansionStarted = Date.now();
-          queryProfile = await expandQueryWithAI(trimmedInput);
+          queryProfile = await expandQueryWithAI(trimmedInput, { clientLocation });
           pipeline.stages.queryExpansionMs = Date.now() - expansionStarted;
 
           const searchVectors = queryProfile.searchVectors;
           const targetBrand = queryProfile.brandName;
-          const targetCountry = queryProfile.targetCountry;
-          const effectiveCountries = targetCountry ? [targetCountry] : countries;
+          const targetCountry = queryProfile.targetCountry || 'ALL';
+          const effectiveCountries = targetCountry !== 'ALL' ? [targetCountry] : countries;
           const coreKeywords = [queryProfile.coreProduct, ...(queryProfile.competitors || [])];
 
           logger.info('Stage 1 — AI Query Expansion complete', {
             searchId,
             input: trimmedInput,
             brandName: targetBrand,
-            targetCountry: targetCountry || 'ALL',
+            targetCountry,
+            detectedUserCountry: queryProfile.detectedUserCountry,
+            localizationRationale: queryProfile.localizationRationale,
             vectorCount: searchVectors.length,
             source: queryProfile.source,
           });

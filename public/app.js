@@ -264,6 +264,10 @@ async function executeSearch(targetInput, page = 1) {
         mediaType: 'ALL',
         page: 1,
         pageSize: 100,
+        clientContext: {
+          timeZone: Intl?.DateTimeFormat?.().resolvedOptions?.().timeZone || '',
+          language: navigator?.language || '',
+        },
         // Every submitted search is live; media remains separately durable in Storage.
         useCache: false,
       }),

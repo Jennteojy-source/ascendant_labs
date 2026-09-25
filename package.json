@@ -2,7 +2,7 @@
   "name": "ascendant-labs",
   "private": true,
   "scripts": {
-    "test": "node --test ads/tests/media.test.js ads/tests/search-logger.test.js ads/tests/parser-dedup.test.js ads/tests/ai-search.test.js",
+    "test": "node --test ads/tests/media.test.js ads/tests/search-logger.test.js ads/tests/parser-dedup.test.js ads/tests/ai-search.test.js ads/tests/geo-localization.test.js",
     "test:media": "node --test ads/tests/media.test.js",
     "ad:search": "node ads/agentic_ad_search.js",
     "ad:eval": "node ads/eval_search.js",
