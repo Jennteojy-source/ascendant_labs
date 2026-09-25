@@ -165,7 +165,7 @@ const server = http.createServer(async (req, res) => {
       const {
         input,
         countries = ['ALL'],
-        status = 'ACTIVE',
+        status = 'ALL',
         mediaType = 'ALL',
         page = 1,
         pageSize = 10,

@@ -94,7 +94,7 @@ async function createCollectorContext(browser, { residential = false } = {}) {
 
 function buildAdsLibrarySearchUrl(searchTerm, options = {}) {
   const countries = Array.isArray(options.countries) ? options.countries.filter(Boolean) : [];
-  const status = String(options.status || 'ACTIVE').toLowerCase() === 'all' ? 'all' : 'active';
+  const status = String(options.status || 'ALL').toLowerCase() === 'active' ? 'active' : 'all';
   const requestedMedia = String(options.mediaType || 'ALL').toLowerCase();
   const media = ['video', 'image', 'all'].includes(requestedMedia) ? requestedMedia : 'all';
   const searchType = String(options.searchType || 'keyword_unordered').toLowerCase() === 'keyword_exact_phrase'

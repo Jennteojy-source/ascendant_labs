@@ -27,7 +27,7 @@ const state = {
   resolvedMediaMap: {},   // adId -> { thumbnailUrl, videoUrl, mediaType }
   blockedAdIds: new Set(), // inaccessible Meta previews are not shown as creatives
   removedAdIds: new Set(), // ads removed or disabled by Meta (e.g. standards violations)
-  filterStatus: 'ACTIVE',  // Default to Active ads ('ACTIVE' | 'ALL')
+  filterStatus: 'ALL',     // Unified search for all ads (active ads ranked first)
 };
 
 function cleanCopy(text) {
@@ -150,26 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Status Filter Pills (Active Ads vs All Ads Archive)
-  const filterPills = document.querySelectorAll('#searchFilterPills .filter-pill');
-  filterPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      const targetStatus = pill.dataset.status || 'ACTIVE';
-      if (state.filterStatus === targetStatus) return;
-      state.filterStatus = targetStatus;
-      filterPills.forEach(p => {
-        const isCurrent = p === pill;
-        p.classList.toggle('active', isCurrent);
-        p.setAttribute('aria-checked', isCurrent ? 'true' : 'false');
-      });
-      const val = searchInput?.value?.trim();
-      if (val && !searchInFlight) {
-        executeSearch(val, 1);
-      } else if (state.rawRankedAds?.length) {
-        applyFiltersAndRender(1);
-      }
-    });
-  });
 
   // Pagination navigation
   prevPageBtn.addEventListener('click', () => {
@@ -283,7 +263,7 @@ async function executeSearch(targetInput, page = 1) {
       body: JSON.stringify({
         input: targetInput,
         countries: ['ALL'],
-        status: state.filterStatus || 'ACTIVE',
+        status: 'ALL',
         mediaType: 'ALL',
         page: 1,
         pageSize: 100,
@@ -372,7 +352,6 @@ function applyFiltersAndRender(targetPage = 1) {
     if (state.removedAdIds.has(id) || ad.isRemoved) return false;
     const media = currentMedia(ad);
     if (media?.status === 'removed' || media?.isRemoved) return false;
-    if (state.filterStatus === 'ACTIVE' && ad.stats && ad.stats.isActive === false) return false;
     return true;
   });
 
