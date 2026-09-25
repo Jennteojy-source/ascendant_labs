@@ -87,6 +87,16 @@ test('unified results search active ads first and preserve archive coverage', ()
   ]);
 });
 
+test('multiword unified search prioritizes product phrase over broad word matches', () => {
+  const plan = buildRetrievalPlan([
+    { type: 'EXACT_BRAND', query: 'Yu Sleep', countries: ['ALL'] },
+  ], 5, { includeArchive: true, precisePhrase: true });
+  assert.deepEqual(plan.slice(0, 2).map(item => [item.type, item.searchType, item.status]), [
+    ['EXACT_PHRASE', 'keyword_exact_phrase', 'ACTIVE'],
+    ['ARCHIVE_PHRASE', 'keyword_exact_phrase', 'ALL'],
+  ]);
+});
+
 test('active exact-product creative outranks an inactive long-running creative', async () => {
   const active = ad(1, 'ProDentim', 'ProDentim oral probiotic');
   const inactive = ad(2, 'ProDentim', 'ProDentim oral probiotic');

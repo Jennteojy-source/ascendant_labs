@@ -55,6 +55,16 @@ function buildRetrievalPlan(vectors = [], maxQueries = 4, options = {}) {
   const supplied = Array.isArray(vectors) ? vectors : [];
   const exact = supplied.find(vector => String(vector?.type).toUpperCase() === 'EXACT_BRAND') || supplied[0];
   const plan = [];
+  const multiwordPhrase = options.precisePhrase && exact &&
+    String(exact.query || '').trim().split(/\s+/).length > 1;
+  if (multiwordPhrase && options.includeArchive) {
+    add(plan, 'EXACT_PHRASE', exact.query, {
+      countries: exact.countries, searchType: 'keyword_exact_phrase', status: 'ACTIVE',
+    });
+    add(plan, 'ARCHIVE_PHRASE', exact.query, {
+      countries: exact.countries, searchType: 'keyword_exact_phrase', status: 'ALL',
+    });
+  }
   if (exact) add(plan, 'EXACT_BRAND', exact?.query, { countries: exact?.countries, pageId: exact?.pageId,
     status: options.includeArchive ? 'ACTIVE' : undefined });
   if (options.includeArchive && exact) {
@@ -62,7 +72,7 @@ function buildRetrievalPlan(vectors = [], maxQueries = 4, options = {}) {
       countries: exact.countries, pageId: exact.pageId, status: 'ALL',
     });
   }
-  if (options.precisePhrase && exact && String(exact.query || '').trim().split(/\s+/).length > 1) {
+  if (multiwordPhrase && !options.includeArchive) {
     add(plan, 'EXACT_PHRASE', exact.query, {
       countries: exact.countries, searchType: 'keyword_exact_phrase',
       status: options.includeArchive ? 'ACTIVE' : undefined,
@@ -200,7 +210,7 @@ async function findComparables(searchPlan = {}, options = {}) {
     collectResult(vector, seeded.result);
   }
   const initialBatch = [retrievalPlan[0]];
-  if (retrievalPlan[1] && ['ARCHIVE_EXACT', 'EXACT_PHRASE', 'COMPOUND_BRAND', 'CANONICAL_NAME'].includes(retrievalPlan[1].type)) {
+  if (retrievalPlan[1] && ['ARCHIVE_PHRASE', 'ARCHIVE_EXACT', 'EXACT_PHRASE', 'COMPOUND_BRAND', 'CANONICAL_NAME'].includes(retrievalPlan[1].type)) {
     initialBatch.push(retrievalPlan[1]);
   }
   await Promise.all(initialBatch.map(runPlanned));
