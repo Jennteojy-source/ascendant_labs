@@ -206,6 +206,7 @@ async function logSearchSession(sessionData = {}) {
     clientIp = null,
     userAgent = null,
     evaluation = null,
+    requirePersistence = false,
   } = sessionData;
 
   const trimmedQuery = (query || '').trim();
@@ -297,7 +298,7 @@ async function logSearchSession(sessionData = {}) {
 
   // 2. Save to Google Cloud Firestore
   const db = getFirestore();
-  if (db && firestoreAvailable !== false) {
+  if (db && (firestoreAvailable !== false || requirePersistence)) {
     try {
       const docRef = db.collection(COLLECTION_NAME).doc(id);
       await saveCanonicalAds(db, canonicalAds);
@@ -311,8 +312,11 @@ async function logSearchSession(sessionData = {}) {
     } catch (err) {
       console.warn('[SearchLogger] Firestore write notice (saved locally):', err.message);
       firestoreAvailable = false;
+      if (requirePersistence) throw err;
     }
   }
+
+  if (requirePersistence) throw new Error('Firestore is unavailable; search result was not persisted');
 
   return id;
 }
@@ -432,7 +436,7 @@ async function getSearchSession(id) {
   if (!id) return null;
 
   const db = getFirestore();
-  if (db && firestoreAvailable !== false) {
+  if (db) {
     try {
       const doc = await db.collection(COLLECTION_NAME).doc(id).get();
       if (doc.exists) {

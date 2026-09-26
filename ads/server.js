@@ -29,11 +29,13 @@ const { persistMediaBatch, storageStatus, streamStoredMedia } = require('./lib/m
 const { logSearchSession, createSearchId, recordSearchEvent, getRecentSearches, getSearchDiagnostics,
   getSearchSession, upsertCanonicalMedia } = require('./lib/search_logger');
 const { buildSearchEvaluation } = require('./lib/search_evaluation');
+const { SearchJobs, LeaseHeldError, SEARCH_ID } = require('./lib/search_jobs');
 const logger = require('./lib/gcp_logger');
 
 const PORT = process.env.PORT || 3050;
 const PUBLIC_DIR = path.resolve(__dirname, '../public');
 const WEB_DIR = fs.existsSync(PUBLIC_DIR) ? PUBLIC_DIR : path.resolve(__dirname, 'web');
+const searchJobs = new SearchJobs();
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -98,7 +100,13 @@ const server = http.createServer(async (req, res) => {
   // Structured GCP HTTP request logging
   res.on('finish', () => {
     const durationMs = Date.now() - startTime;
-    logger.logHttp(req, res.statusCode, durationMs);
+    logger.logHttp(req, res.statusCode, durationMs, { searchId: res.searchId || null });
+  });
+  res.on('close', () => {
+    if (!res.writableFinished) logger.warn('HTTP client disconnected before response completed', {
+      path: pathname, method: req.method, searchId: res.searchId || null,
+      durationMs: Date.now() - startTime,
+    });
   });
 
   // Handle CORS preflight
@@ -157,11 +165,67 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { profile });
     }
 
-    // 3. API Route: Multi-Vector Comparable Search
-    if (req.method === 'POST' && pathname === '/api/search') {
-      const searchStartTime = Date.now();
-      const searchId = createSearchId();
+    // A search is queued and observed through short requests. The expensive
+    // Meta/AI pipeline runs only on the Cloud Tasks worker request.
+    if (req.method === 'POST' && pathname === '/api/search-jobs') {
       const body = await readJsonBody(req);
+      if (!String(body.input || '').trim()) return sendJson(res, 400, { error: 'Missing "input" parameter' });
+      try {
+        const searchId = await searchJobs.create(body);
+        res.searchId = searchId;
+        logger.info('Search job queued', { searchId });
+        return sendJson(res, 202, { searchId, status: 'QUEUED' });
+      } catch (error) {
+        logger.error('Search job enqueue failed', { error: error.message });
+        return sendJson(res, 503, { error: 'Search could not be queued. Please retry.' });
+      }
+    }
+
+    const searchJobMatch = /^\/api\/search-jobs\/(search_\d{13}_[a-f0-9]{20})$/.exec(pathname);
+    if (req.method === 'GET' && searchJobMatch) {
+      res.searchId = searchJobMatch[1];
+      const job = await searchJobs.get(searchJobMatch[1]);
+      if (!job) return sendJson(res, 404, { error: 'Search job not found' });
+      return sendJson(res, 200, job);
+    }
+    const searchEventMatch = /^\/api\/search-jobs\/(search_\d{13}_[a-f0-9]{20})\/events$/.exec(pathname);
+    if (req.method === 'POST' && searchEventMatch) {
+      res.searchId = searchEventMatch[1];
+      const body = await readJsonBody(req);
+      try {
+        await searchJobs.clientEvent(searchEventMatch[1], body.type, body.elapsedMs);
+        logger.info('Search client event', { searchId: searchEventMatch[1], eventType: body.type,
+          elapsedMs: Number(body.elapsedMs) || 0 });
+        return sendJson(res, 200, { recorded: true });
+      } catch { return sendJson(res, 400, { error: 'Invalid search event' }); }
+    }
+
+    // 3. API Route: Multi-Vector Comparable Search
+    const workerRequest = req.method === 'POST' && pathname === '/api/search-worker';
+    if (req.method === 'POST' && (pathname === '/api/search' || workerRequest)) {
+      if (workerRequest) {
+        let authorized = false;
+        try { authorized = await searchJobs.verifyWorker(req); } catch { /* Invalid worker token. */ }
+        if (!authorized) return sendJson(res, 403, { error: 'Worker authentication required' });
+      }
+      const searchStartTime = Date.now();
+      const body = await readJsonBody(req);
+      if (workerRequest && !SEARCH_ID.test(body.searchId || '')) {
+        return sendJson(res, 400, { error: 'Invalid worker search ID' });
+      }
+      const searchId = workerRequest && SEARCH_ID.test(body.searchId || '')
+        ? body.searchId : createSearchId();
+      res.searchId = searchId;
+      let leaseToken = null;
+      if (workerRequest) {
+        try { leaseToken = await searchJobs.claim(searchId); }
+        catch (error) {
+          if (error instanceof LeaseHeldError) return sendJson(res, 503, { error: 'Search already running' });
+          throw error;
+        }
+        if (!leaseToken) return sendJson(res, 200, { searchId, status: 'ALREADY_COMPLETE' });
+        logger.info('Search worker started', { searchId });
+      }
       const {
         input,
         countries = ['ALL'],
@@ -185,9 +249,10 @@ const server = http.createServer(async (req, res) => {
         countries, status: requestedStatus, mediaType, page, pageSize,
         userCountry: clientLocation?.country || null,
       };
-      // Firebase Hosting has a strict 60s hard timeout on rewrites.
-      // Leave room below Firebase Hosting's 60-second rewrite limit for the AI judge.
-      const SEARCH_MAX_BUDGET_MS = Math.min(54000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 54000);
+      // Queued workers have a 110s task deadline. Direct legacy requests still
+      // stay below Firebase Hosting's 60s rewrite limit.
+      const SEARCH_MAX_BUDGET_MS = workerRequest ? 90000
+        : Math.min(54000, Number(process.env.SEARCH_TOTAL_BUDGET_MS) || 54000);
       const searchDeadlineMs = searchStartTime + SEARCH_MAX_BUDGET_MS;
       let rankedAds = null;
       let queryProfile = null;
@@ -195,6 +260,12 @@ const server = http.createServer(async (req, res) => {
       let deterministicAds = [];
       let rerankedAds = [];
       const pipeline = { startedAt: new Date(searchStartTime).toISOString(), stages: {} };
+      const updateJobStage = async stage => {
+        if (workerRequest) {
+          await searchJobs.stage(searchId, leaseToken, stage, pipeline.stages);
+          logger.info('Search worker stage', { searchId, stage, stageTimings: { ...pipeline.stages } });
+        }
+      };
 
       try {
         // A submitted search is always live. Media has its own durable cache,
@@ -204,6 +275,7 @@ const server = http.createServer(async (req, res) => {
           const expansionStarted = Date.now();
           queryProfile = await expandQueryWithAI(trimmedInput, { clientLocation });
           pipeline.stages.queryExpansionMs = Date.now() - expansionStarted;
+          await updateJobStage('retrieving_meta_ads');
 
           const searchVectors = queryProfile.searchVectors;
           const targetBrand = queryProfile.brandName;
@@ -245,6 +317,7 @@ const server = http.createServer(async (req, res) => {
           });
 
           pipeline.stages.discoveryMs = Date.now() - discoveryStarted;
+          await updateJobStage('ranking_ads');
 
           logger.info('Stage 2 — Agentic Ads Library search complete', {
             searchId,
@@ -291,6 +364,7 @@ const server = http.createServer(async (req, res) => {
           rankedAds = rankedAds.filter(ad => isSearchMatch(ad, evalProfile) &&
             (requestedStatus !== 'ACTIVE' || ad.stats?.isActive === true));
           pipeline.stages.rankingMs = Date.now() - rankingStarted;
+          await updateJobStage('preparing_results');
 
           logger.info('Stage 3 — AI ranking complete', {
             searchId,
@@ -357,7 +431,17 @@ const server = http.createServer(async (req, res) => {
           clientIp,
           userAgent,
           evaluation,
-        }).catch(err => console.warn('[Server] Log search notice:', err.message));
+          requirePersistence: workerRequest,
+        });
+
+        if (workerRequest) {
+          await searchJobs.complete(searchId, leaseToken, { status: 'SUCCEEDED',
+            resultCount: uniqueVisualAds.length, stageTimings: { ...pipeline.stages,
+              totalMs: Date.now() - searchStartTime } });
+          logger.info('Search worker completed', { searchId, resultCount: uniqueVisualAds.length,
+            totalMs: Date.now() - searchStartTime });
+          return sendJson(res, 200, { searchId, status: 'SUCCEEDED' });
+        }
 
         return sendJson(res, 200, {
           searchId,
@@ -413,6 +497,13 @@ const server = http.createServer(async (req, res) => {
             pipeline: { ...pipeline, totalMs: Date.now() - searchStartTime }, profile: queryProfile }),
         }).catch(logErr => console.warn('[Server] Log failed search notice:', logErr.message));
 
+        if (workerRequest) {
+          await searchJobs.complete(searchId, leaseToken, { status: 'FAILED',
+            error: isBlocked ? 'Meta blocked the search session' : String(err.message).slice(0, 240),
+            stageTimings: { ...pipeline.stages, totalMs: Date.now() - searchStartTime } });
+          return sendJson(res, 200, { searchId, status: 'FAILED' });
+        }
+
         return sendJson(res, isBlocked ? 403 : 500, {
           searchId,
           error: isBlocked
@@ -446,6 +537,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (pathname === '/api/replay-search' || pathname === '/api/replay')) {
       const id = parsedUrl.searchParams.get('id');
       if (!id) return sendJson(res, 400, { error: 'Missing "id" query parameter' });
+      res.searchId = id;
 
       const session = await getSearchSession(id);
       if (!session) return sendJson(res, 404, { error: `Search session "${id}" not found` });
@@ -474,6 +566,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         isReplay: true,
         id: session.id,
+        status: session.status,
+        errorMessage: session.errorMessage || null,
         query: session.query,
         profile: session.profile,
         paginated,

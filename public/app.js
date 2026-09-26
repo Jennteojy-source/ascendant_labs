@@ -192,7 +192,7 @@ async function executeSearch(targetInput, page = 1) {
   searchSubmitBtn.disabled = true;
   searchSubmitBtn.setAttribute('aria-busy', 'true');
 
-  // Staged progress remains visible while the server validates and archives media.
+  // These stages now follow the durable worker state returned by the server.
   const steps = [
     { label: 'Understanding your product...', detail: 'Building strict brand and product search vectors.', delay: 0 },
     { label: 'Searching live Meta ads...', detail: 'Collecting current campaigns from the public Ads Library.', delay: 2200 },
@@ -222,7 +222,6 @@ async function executeSearch(targetInput, page = 1) {
     loadingState.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  const stepTimers = [];
   const searchStartTime = Date.now();
   const elapsedInterval = setInterval(() => {
     const el = document.getElementById('loadingElapsed');
@@ -254,13 +253,8 @@ async function executeSearch(targetInput, page = 1) {
     if (fill) fill.style.width = `${Math.min(94, 8 + (stepIndex + 1) * (86 / steps.length))}%`;
   }
 
-  steps.forEach((s, i) => {
-    if (i === 0) return;
-    stepTimers.push(setTimeout(() => setActiveStep(i), s.delay));
-  });
-
   try {
-    const response = await fetch('/api/search', {
+    const response = await fetch('/api/search-jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -279,24 +273,58 @@ async function executeSearch(targetInput, page = 1) {
       }),
     });
 
-    const responseText = await response.text();
-    let data;
-    try { data = JSON.parse(responseText); }
-    catch {
-      const detail = response.ok
-        ? 'The search service returned an invalid response. Please retry.'
-        : `The search service is temporarily unavailable (${response.status}). Please retry.`;
-      throw new Error(detail);
+    const submitted = await response.json();
+    if (!response.ok) throw new Error(submitted.error || `Search could not be queued (${response.status})`);
+    if (!/^search_\d{13}_[a-f0-9]{20}$/.test(submitted.searchId || '')) {
+      throw new Error('Search service returned an invalid job ID.');
     }
-    if (searchGeneration === mediaGeneration && data.searchId) {
-      state.searchId = data.searchId;
+    const searchId = submitted.searchId;
+    const reportJobEvent = type => fetch(`/api/search-jobs/${encodeURIComponent(searchId)}/events`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+      body: JSON.stringify({ type, elapsedMs: Date.now() - searchStartTime }),
+    }).catch(() => {});
+    if (searchGeneration === mediaGeneration) {
+      state.searchId = searchId;
       if (searchRunId) {
-        searchRunId.textContent = `Search ID: ${state.searchId}`;
+        searchRunId.textContent = `Search ID: ${searchId}`;
         searchRunId.hidden = false;
       }
     }
-    if (!response.ok) throw new Error(data.error || `Search failed (${response.status})`);
-    if (data.error) throw new Error(data.error);
+    let job;
+    let pollFailures = 0;
+    const pollDeadline = Date.now() + 150000;
+    while (Date.now() < pollDeadline && searchGeneration === mediaGeneration) {
+      try {
+        const statusResponse = await fetch(`/api/search-jobs/${encodeURIComponent(searchId)}`,
+          { cache: 'no-store' });
+        if (!statusResponse.ok) throw new Error(`Job status unavailable (${statusResponse.status})`);
+        job = await statusResponse.json();
+        pollFailures = 0;
+      } catch (error) {
+        pollFailures++;
+        if (pollFailures >= 5) {
+          reportJobEvent('poll_failed');
+          throw new Error(`Connection to search status was lost. Search ID: ${searchId}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue;
+      }
+      if (job.status === 'SUCCEEDED') break;
+      if (job.status === 'FAILED') throw new Error(job.error || 'Search failed on the server.');
+      if (job.stage === 'retrieving_meta_ads') setActiveStep(1);
+      else if (job.stage === 'ranking_ads') setActiveStep(2);
+      else if (job.stage === 'preparing_results') setActiveStep(4);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    if (searchGeneration !== mediaGeneration) return;
+    if (job?.status !== 'SUCCEEDED') throw new Error(`Search exceeded its time limit. Search ID: ${searchId}`);
+    const resultResponse = await fetch(`/api/replay-search?id=${encodeURIComponent(searchId)}`,
+      { cache: 'no-store' });
+    if (!resultResponse.ok) throw new Error(`Completed search result unavailable (${resultResponse.status}). Search ID: ${searchId}`);
+    const result = await resultResponse.json();
+    if (!['SUCCESS', 'PARTIAL'].includes(result.status)) throw new Error(result.errorMessage || 'Search failed.');
+    const data = { queryProfile: result.profile,
+      paginated: { ...result.paginated, items: result.allAds || [] }, stats: result.stats };
     if (searchGeneration !== mediaGeneration) return;
 
     state.currentProfile = data.queryProfile;
@@ -326,6 +354,7 @@ async function executeSearch(targetInput, page = 1) {
     const fill = document.getElementById('pipelineMeterFill');
     if (fill) fill.style.width = '100%';
     applyFiltersAndRender(1);
+    reportJobEvent('result_rendered');
     fetchHealth();
   } catch (err) {
     loadingState.style.display = 'none';
@@ -337,7 +366,6 @@ async function executeSearch(targetInput, page = 1) {
       <button class="chip-btn" style="margin-top: 16px;" onclick="executeSearch(state.currentInput, 1)">Retry Search</button>
     `;
   } finally {
-    stepTimers.forEach(t => clearTimeout(t));
     clearInterval(elapsedInterval);
     searchInFlight = false;
     if (searchGeneration === mediaGeneration) searchSubmitBtn.disabled = false;
